@@ -1,0 +1,80 @@
+---
+# tasks file for kvm_provision
+- name: Ensure requirements in place
+  package:
+    name:
+      - python3-libvirt
+    state: present
+  become: yes
+- name: Get VMs list
+  community.libvirt.virt:
+    command: list_vms
+  register: existing_vms
+  changed_when: no
+- name: Create VM if not exists
+  block:
+  - name: Download, extract and verify image
+    block:
+    - name: Download base image
+      get_url:
+        url: "{{ base_image_url }}"
+        dest: "/tmp/{{ base_image_file }}"
+    - name: Unarchive downloaded file
+      block:
+      - name: unarchive with bunzip2
+        shell: "bunzip2 -kf /tmp/{{ base_image_file }}"
+        when: base_image_file is search('.bz2') and not(base_image_file is search('tar.bz2'))
+        register: unarchive_result
+      - name: Un-archive with generic unarchive
+        unarchive: 
+          src: "/tmp/{{ base_image_file }}"
+          dest: "/tmp/"
+        register: unarchive_result
+        when: unarchive_result is skipped
+    - name: Get checksum of image
+      stat:
+        path: "/tmp/{{ base_image_name }}"
+        checksum_algorithm: sha1
+        get_checksum: yes
+      register: shell_stat
+    - name: "on Failed checksum"
+      fail:
+        msg: "Chesum mismatch"
+      when: shell_stat.stat.checksum|string != base_image_sha
+  - name: Copy base image to libvirt directory
+    copy:
+      dest: "{{ libvirt_pool_dir }}/{{ vm_name }}.qcow2"
+      src: "/tmp/{{ base_image_name }}"
+      force: no
+      remote_src: yes 
+      mode: 0660
+    register: copy_results
+  - name: Configure the image
+    command: |
+      virt-customize -a {{ libvirt_pool_dir }}/{{ vm_name }}.qcow2 \
+      --hostname {{ vm_name }} \
+      --root-password password:{{ vm_root_pass }} \
+      --ssh-inject 'root:file:{{ ssh_key }}' \
+    when: copy_results is changed
+  - name: Define vm
+    community.libvirt.virt:
+      command: define
+      xml: "{{ lookup('template', arch + '.vm-template.xml.j2') }}"
+  when: "vm_name not in existing_vms.list_vms"
+- name: Ensure VM is started
+  community.libvirt.virt:
+    name: "{{ vm_name }}"
+    state: running
+  register: vm_start_results
+  until: "vm_start_results is success"
+  retries: 15
+  delay: 2
+
+- name: Ensure temporary files are deleted
+  file:
+    path: "/tmp/{{ base_image_file }}"
+    state: absent
+  file:
+    path: "/tmp/{{ base_image_name }}"
+    state: absent
+  when: cleanup_tmp | bool

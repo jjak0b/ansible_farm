@@ -1,0 +1,38 @@
+- name: Deploys VM based on cloud image
+  hosts: myhosts
+  gather_facts: yes
+  become: yes
+  vars:
+    pool_dir: "/var/lib/libvirt/images"
+    vm: virtual-square
+    vcpus: 2
+    ram_mb: 2048
+    cleanup: no
+    net: default
+    arch: x86_64
+    vm_root_pass: virtualsquare
+    ssh_pub_key: "/home/jacopo/.ssh/id_rsa.pub"
+    root_url: "http://www.cs.unibo.it/~renzo/virtualsquare/daily_brewed/daily/"
+    image_name: "debian-sid-v2-amd64-daily-20211110-822.qcow2"
+    image_sha: 93d42d559bd3edbdda6d3d8b3eb3b0565dc38299
+
+  tasks:
+    - name: KVM Provision role
+      include_role:
+        name: kvm_provision
+      vars:
+        vm_arch: "{{ arch }}"
+        libvirt_pool_dir: "{{ pool_dir }}"
+        vm_name: "{{ vm }}"
+        vm_vcpus: "{{ vcpus }}"
+        vm_ram_mb: "{{ ram_mb }}"
+        vm_net: "{{ net }}"
+        cleanup_tmp: "{{ cleanup }}"
+        ssh_key: "{{ ssh_pub_key }}"
+        base_image_file: "{{ image_name }}.bz2"
+        base_image_file_checksum: "{{ image_name }}.sha1sum"
+        base_image_name: "{{ image_name }}"
+        base_image_url: "{{ root_url }}{{ base_image_file }}"
+        base_image_checksum_url: "{{ root_url }}{{ base_image_file_checksum }}"
+        base_image_sha: "{{ image_sha }}"
+
