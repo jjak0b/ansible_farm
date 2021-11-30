@@ -3,15 +3,15 @@
   <memory unit='MiB'>{{ vm_ram_mb }}</memory>
   <vcpu placement='static'>{{ vm_vcpus }}</vcpu>
   <os>
-    <type arch='aarch64' machine='virt'>hvm</type>
+    <type arch='x86_64' machine='q35'>hvm</type>
     <boot dev='hd'/>
   </os>
   <cpu mode='host-model' check='none'/>
   <devices>
-    <emulator>/usr/bin/qemu-system-aarch64</emulator>
+    <emulator>/usr/bin/qemu-system-x86_64</emulator>
     <disk type='file' device='disk'>
       <driver name='qemu' type='qcow2'/>
-      <source file='{{ libvirt_pool_dir }}/{{ vm_name }}.qcow2'/>
+      <source file='{{ libvirt_pool_dir }}/{{ image_name }}'/>
       <target dev='vda' bus='virtio'/>
       <address type='pci' domain='0x0000' bus='0x05' slot='0x00' function='0x0'/>
     </disk>

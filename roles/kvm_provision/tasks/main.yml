@@ -17,41 +17,42 @@
     block:
     - name: Download base image
       get_url:
-        url: "{{ base_image_url }}"
-        dest: "/tmp/{{ base_image_file }}"
-    - name: Unarchive downloaded file
+        url: "{{ resource_url }}"
+        dest: "/tmp/{{ resource_name }}"
+    - name: Unarchive if the downloaded resource is not the our image
       block:
-      - name: unarchive with bunzip2
-        shell: "bunzip2 -kf /tmp/{{ base_image_file }}"
-        when: base_image_file is search('.bz2') and not(base_image_file is search('tar.bz2'))
-        register: unarchive_result
-      - name: Un-archive with generic unarchive
-        unarchive: 
-          src: "/tmp/{{ base_image_file }}"
-          dest: "/tmp/"
-        register: unarchive_result
-        when: unarchive_result is skipped
+        - name: unarchive with bunzip2
+          shell: "bunzip2 -kf /tmp/{{ resource_name }}"
+          when: resource_name is search('.bz2') and not(resource_name is search('tar.bz2'))
+          register: unarchive_result
+        - name: Un-archive with generic unarchive
+          unarchive: 
+            src: "/tmp/{{ resource_name }}"
+            dest: "/tmp/"
+          register: unarchive_result
+          when: unarchive_result is skipped
+      when: resource_name != image_name | bool
     - name: Get checksum of image
       stat:
-        path: "/tmp/{{ base_image_name }}"
-        checksum_algorithm: sha1
+        path: "/tmp/{{ image_name }}"
+        checksum_algorithm: "{{ resource_checksum_type }}"
         get_checksum: yes
       register: shell_stat
     - name: "on Failed checksum"
       fail:
-        msg: "Chesum mismatch"
-      when: shell_stat.stat.checksum|string != base_image_sha
+        msg: "Checksum mismatch"
+      when: shell_stat.stat.checksum|string != resource_checksum_value
   - name: Copy base image to libvirt directory
     copy:
-      dest: "{{ libvirt_pool_dir }}/{{ vm_name }}.qcow2"
-      src: "/tmp/{{ base_image_name }}"
+      dest: "{{ libvirt_pool_dir }}{{ image_name }}"
+      src: "/tmp/{{ image_name}}"
       force: no
       remote_src: yes 
       mode: 0660
     register: copy_results
   - name: Configure the image
     command: |
-      virt-customize -a {{ libvirt_pool_dir }}/{{ vm_name }}.qcow2 \
+      virt-customize -a {{ libvirt_pool_dir }}{{ image_name }} \
       --hostname {{ vm_name }} \
       --root-password password:{{ vm_root_pass }} \
       --ssh-inject 'root:file:{{ ssh_key }}' \
@@ -59,7 +60,7 @@
   - name: Define vm
     community.libvirt.virt:
       command: define
-      xml: "{{ lookup('template', arch + '.vm-template.xml.j2') }}"
+      xml: "{{ lookup('template', 'target/' + vm_arch + '.xml.j2' ) }}"
   when: "vm_name not in existing_vms.list_vms"
 - name: Ensure VM is started
   community.libvirt.virt:
@@ -72,9 +73,9 @@
 
 - name: Ensure temporary files are deleted
   file:
-    path: "/tmp/{{ base_image_file }}"
+    path: "{{ item }}"
     state: absent
-  file:
-    path: "/tmp/{{ base_image_name }}"
-    state: absent
+  with_items: 
+   - "/tmp/{{ resource_name }}"
+   - "/tmp/{{ image_name }}"
   when: cleanup_tmp | bool

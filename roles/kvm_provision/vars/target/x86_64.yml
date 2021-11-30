@@ -1,0 +1,33 @@
+---
+#  VM related vars
+vm_arch: "x86_64"
+libvirt_pool_dir: "/var/lib/libvirt/images/"
+vm_name: "virtual-square"
+vm_vcpus: 2
+vm_ram_mb: 2048
+vm_net: default
+vm_root_pass: virtualsquare
+# it should be imho "$HOME/.ssh/id_rsa.pub"
+ssh_key: "/home/jacopo/.ssh/id_rsa.pub"
+
+# Fetch urls and base resource name
+my_root_url: "https://www.cs.unibo.it/~renzo/virtualsquare/daily_brewed/monthly/"
+my_base_resource_name: "debian-sid-v2-amd64-daily-20211101-813"
+my_resource_checksum_value: e7b9ec6a98db04b7d92df7f30522895aa920ed37
+my_resource_checksum_type: "sha1"
+my_base_image_name: "{{ my_base_resource_name }}"
+
+# Fetch and install related vars 
+cleanup_tmp: no  
+# image name unarchived / processed
+image_name: "{{ my_base_image_name }}.qcow2"
+# resource name to fetch and eventually unarchive with it's resource checksum
+resource_name: "{{ my_base_resource_name }}.qcow2.bz2"
+resource_checksum_name: "{{ image_name }}.sha1sum"
+# fallback checksum value
+resource_checksum_value: "{{ my_resource_checksum_value }}"
+resource_checksum_type: "{{ my_resource_checksum_type }}"
+# Resources urls -
+resource_url: "{{ my_root_url }}{{ resource_name }}"
+resource_checksum_url: "{{ my_root_url }}{{ resource_checksum_name }}"
+    

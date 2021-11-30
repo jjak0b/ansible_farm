@@ -1,0 +1,55 @@
+---
+# defaults file for kvm_provision
+# architectures
+# We have different alias for same architecture name
+# so differ aliases based on where are used to
+
+# about ansible
+# ansible_architecture specify the host OS architecture e.g x86_64
+# ansible_machine specify the host architecture: e.g i386, i686
+# ansible_os_family specify the os family
+
+# about vm
+# vm_arch specify the architecture of vm to specify @ libvirt
+
+# about the distro used
+# image_arch specify the architecture of the distro to use (only for templating full url generally)
+
+
+
+#  VM related vars
+vm_arch: "x86_64"
+libvirt_pool_dir: "/var/lib/libvirt/images/"
+vm_name: "virtual-square"
+vm_vcpus: 2
+vm_ram_mb: 2048
+vm_net: default
+vm_root_pass: test123
+# it should be imho "$HOME/.ssh/id_rsa.pub"
+ssh_key: "/root/.ssh/id_rsa.pub"
+
+
+# Fetch urls and base resource name
+image_arch: "amd64"
+my_root_url: "https://cloud.debian.org/images/cloud/sid/daily/latest/"
+my_base_resource_name: "debian-sid-generic-{{ image_arch }}-daily"
+my_resource_checksum_value: ""
+my_resource_checksum_type: ""
+my_base_image_name: "{{ my_base_resource_name }}"
+
+
+
+# Fetch and install related vars 
+cleanup_tmp: no  
+# image name unarchived / processed
+image_name: "{{ my_base_image_name }}.qcow2"
+# resource name to fetch and eventually unarchive with it's resource checksum
+resource_name: "{{ my_base_resource_name }}.qcow2"
+# TODO: not supported
+resource_checksum_name: ""
+# fallback checksum value
+resource_checksum_value: my_resource_checksum_value
+resource_checksum_type: my_resource_checksum_type
+# Resources urls -
+resource_url: "{{ my_root_url }}{{ resource_name }}"
+resource_checksum_url: "{{ my_root_url }}{{ resource_checksum_name }}"
