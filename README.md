@@ -2,4 +2,4 @@
 
 run kvm provisioning:
 
-`ansible-playbook kvm_provision.yaml -K`
+`ansible-playbook main.yaml -K`
