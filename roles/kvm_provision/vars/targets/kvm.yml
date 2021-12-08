@@ -1,0 +1,6 @@
+vm:
+  virt_domain: kvm
+  arch: "{{ arch }}"
+  emulator: "/usr/bin/kvm"
+  machine: q35
+  

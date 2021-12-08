@@ -1,0 +1,35 @@
+---
+# vars:
+#   arch: The architecture
+#   platform: The platform source file
+
+- name: "Load VM architecture vars for {{ arch }}"
+  include_vars:
+    file: "{{ item }}"
+    name: settings_arch
+  with_first_found:
+    - "targets/{{ arch }}.yml"
+    - "targets/defaults.yml"
+
+- name: Load default VM platforms vars
+  include_vars:
+    file: platforms/defaults.yml
+    name: defaults_platform
+
+- name: "Load VM platform vars - {{ platform }}"
+  include_vars:
+    file: "platforms/{{ platform }}"
+    name: customs_platform
+
+- name: Merge VM configuration for architecture and platform
+  set_fact:
+    vm: "{{ settings_arch.vm | combine (defaults_platform.vm, customs_platform.vm, recursive=True) }}"
+
+- name: "debug"
+  debug:
+    var: vm
+
+- name: "Initialized VM - {{ vm.metadata.name }}"
+  set_fact:
+    virtual_machines: "{{ virtual_machines + [ vm ] }}"
+      

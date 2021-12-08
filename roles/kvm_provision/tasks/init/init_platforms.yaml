@@ -1,0 +1,9 @@
+---
+- name: "Init Platforms for {{ arch }}"
+
+  loop: "{{ platforms }}"
+
+  include_tasks: init_vm.yaml
+  
+  loop_control:
+    loop_var: platform

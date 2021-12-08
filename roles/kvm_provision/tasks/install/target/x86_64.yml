@@ -1,0 +1,8 @@
+---
+# Task file for x86_64 prerequisites
+- name: Ensure arch System components
+  package:
+    name:
+      - qemu-system-x86
+    state: present
+  become: yes

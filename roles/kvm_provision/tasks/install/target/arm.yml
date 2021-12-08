@@ -1,0 +1,8 @@
+---
+# Task file for arm - arm64 prerequisites
+- name: Ensure arch System components
+  package:
+    name:
+      - qemu-system-arm
+    state: present
+  become: yes

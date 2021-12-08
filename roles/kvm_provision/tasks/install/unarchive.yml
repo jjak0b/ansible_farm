@@ -1,0 +1,13 @@
+# unarchive task
+
+- name: unarchive with bunzip2
+  shell: "bunzip2 -kf {{vm.metadata.libvirt_pool_dir}}{{ source.resource_name }}"
+  when: resource_name is search('.bz2') and not(resource_name is search('tar.bz2'))
+  register: unarchive_result
+
+- name: Un-archive with generic unarchive
+  unarchive: 
+    src: "{{vm.metadata.libvirt_pool_dir}}{{ source.resource_name }}"
+    dest: "{{vm.metadata.libvirt_pool_dir}}"
+  register: unarchive_result
+  when: unarchive_result is skipped

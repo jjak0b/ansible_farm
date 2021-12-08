@@ -1,0 +1,38 @@
+
+---
+
+
+# TODO: find a way to evaluate these on jinja bracket while importing into variable 
+# my_root_url: "http://cdimage.debian.org/cdimage/cloud/sid/daily/latest/"
+# my_base_image_name: "debian-11-generic-{{ arch }}"
+
+vm:
+
+# metadata properties are used inside a task for installation and setup purposes #
+
+  metadata:
+    name: "{{ arch }} - debian sid"
+   # connection: "qemu:///session"
+    libvirt_pool_dir: "{{ansible_env.HOME}}/vms/images/"
+
+    import:
+      root_pass: "virtualsquare"
+    sources:
+   # - uri: "{{ my_root_url }}{{ my_base_image_name }}.qcow2"
+    - uri: "http://cdimage.debian.org/cdimage/cloud/sid/daily/latest/debian-sid-generic-{{ arch }}-daily.qcow2"
+      resource_name: &image_file_name "debian-sid-generic-{{ arch }}-daily.qcow2"
+      # checksum_uri: "{{ my_root_url }}{{ my_base_image_name }}.qcow2.sha1sum"
+      checksum_type: null
+      #  fallback checksum value
+      checksum_value: null
+      #  image name unarchived / processed
+      unarchived: *image_file_name
+  
+  #  Others properties are fully custom to templating a custom vm's xml  #
+
+  #  Some properties here, if needed, could override specific architecture values for all architectures  #
+  disks:
+  - type: "qcow2"
+    devname: "vda"
+    src: *image_file_name
+

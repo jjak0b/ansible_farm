@@ -1,5 +1,5 @@
-- name: Deploys VM based on cloud image
-  hosts: x8664_hosts
+- name: Deploys VM based on Host arch
+  hosts: kvm
   gather_facts: yes
   become: yes
 
@@ -7,6 +7,58 @@
     - name: KVM Provision role
       include_role:
         name: kvm_provision
-        vars_from: "target/{{ansible_architecture}}.yml"
-        # vars_from: "target/aarch64.yml"
+        vars:
+          architectures: [
+            "{{ ansible_architecture }}"
+          ]
+          platforms: platforms
+
+- name: Deploys VM based on arch to emulate on hosts
+  hosts: x86_64
+  gather_facts: yes
+  become: yes
+  
+  tasks:
+    - name: QEMU Provision role
+      include_role:
+        name: kvm_provision
+
+        architectures: item.architectures
+        platforms: item.platforms
+      loop: 
+        - {
+            architectures: [
+              "x86_64.yml",
+              "arm.yml"
+            ],
+            platforms: platforms
+        }
+
+- name: 2 - Deploys VM based on arch to emulate on hosts
+  hosts: x86_64
+  gather_facts: yes
+  become: yes
+  
+  tasks:
+  
+    
+    - name: QEMU Provision role
+      
+
+
+
+      
+      include_role:
+        name: kvm_provision
+        
+        architectures: item.architectures
+        platforms: item.platforms
+      loop: 
+        - {
+            architectures: [
+              "x86_64.yml",
+              "arm.yml"
+            ],
+            platforms: platforms
+        }
   

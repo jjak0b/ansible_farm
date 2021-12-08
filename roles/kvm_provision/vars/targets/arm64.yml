@@ -1,0 +1,7 @@
+vm:
+  virt_domain: qemu
+  arch: "aarch64"
+  emulator: "/usr/bin/qemu-system-aarch64"
+  cpu: cortex-a57
+  machine: virt
+  

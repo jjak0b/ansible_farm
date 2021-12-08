@@ -1,0 +1,31 @@
+
+vm:
+  # metadata properties are used inside a task for installation and setup purposes
+  metadata:
+    name: "{{ arch }} - my vm"
+    connection: "qemu:///system"
+    libvirt_pool_dir: "/var/lib/libvirt/images/"
+
+    import:
+      root_pass: ""
+      ssh_key: "{{ansible_env.HOME}}/.ssh/id_rsa.pub"
+    sources:
+    - uri: "myURI/myImage.qcow2.tar.gz"
+      checksum_uri: "myURI/myImage.qcow2.tar.gz.sha1sum"
+      checksum_type: "sha1"
+      # fallback checksum value
+      checksum_value: "onlyThisIsSupported"
+      # image name unarchived / processed
+      unarchived: &image_file_name "myImage.qcow2"
+    cleanup_tmp: no
+  # Others properties are fully custom to templating a custom vm's xml
+
+  # Some properties here, if needed, could override specific architecture values for all architectures
+  vcpus: 2
+  ram: 2048
+  net: default
+  disks:
+  - type: "raw"
+    devname: "hda"
+    src: *image_file_name
+

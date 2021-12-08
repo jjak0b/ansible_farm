@@ -1,0 +1,45 @@
+
+- name: "Install specific {{ vm.arch }} System components"
+  
+  # TODO: maybe this should use "with_first_found" with a regex for mathing files
+  include_tasks: "target/{{ vm.arch }}.yml"
+
+- name: Setup metadata
+
+  include_tasks: "install_metadata.yml"
+
+- name: Search for VM template
+
+  vars:
+    params:
+      files:
+    #   - "{{ vm.metadata.name }}.xml.j2"
+    #   - "{{ vm.arch }}.xml.j2"
+        - default.xml.j2
+      paths:
+        - templates
+  set_fact:
+    vm_xml: "{{ lookup('first_found', params ) }}"
+
+- name: "Define VM using {{ vm_xml }}"
+  community.libvirt.virt:
+    command: define
+    xml: "{{ lookup('template', vm_xml ) }}"
+    uri: "{{ vm.metadata.connection }}"
+
+- name: Ensure VM is started
+  community.libvirt.virt:
+    name: "{{ vm.metadata.name }}"
+    state: running
+  register: vm_start_results
+  until: "vm_start_results is success"
+  retries: 15
+  delay: 2
+
+- name: Ensure temporary files are deleted
+  file:
+    path: "{{ vm.metadata.libvirt_pool_dir }}{{ item.source.resource_name }}"
+    state: absent
+  with_items: 
+   - "{{ vm.metadata.sources }}"
+  when: vm.metadata.cleanup_tmp | bool

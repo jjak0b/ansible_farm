@@ -1,0 +1,8 @@
+vm:
+  virt_domain: qemu
+  arch: "x86_64"
+  emulator: "/usr/bin/qemu-system-x86_64"
+  cpu: qemu64
+  machine: q35
+  
+  

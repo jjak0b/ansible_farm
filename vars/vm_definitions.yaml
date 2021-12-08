@@ -1,0 +1,8 @@
+---
+architectures: [
+  "amd64",
+  "arm64"
+]
+platforms: [
+  "debian_sid.yml"
+]

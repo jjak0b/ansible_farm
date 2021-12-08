@@ -1,0 +1,17 @@
+---
+- name: Install common System components
+  package:
+    name:
+      - python3-libvirt
+    state: present
+  become: yes
+
+- name: "Install vm"
+  
+  loop: "{{ virtual_machines }}"
+
+  include_tasks: "install_vm.yml"
+
+  loop_control:
+    loop_var: vm
+

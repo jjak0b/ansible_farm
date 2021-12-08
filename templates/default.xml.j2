@@ -1,25 +1,38 @@
-<domain type='kvm'>
-  <name>{{ vm_name }}</name>
-  <memory unit='MiB'>{{ vm_ram_mb }}</memory>
-  <vcpu placement='static'>{{ vm_vcpus }}</vcpu>
+<domain type="{{ vm.virt_domain }}">
+
+  <name>{{ vm.metadata.name }}</name>
   <os>
-    <type arch='x86_64' machine='q35'>hvm</type>
+    <type arch="{{ vm.arch }}" machine="{{ vm.machine }}">hvm</type>
     <boot dev='hd'/>
   </os>
-  <cpu mode='host-model' check='none'/>
+  <memory unit='MiB'>{{ vm.ram }}</memory>
+
+  {% if vm.virt_domain == "kvm" %}
+    <cpu mode='host-model' check='none'/>
+  {% else %}
+    <cpu mode="custom" match="exact">
+      <model>{{ vm.cpu }}</model>
+    </cpu>
+    <vcpu placement='static'>{{ vm.vcpus }}</vcpu>
+  {% endif %}
+  
+  <clock sync="localtime"/>
   <devices>
-    <emulator>/usr/bin/qemu-system-x86_64</emulator>
+    <emulator>{{ vm.emulator }}</emulator>
+
+    {% for disk in vm.disks %}
     <disk type='file' device='disk'>
-      <driver name='qemu' type='qcow2'/>
-      <source file='{{ libvirt_pool_dir }}/{{ image_name }}'/>
-      <target dev='vda' bus='virtio'/>
+      <driver name='qemu' type="{{ disk.type }}"/>
+      <source file="{{ vm.metadata.libvirt_pool_dir }}{{ disk.src }}"/>
+      <target dev="{{ disk.devname }}" bus='virtio'/>
       <address type='pci' domain='0x0000' bus='0x05' slot='0x00' function='0x0'/>
     </disk>
+    {% endfor %}
+
     <interface type='network'>
-      <source network='{{ vm_net }}'/>
-      <model type='virtio'/>
-      <address type='pci' domain='0x0000' bus='0x01' slot='0x00' function='0x0'/>
+      <source network="{{ vm.net }}"/>
     </interface>
+    
     <channel type='unix'>
       <target type='virtio' name='org.qemu.guest_agent.0'/>
       <address type='virtio-serial' controller='0' bus='0' port='1'/>
@@ -28,9 +41,6 @@
       <target type='virtio' name='com.redhat.spice.0'/>
       <address type='virtio-serial' controller='0' bus='0' port='2'/>
     </channel>
-    <input type='tablet' bus='usb'>
-      <address type='usb' bus='0' port='1'/>
-    </input>
     <input type='mouse' bus='ps2'/>
     <input type='keyboard' bus='ps2'/>
     <graphics type='spice' autoport='yes'>
@@ -38,7 +48,7 @@
       <image compression='off'/>
     </graphics>
     <video>
-      <model type='qxl' ram='65536' vram='65536' vgamem='16384' heads='1' primary='yes'/>
+      <model type="virtio" heads="1" primary="yes"/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x0'/>
     </video>
     <memballoon model='virtio'>
@@ -48,5 +58,6 @@
       <backend model='random'>/dev/urandom</backend>
       <address type='pci' domain='0x0000' bus='0x07' slot='0x00' function='0x0'/>
     </rng>
+
   </devices>
 </domain>

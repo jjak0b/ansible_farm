@@ -1,0 +1,15 @@
+---
+
+- name: Init vms vars
+  set_fact:
+    virtual_machines: []
+  
+- name: "Init vms"
+  include_tasks: init/init.yaml
+
+ # - name: Set up platform based on which architectures should emulate
+ # include_tasks: install/install.yml
+
+- name: Install Virtual Machines
+
+  include_tasks: install/install.yml
