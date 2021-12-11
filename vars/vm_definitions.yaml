@@ -1,8 +1,13 @@
 ---
-architectures: [
-  "amd64",
-  "arm64"
-]
-platforms: [
-  "debian_sid.yml"
-]
+
+combine:
+  architectures:
+    - "amd64"
+    - "arm64"
+  platforms:
+    - "debian_sid.yml"
+combinations:
+  - platform: "debian_sid.yml"
+    architecture: "amd64"
+  - platform: "debian_sid.yml"
+    architecture: "arm64"

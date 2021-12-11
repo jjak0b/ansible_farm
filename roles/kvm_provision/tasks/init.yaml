@@ -1,0 +1,21 @@
+---
+
+- name: Init vms vars list
+  set_fact:
+    virtual_machines: []
+    combine: "{{ definitions.combine }}"
+    combinations: "{{ definitions.combinations }}"
+
+- name: Init all vms combinations
+  include_tasks: init/init_architectures.yaml
+  when: combine is defined
+
+- name: "Init all definitions of vms list"
+
+  loop: "{{ combinations }}"
+
+  include_tasks: init/init_vm_from_definition.yaml
+
+  loop_control:
+    loop_var: vm_definition
+  when: combinations is defined

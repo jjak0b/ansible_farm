@@ -27,15 +27,6 @@
     xml: "{{ lookup('template', vm_xml ) }}"
     uri: "{{ vm.metadata.connection }}"
 
-- name: Ensure VM is started
-  community.libvirt.virt:
-    name: "{{ vm.metadata.name }}"
-    state: running
-  register: vm_start_results
-  until: "vm_start_results is success"
-  retries: 15
-  delay: 2
-
 - name: Ensure temporary files are deleted
   file:
     path: "{{ vm.metadata.libvirt_pool_dir }}{{ item.source.resource_name }}"

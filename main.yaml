@@ -10,8 +10,9 @@
  #   include_tasks: kvm_provision
 
   - name: Loading vm definitions
-    include_vars: vm_definitions.yaml
-
+    include_vars:
+      file: vm_definitions.yaml
+      name: definitions
   - name: QEMU Provision role
     include_role:
       name: kvm_provision

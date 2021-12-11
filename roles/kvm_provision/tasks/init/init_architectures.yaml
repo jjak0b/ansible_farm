@@ -1,0 +1,14 @@
+---
+
+- name: "Debug"
+  debug:
+    msg: "{{ combine }}"
+    
+- name: Setup All combinations of platforms for each architecture from definitions
+
+  loop: "{{ combine.architectures }}"
+
+  include_tasks: init_platforms.yaml
+
+  loop_control:
+    loop_var: arch

@@ -1,15 +1,15 @@
 ---
 
-- name: Init vms vars
-  set_fact:
-    virtual_machines: []
+- name: Init virtual machines definitions
+  include_tasks: init.yaml
+
+- name: "Install Common Prerequisites"
+  include_tasks: install/install_shared.yml
+
+- name: Run Virtual Machines lifecycle
+  loop: "{{ virtual_machines }}"
+
+  include_tasks: vm.yml
   
-- name: "Init vms"
-  include_tasks: init/init.yaml
-
- # - name: Set up platform based on which architectures should emulate
- # include_tasks: install/install.yml
-
-- name: Install Virtual Machines
-
-  include_tasks: install/install.yml
+  loop_control:
+    loop_var: vm

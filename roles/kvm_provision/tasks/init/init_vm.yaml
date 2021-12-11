@@ -27,13 +27,8 @@
 
 - name: Merge VM configuration for architecture and platform
   set_fact:
-    vm: "{{ settings_arch.vm | combine (defaults_platform.vm, customs_platform.vm, recursive=True) }}"
-
-- name: "debug"
-  debug:
-    var: vm
+    a_vm: "{{ settings_arch.vm | combine (defaults_platform.vm, customs_platform.vm, recursive=True) }}"
 
 - name: "Initialized VM - {{ vm.metadata.name }}"
   set_fact:
-    virtual_machines: "{{ virtual_machines + [ vm ] }}"
-      
+    virtual_machines: "{{ virtual_machines + [ a_vm ] }}"

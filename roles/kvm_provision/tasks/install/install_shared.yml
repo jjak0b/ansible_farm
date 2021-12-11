@@ -1,0 +1,7 @@
+---
+- name: Install common System components
+  package:
+    name:
+      - python3-libvirt
+    state: present
+  become: yes

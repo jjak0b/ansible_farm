@@ -1,0 +1,17 @@
+---
+- name: "VM Main lifecycle: {{ vm.metadata.name }}"
+  debug:
+    var: vm
+
+- name: Install VM
+  include_tasks: install/install_vm.yml
+
+- name: Ensure VM is started
+  community.libvirt.virt:
+    name: "{{ vm.metadata.name }}"
+    state: running
+  register: vm_start_results
+  until: "vm_start_results is success"
+  retries: 15
+  delay: 2
+  
