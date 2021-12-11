@@ -11,6 +11,10 @@
     - "targets/{{ arch }}.yml"
     - "targets/defaults.yml"
 
+- name: "Share arch_name alias with {{ platform }} vars"
+  set_fact:
+    arch_name: "{{ settings_arch.vm.metadata.arch_name }}"
+
 - name: Load default VM platforms vars
   include_vars:
     file: platforms/defaults.yml

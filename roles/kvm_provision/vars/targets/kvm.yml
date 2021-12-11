@@ -1,4 +1,6 @@
 vm:
+  metadata:
+    arch_name: "{{ ansible_architecture }}"
   virt_domain: kvm
   arch: "{{ arch }}"
   emulator: "/usr/bin/kvm"

@@ -1,4 +1,6 @@
 vm:
+  metadata:
+    arch_name: "amd64"
   virt_domain: qemu
   arch: "x86_64"
   emulator: "/usr/bin/qemu-system-x86_64"

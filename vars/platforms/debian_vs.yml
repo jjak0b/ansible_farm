@@ -1,12 +1,12 @@
 
 # Fetch urls and base resource name
 my_root_url : "https://www.cs.unibo.it/~renzo/virtualsquare/daily_brewed/monthly/"
-my_base_image_name: "debian-sid-v2-amd64-daily-20211101-813"
+my_base_image_name: "debian-sid-v2-{{ arch_name }}-daily-20211101-813"
 
 vm:
   # metadata properties are used inside a task for installation and setup purposes
   metadata:
-    name: "{{ arch }} - debian with virtualsquare pkgs"
+    name: "{{ arch_name }} - debian with virtualsquare pkgs"
    # connection: "qemu:///session"
     libvirt_pool_dir: "{{ansible_env.HOME}}/vms/images/"
 

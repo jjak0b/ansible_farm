@@ -2,7 +2,7 @@
 vm:
   # metadata properties are used inside a task for installation and setup purposes
   metadata:
-    name: "{{ arch }} - my vm"
+    name: "{{ arch_name }} - my vm"
     connection: "qemu:///system"
     libvirt_pool_dir: "/var/lib/libvirt/images/"
 
@@ -10,7 +10,7 @@ vm:
       root_pass: ""
       ssh_key: "{{ansible_env.HOME}}/.ssh/id_rsa.pub"
     sources:
-    - uri: "myURI/myImage.qcow2.tar.gz"
+    - uri: "myURI/myImage-{{ arch_name }}.qcow2.tar.gz"
       checksum_uri: "myURI/myImage.qcow2.tar.gz.sha1sum"
       checksum_type: "sha1"
       # fallback checksum value
