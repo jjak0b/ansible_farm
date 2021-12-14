@@ -12,8 +12,8 @@ vm:
 
   metadata:
     name: "{{ arch_name }} - debian sid"
-   # connection: "qemu:///session"
-    libvirt_pool_dir: "{{ansible_env.HOME}}/vms/images/"
+    connection: "qemu:///session"
+    libvirt_pool_dir: "{{ansible_env.HOME}}/.local/share/libvirt/images/"
 
     import:
       root_pass: "virtualsquare"
@@ -29,7 +29,8 @@ vm:
       unarchived: *image_file_name
   
   #  Others properties are fully custom to templating a custom vm's xml  #
-
+  net: user
+  net_mac: "52:54:00:70:ce:fd"
   #  Some properties here, if needed, could override specific architecture values for all architectures  #
   disks:
   - type: "qcow2"
