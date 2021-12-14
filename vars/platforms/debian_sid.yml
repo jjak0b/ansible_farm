@@ -19,8 +19,8 @@ vm:
       root_pass: "virtualsquare"
     sources:
    # - uri: "{{ my_root_url }}{{ my_base_image_name }}.qcow2"
-    - uri: "http://cdimage.debian.org/cdimage/cloud/sid/daily/latest/debian-sid-generic-{{ arch_name }}-daily.qcow2"
-      resource_name: &image_file_name "debian-sid-generic-{{ arch_name }}-daily.qcow2"
+    - uri: "http://cdimage.debian.org/cdimage/cloud/sid/daily/latest/debian-sid-nocloud-{{ arch_name }}-daily.qcow2"
+      resource_name: &image_file_name "debian-sid-nocloud-{{ arch_name }}-daily.qcow2"
       # checksum_uri: "{{ my_root_url }}{{ my_base_image_name }}.qcow2.sha1sum"
       checksum_type: null
       #  fallback checksum value
