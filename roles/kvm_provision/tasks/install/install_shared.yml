@@ -5,3 +5,15 @@
       - python3-libvirt
     state: present
   become: yes
+
+- name: ensure libvirt group exists
+  group:
+    name: libvirt
+    state: present
+  become: yes
+
+- name: "add {{ ansible_env.USER }} to libvirt group"
+  user:
+    name: "{{ ansible_env.USER }}"
+    groups: libvirt
+    append: yes
