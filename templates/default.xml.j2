@@ -29,10 +29,18 @@
     </disk>
     {% endfor %}
 
+    {% if vm.net == "user" %}
+    <interface type="user">
+      <model type="e1000"/>
+      <mac address="{{ vm.net_mac }}"/>
+    </interface>
+    {% else %}
     <interface type='network'>
       <source network="{{ vm.net }}"/>
+      <mac address="{{ vm.net_mac }}"/>
     </interface>
-    
+    {% endif %}
+
     <channel type='unix'>
       <target type='virtio' name='org.qemu.guest_agent.0'/>
       <address type='virtio-serial' controller='0' bus='0' port='1'/>

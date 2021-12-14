@@ -13,8 +13,8 @@
   vars:
     params:
       files:
-    #   - "{{ vm.metadata.name }}.xml.j2"
-    #   - "{{ vm.arch }}.xml.j2"
+        - "{{ vm.metadata.name }}.xml.j2"
+        - "{{ vm.arch }}.xml.j2"
         - default.xml.j2
       paths:
         - templates
@@ -25,7 +25,7 @@
   community.libvirt.virt:
     command: define
     xml: "{{ lookup('template', vm_xml ) }}"
-    uri: "{{ vm.metadata.connection }}"
+    uri: "{{ vm.metadata.connection | default(omit, true) }}"
 
 - name: Ensure temporary files are deleted
   file:

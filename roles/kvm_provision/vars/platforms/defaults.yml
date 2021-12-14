@@ -5,7 +5,8 @@ vm:
     name: "{{ arch_name }} - my vm"
     connection: "qemu:///system"
     libvirt_pool_dir: "/var/lib/libvirt/images/"
-
+  # connection: "qemu:///session" 
+  # libvirt_pool_dir: "{{ansible_env.HOME}}/.local/share/libvirt/images/"
     import:
       root_pass: ""
       ssh_key: "{{ansible_env.HOME}}/.ssh/id_rsa.pub"
@@ -24,6 +25,8 @@ vm:
   vcpus: 2
   ram: 2048
   net: default
+  # net: user 
+  net_mac: "52:54:00:70:ce:fd"
   disks:
   - type: "raw"
     devname: "hda"

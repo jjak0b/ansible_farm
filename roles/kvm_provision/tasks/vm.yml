@@ -10,6 +10,7 @@
   community.libvirt.virt:
     name: "{{ vm.metadata.name }}"
     state: running
+    uri: "{{ vm.metadata.connection | default(omit, true) }}"
   register: vm_start_results
   until: "vm_start_results is success"
   retries: 15
