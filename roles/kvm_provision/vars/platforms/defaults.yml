@@ -22,11 +22,15 @@ vm:
   # Others properties are fully custom to templating a custom vm's xml
 
   # Some properties here, if needed, could override specific architecture values for all architectures
-  vcpus: 2
+  vcpus: 4
   ram: 2048
-  net: default
-  # net: user 
-  net_mac: "52:54:00:70:ce:fd"
+
+  net:
+    type: default
+    source: br0
+   # type: user
+   # source: user
+    mac: "52:54:00:70:ce:fd"
   disks:
   - type: "raw"
     devname: "hda"
