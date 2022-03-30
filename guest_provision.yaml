@@ -1,14 +1,8 @@
----
 
-- name: Main
+
+- name: Deploys Dependencies based on Guest
   hosts: localhost
   tasks:
- # - name: Init
- #   include_tasks: tasks/init.yaml
-
- # - name: Start provision
- #   include_tasks: kvm_provision
-
   - name: Loading vm definitions
     include_vars:
       file: vm_definitions.yaml
@@ -17,10 +11,6 @@
   - name: Init virtual machines definitions
     include_role: 
       name: parse_vms_definitions
-
-  - name: QEMU Provision role
-    include_role:
-      name: kvm_provision
 
   - name: Run Virtual Machines lifecycle
     loop: "{{ virtual_machines }}"
@@ -31,4 +21,8 @@
     loop_control:
       loop_var: vm
 
-
+- name: "Start Guest Mains"
+  hosts: vms
+  tasks:
+    - include_tasks: roles/guest_provision/tasks/guest_main.yml
+      

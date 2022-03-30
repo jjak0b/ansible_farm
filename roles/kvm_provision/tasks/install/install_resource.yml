@@ -15,6 +15,7 @@
   get_url:
     url: "{{ source.uri }}"
     dest: *resource_install_path
+    timeout: 20
   when: not cloudimg_local_stat.stat.exists or
         cloudimg_local_stat.stat.size != cloudimg_http_stat.content_length
   register: cloudimg_local_updated

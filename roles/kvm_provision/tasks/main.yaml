@@ -1,8 +1,5 @@
 ---
 
-- name: Init virtual machines definitions
-  include_tasks: init.yaml
-
 - name: "Install Common Prerequisites"
   include_tasks: install/install_shared.yml
 

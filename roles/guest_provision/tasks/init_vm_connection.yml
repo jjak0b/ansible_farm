@@ -1,0 +1,42 @@
+- name: "setup net"
+  set_fact:
+    isIP_static: (vm.net.ip is defined and vm.net.ip != "dhcp") and vm.net.mac is defined
+    network_name: "default"
+  
+# - name: Ensure VM network stopped
+#   community.libvirt.virt_net:
+#     name: "{{ network_name }}"
+#     state: inactive
+#     uri: "{{ vm.metadata.connection | default(omit, true) }}"
+#   register: net_stop_result
+#   until: "net_stop_result is success"
+#   retries: 15
+#   delay: 2
+
+# Add a new host in the dhcp pool
+- name: "Add static ip to network dhcp pool of {{ network_name }}"
+  community.libvirt.virt_net:
+    command: modify
+    name: "{{ network_name }}"
+    uri: "{{ vm.metadata.connection | default(omit, true) }}"
+    xml: "<host mac='{{ vm.net.mac }}' ip='{{ vm.net.ip }}' name='{{ vm.metadata.hostname }}'/>"
+  when: isIP_static
+  
+- name: Ensure VM network started
+  community.libvirt.virt_net:
+    name: "{{ network_name }}"
+    state: active
+    uri: "{{ vm.metadata.connection | default(omit, true) }}"
+  register: net_start_result
+  until: "net_start_result is success"
+
+# - name: Fetch net infos
+#  community.libvirt.virt_net:
+#    name: "{{ network_name }}"
+#    command: info
+#    uri: "{{ vm.metadata.connection | default(omit, true) }}"
+#  register: net_update_results
+#  until: "net_update_results is success"
+#  retries: 15
+#  delay: 2
+#  when: not isIP_static

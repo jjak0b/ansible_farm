@@ -1,0 +1,6 @@
+---
+# tasks file for parse_vms_definitions
+
+
+- name: Init virtual machines definitions
+  include_tasks: init.yaml

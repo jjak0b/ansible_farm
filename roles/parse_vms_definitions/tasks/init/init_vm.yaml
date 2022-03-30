@@ -29,6 +29,6 @@
   set_fact:
     a_vm: "{{ settings_arch.vm | combine (defaults_platform.vm, customs_platform.vm, recursive=True) }}"
 
-- name: "Initialized VM - {{ vm.metadata.name }}"
+- name: "Initialized VM - {{ a_vm.metadata.name }}"
   set_fact:
     virtual_machines: "{{ virtual_machines + [ a_vm ] }}"

@@ -3,8 +3,8 @@
 - name: Init vms vars list
   set_fact:
     virtual_machines: []
-    combine: "{{ definitions.combine }}"
-    combinations: "{{ definitions.combinations }}"
+    combine: "{{ definitions.combine | default(omit, true) }}"
+    combinations: "{{ definitions.combinations | default(omit, true) }}"
 
 - name: Init all vms combinations
   include_tasks: init/init_architectures.yaml

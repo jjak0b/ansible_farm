@@ -3,11 +3,15 @@
 combine:
   architectures:
     - "amd64"
-    - "arm64"
+  # - "arm64"
   platforms:
-    - "debian_sid.yml"
+  - "debian_vs.yml"
+  # - "debian_sid.yml"
+
 combinations:
-  - platform: "debian_sid.yml"
-    architecture: "amd64"
-  - platform: "debian_sid.yml"
-    architecture: "arm64"
+# - platform: "debian_vs.yml"
+#   architecture: "amd64"
+#  - platform: "debian_sid.yml"
+#    architecture: "arm64"
+  - platform: "openwrt_arm64.yml"
+    architecture: "armvirt"

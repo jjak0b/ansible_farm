@@ -1,0 +1,8 @@
+---
+
+- name: Install common System components
+  package:
+    name:
+      - curl
+    state: present
+  become: yes

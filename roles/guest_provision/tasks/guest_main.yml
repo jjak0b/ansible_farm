@@ -1,0 +1,7 @@
+---
+
+- name: "Install Common Prerequisites on Guest"
+  include_tasks: install/install_shared.yml
+
+- name: "Install Dependencies on Guest"
+  include_tasks: install/install_dependencies.yml

@@ -2,7 +2,8 @@
 vm:
   # metadata properties are used inside a task for installation and setup purposes
   metadata:
-    name: "{{ arch_name }} - my vm"
+    name: &vm_name "VM {{ arch_name }}"
+    hostname: *vm_name
     connection: "qemu:///system"
     libvirt_pool_dir: "/var/lib/libvirt/images/"
   # connection: "qemu:///session" 
@@ -24,13 +25,15 @@ vm:
   # Some properties here, if needed, could override specific architecture values for all architectures
   vcpus: 4
   ram: 2048
-
   net:
-    type: default
-    source: br0
-   # type: user
-   # source: user
-    mac: "52:54:00:70:ce:fd"
+    # type: network
+    # type: bridge
+    type: user
+    source: default
+    # source: virbr0
+    mac: "52:54:00:ca:cc:ac"
+    ip: "192.168.100.1"
+    mask: "24"
   disks:
   - type: "raw"
     devname: "hda"

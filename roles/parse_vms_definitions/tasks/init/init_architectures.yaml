@@ -12,3 +12,4 @@
 
   loop_control:
     loop_var: arch
+  when: combine.architectures is defined

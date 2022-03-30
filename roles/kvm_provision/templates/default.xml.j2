@@ -1,4 +1,4 @@
-<domain type="{{ vm.virt_domain }}">
+<domain type="{{ vm.virt_domain }}" xmlns:qemu="http://libvirt.org/schemas/domain/qemu/1.0">
 
   <name>{{ vm.metadata.name }}</name>
   <os>
@@ -38,6 +38,15 @@
     </disk>
     {% endfor %}
 
+
+  {% if vm.net.type == "vde" %}
+    <qemu:commandline>
+      <qemu:arg value="-netdev"/>
+      <qemu:arg value="type=vde,id=vde0,sock={{ vm.net.source }}"/>
+      <qemu:arg value="-device"/>
+      <qemu:arg value="virtio-net-pci,netdev=vde0,mac={{ vm.net.mac }}"/>
+    </qemu:commandline>
+  {% else %}
     <interface type="{{ vm.net.type }}">
       <mac address="{{ vm.net.mac }}"/>
       <model type='virtio'/>
@@ -48,20 +57,26 @@
       <source network="{{ vm.net.source }}"/>
       {% endif %}
     </interface>
+  {% endif %}
 
-    <serial type="pty">
-      <target type="system-serial" port="0">
-        <model name="pl011"/>
-      </target>
-    </serial>
     <console type="pty">
       <target type="serial" port="0"/>
     </console>
-    <channel type='unix'>
-      <target type='virtio' name='org.qemu.guest_agent.0'/>
+    <channel type="unix">
+      <target type="virtio" name="org.qemu.guest_agent.0"/>
     </channel>
-
-
-
+    <video>
+      <model type="virtio" heads="1" primary="yes"/>
+    </video>
+<!--
+    <channel type="spicevmc">
+      <target type="virtio" name="com.redhat.spice.0"/>
+      <address type="virtio-serial" controller="0" bus="0" port="2"/>
+    </channel>
+    <graphics type="spice" autoport="yes">
+      <listen type="address"/>
+      <image compression="off"/>
+    </graphics>
+-->
   </devices>
 </domain>

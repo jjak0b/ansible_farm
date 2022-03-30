@@ -1,0 +1,10 @@
+---
+
+- name: Install dependendencies on vm
+  debug:
+    msg: "TODO"
+# package:
+#   name: "{{ vm.metadata.dependencies }}"
+#   state: present
+  # delegate to vm hostname
+# delegate_to: "{{ vm.metadata.name }}"

@@ -1,0 +1,29 @@
+
+
+- name: Wait DHCP respose from VM
+  community.libvirt.virt_net:
+    name: "{{ network_name }}"
+    command: info
+    uri: "{{ vm.metadata.connection | default(omit, true) }}"
+  register: net_update_results
+  until: "net_update_results is success"
+  retries: 15
+  delay: 2
+
+- name: "DHCP leases"
+  debug:
+    msg: "{{ net_update_results }}"
+
+- name: "Get vm ip from dhcp"
+  debug:
+    msg: "TODO"
+  when: not isIP_static
+
+
+- name: "Set connection info"
+  set_fact:
+    vm_conn:
+      host: "{{ vm.net.ip | default(vm.metadata.hostname) }}"
+
+
+

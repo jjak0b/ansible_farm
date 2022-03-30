@@ -1,0 +1,45 @@
+---
+# tasks file for guest_provision
+
+
+- set_fact:
+    vm_conn:
+      host: null
+
+- name: init vm connection
+  include_tasks: init_vm_connection.yml
+
+- name: Ensure VM is started
+  community.libvirt.virt:
+    name: "{{ vm.metadata.name }}"
+    state: running
+    uri: "{{ vm.metadata.connection | default(omit, true) }}"
+  register: vm_start_results
+  until: "vm_start_results is success"
+  retries: 15
+  delay: 2
+
+- name: Connect to VM
+  include_tasks: connect_to_vm.yml
+
+- name: "Add vm host to 'vms', '{{ vm.metadata.arch_name}}' groups with variables"
+  add_host:
+    name: "{{ vm_conn.host }}"
+    groups:
+    - vms 
+    - "{{ vm.metadata.name }}"
+    - "{{ vm.metadata.arch_name }}"
+    
+    # - "{{ vm.metadata.platform_name}}"
+    ansible_connection: ssh 
+    ansible_port: "22"
+    ansible_host: "{{ vm_conn.host }}"
+    ansible_user: "{{ vm.metadata.user | default('root') }}"
+    ansible_password: "{{ vm.metadata.import.root_pass | default(omit, true) }}"
+    vm: "{{ vm }}"
+
+
+# - name: "Ensure first snapshot saved"
+#  include_tasks: create_snapshot.yml
+
+

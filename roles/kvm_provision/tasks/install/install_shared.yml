@@ -2,7 +2,12 @@
 - name: Install common System components
   package:
     name:
+      # community.libvirt.virt
       - python3-libvirt
+      # community.libvirt.virt_net
+      - python3-lxml
+      # use password on ssh vm connections 
+      - sshpass
     state: present
   become: yes
 

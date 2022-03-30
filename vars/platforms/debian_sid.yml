@@ -11,8 +11,10 @@ vm:
 # metadata properties are used inside a task for installation and setup purposes #
 
   metadata:
+    dependencies:
+    - "curl"
     name: "{{ arch_name }} - debian sid"
-    connection: "qemu:///session"
+   # connection: "qemu:///session"
     libvirt_pool_dir: "{{ansible_env.HOME}}/.local/share/libvirt/images/"
 
     import:
@@ -29,8 +31,14 @@ vm:
       unarchived: *image_file_name
   
   #  Others properties are fully custom to templating a custom vm's xml  #
-  net: user
-  net_mac: "52:54:00:70:ce:fd"
+  
+  net:
+    type: bridge
+    source: virbr0
+   # type: user
+   # source: user
+    mac: "52:54:00:fb:20:be"
+
   #  Some properties here, if needed, could override specific architecture values for all architectures  #
   disks:
   - type: "qcow2"
