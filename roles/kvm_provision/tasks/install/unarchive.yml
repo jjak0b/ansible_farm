@@ -3,21 +3,28 @@
 - name: prepraring unarchive
   set_fact:
     hasBeenUnarchived: false
+    unarchive_result: null 
+
 - name: unarchive with gzip
   shell: "gzip -dkf {{vm.metadata.libvirt_pool_dir}}{{ source.resource_name }}"
-  when: not hasBeenUnarchived and source.resource_name is search('.gz') and not(source.resource_name is search('tar.gz'))
+  when: not hasBeenUnarchived and source.resource_name is search('.gz') and not(source.resource_name is search('.tar.gz'))
   register: unarchive_result
+
 - name: ""
   set_fact:
-    hasBeenUnarchived: hasBeenUnarchived or unarchive_result is succeeded
-  
+    hasBeenUnarchived: "{{ hasBeenUnarchived or (unarchive_result is succeeded and not (unarchive_result is skipped)) }}"
+    unarchive_result: null
+
+
 - name: unarchive with bunzip2
   shell: "bunzip2 -kf {{vm.metadata.libvirt_pool_dir}}{{ source.resource_name }}"
-  when: not hasBeenUnarchived and source.resource_name is search('.bz2') and not(source.resource_name is search('tar.bz2'))
-  register: unarchive_result
+  register: unarchive_result 
+  when: not hasBeenUnarchived and source.resource_name is search('.bz2') and not(source.resource_name is search('.tar.bz2'))
+
 - name: ""
   set_fact:
-    hasBeenUnarchived: hasBeenUnarchived or unarchive_result is succeeded
+    hasBeenUnarchived: "{{ hasBeenUnarchived or (unarchive_result is succeeded and not (unarchive_result is skipped)) }}"
+    unarchive_result: null
 
 - name: Un-archive with generic unarchive
   unarchive: 
@@ -28,4 +35,5 @@
 
 - name: ""
   set_fact:
-    hasBeenUnarchived:  hasBeenUnarchived or unarchive_result is succeeded
+    hasBeenUnarchived:  "{{ hasBeenUnarchived or (unarchive_result is succeeded and not (unarchive_result is skipped)) }}"
+    unarchive_result: null
