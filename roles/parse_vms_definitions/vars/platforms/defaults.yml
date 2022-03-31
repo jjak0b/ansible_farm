@@ -11,7 +11,7 @@ vm:
     auth:
       become_user: &root_user "root"
       become_password: &root_pass ""
-    # become_method: "su"
+      become_method: "su"
       user: *root_user
       password: *root_pass
       root_pass: *root_pass
