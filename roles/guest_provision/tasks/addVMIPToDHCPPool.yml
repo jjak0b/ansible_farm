@@ -1,0 +1,16 @@
+
+- name: "Ensure VM network '{{ network_name }}' started"
+  community.libvirt.virt_net:
+    name: "{{ network_name }}"
+    state: active
+    uri: "{{ vm.metadata.connection | default(omit, true) }}"
+  register: net_start_result
+  until: "net_start_result is success"
+
+  # Add a new host in the dhcp pool
+- name: "Add static ip to network dhcp pool of '{{ network_name }}'"
+  community.libvirt.virt_net:
+    command: modify
+    name: "{{ network_name }}"
+    uri: "{{ vm.metadata.connection | default(omit, true) }}"
+    xml: "<host mac='{{ vm.net.mac }}' ip='{{ vm.net.ip }}' name='{{ vm.metadata.hostname }}'/>"

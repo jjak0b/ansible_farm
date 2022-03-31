@@ -16,9 +16,6 @@ vm:
     name: "{{ arch_name }} - debian sid"
    # connection: "qemu:///session"
     libvirt_pool_dir: "{{ansible_env.HOME}}/.local/share/libvirt/images/"
-
-    import:
-      root_pass: "virtualsquare"
     sources:
    # - uri: "{{ my_root_url }}{{ my_base_image_name }}.qcow2"
     - uri: "http://cdimage.debian.org/cdimage/cloud/sid/daily/latest/debian-sid-nocloud-{{ arch_name }}-daily.qcow2"

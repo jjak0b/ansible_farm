@@ -1,12 +1,12 @@
 ---
 # tasks file for guest_provision
 
-
-- set_fact:
+- name: "Start main guest_provision of '{{ vm.metadata.name }}'"
+  set_fact:
     vm_conn:
       host: null
 
-- name: init vm connection
+- name: init vm connection of
   include_tasks: init_vm_connection.yml
 
 - name: Ensure VM is started
@@ -34,8 +34,12 @@
     ansible_connection: ssh 
     ansible_port: "22"
     ansible_host: "{{ vm_conn.host }}"
-    ansible_user: "{{ vm.metadata.user | default('root') }}"
-    ansible_password: "{{ vm.metadata.import.root_pass | default(omit, true) }}"
+    ansible_user: "{{ vm.metadata.auth.user }}"
+    ansible_password: "{{ vm.metadata.auth.password | default(omit, true) }}"
+    ansible_become_method: "{{ vm.metadata.auth.become_method | default(omit, true) }}"
+    ansible_become_user: "{{ vm.metadata.auth.become_user }}"
+    ansible_become_password: "{{ vm.metadata.auth.become_password | default(omit, true) }}"
+    # other host vars
     vm: "{{ vm }}"
 
 

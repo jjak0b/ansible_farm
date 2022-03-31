@@ -48,11 +48,19 @@
     </qemu:commandline>
   {% else %}
     <interface type="{{ vm.net.type }}">
+      
+      {% if vm.net.type == "ethernet" %}
+      <target dev="{{ vm.net.source }}" managed='no'/>
+      {% else %}
       <mac address="{{ vm.net.mac }}"/>
+      {% endif %}
       <model type='virtio'/>
       {% if vm.net.type == "bridge" %}
       <source bridge="{{ vm.net.source }}"/>
       {% elif vm.net.type == "user" %}
+        {% if vm.net.ip is defined and vm.net.mask is defined %}
+      <ip family='ipv4' address="{{ vm.net.ip }}" prefix="{{ vm.net.mask }}"/>
+        {% endif %}
       {% else %}
       <source network="{{ vm.net.source }}"/>
       {% endif %}

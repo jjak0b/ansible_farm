@@ -43,8 +43,8 @@
 # - name: Configure the image
 #  command: |
 #    virt-customize -a {{ vm.metadata.libvirt_pool_dir }}{{ source.unarchived }} \
-#    --hostname {{ vm.metadata.name }} \
-#    --root-password password:{{ vm.metadata.import.root_pass }} \
+#    --hostname {{ vm.metadata.hostname }} \
+#    --root-password password:{{ vm.metadata.auth.become_password }} \
 #    --ssh-inject root:file:{{ vm.metadata.import.ssh_key }} \
 # doesn't work even if using become
 #  become: yes 

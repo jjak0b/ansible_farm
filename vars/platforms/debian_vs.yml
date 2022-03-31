@@ -9,8 +9,11 @@ vm:
     name: "{{ arch_name }} - debian with virtualsquare pkgs"
    # connection: "qemu:///session"
     libvirt_pool_dir: "{{ansible_env.HOME}}/vms/images/"
-    import:
-      root_pass: virtualsquare
+    auth:
+      become_user: &root_user "root"
+      become_password: &root_pass "virtualsquare"
+      user: "user"
+      password: *root_pass
     hostname: V2-20220101-874
     sources:
     - uri: "https://www.cs.unibo.it/~renzo/virtualsquare/daily_brewed/yearly/debian-sid-v2-{{ arch_name }}-daily-20220101-874.qcow2.bz2"
@@ -35,5 +38,5 @@ vm:
     type: bridge
     source: virbr0
     mac: "52:54:00:50:5d:e2"
-    ip: "192.168.100.20"
+    ip: "dhcp"
     # source: virbr0

@@ -1,0 +1,73 @@
+---
+- name: Wait DHCP leases
+  community.libvirt.virt_net:
+    name: "{{ network_name }}"
+    command: info
+    uri: "{{ vm.metadata.connection | default(omit, true) }}"
+  register: networks_info
+  until: "networks_info is success"
+  retries: 15
+  delay: 2
+
+- name: "DHCP leases"
+  debug:
+    msg: "{{ networks_info }}"
+  
+- name: "Find VM's dhcp lease"
+  block:
+
+  - name: "Find dhcp lease matching with VM's mac in network {{ network_name }}"
+    set_fact:
+      leases: "{{ networks_info.networks[ network_name ].dhcp_leases }}"
+      lease_index: "{{ lookup('ansible.utils.index_of', data=leases, test='eq', value=(vm.net.mac|lower), key='mac', wantlist=False) }}"
+    register: ip_scan
+    when: vm.net.type == "network" and network_name in networks_info.networks
+
+  - debug:
+      var: ip_scan
+
+  - name: fail on host not found on dhcp pool
+    command: /bin/false
+    when: &is_ip_scan_failed ip_scan is skipped or ip_scan is failed or not (ip_scan is defined and ip_scan.stdout | length > 0)
+  
+  - name: "Set found ip"
+    set_fact:
+      vm_conn:
+        ip: "{{ leases[ lease_index ].ipaddr }}"
+        hostname: "{{ leases[ lease_index ].hostname }}"
+
+  rescue:
+  - name: "Lease not found on network {{ network_name }} "
+    block:
+
+    - name: "Fallback to find ip using neighbor on interface {{ network_name }}"
+      shell: | 
+        ip neighbor show dev {{ network_name }} | grep -i "{{ vm.net.mac }}" | cut -d" " -f1
+      register: ip_scan
+      when: vm.net.type == "bridge"
+
+    - name: fail on host not found on dev
+      command: /bin/false
+      when: *is_ip_scan_failed
+
+    - name: "Set found ip"
+      set_fact:
+        vm_conn:
+          ip: "{{ ip_scan.stdout }}"
+    
+    rescue:
+
+    - name: "Fallback to find ip using neighbor"
+      shell: | 
+        ip neighbor show | grep -i "{{ vm.net.mac }}" | cut -d" " -f1
+      register: ip_scan
+
+    - name: fail on host not found 
+      command: /bin/false
+      when: *is_ip_scan_failed
+
+    - name: "Set found ip"
+      set_fact:
+        vm_conn:
+          ip: "{{ ip_scan.stdout }}"
+

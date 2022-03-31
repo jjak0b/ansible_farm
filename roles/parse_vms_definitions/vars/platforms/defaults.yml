@@ -8,8 +8,14 @@ vm:
     libvirt_pool_dir: "/var/lib/libvirt/images/"
   # connection: "qemu:///session" 
   # libvirt_pool_dir: "{{ansible_env.HOME}}/.local/share/libvirt/images/"
-    import:
-      root_pass: ""
+    auth:
+      become_user: &root_user "root"
+      become_password: &root_pass ""
+    # become_method: "su"
+      user: *root_user
+      password: *root_pass
+      root_pass: *root_pass
+    # TODO 
       ssh_key: "{{ansible_env.HOME}}/.ssh/id_rsa.pub"
     sources:
     - uri: "myURI/myImage-{{ arch_name }}.qcow2.tar.gz"
