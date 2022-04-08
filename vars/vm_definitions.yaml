@@ -1,17 +1,17 @@
 ---
 
-combine:
-  architectures:
+permutations:
+  targets:
     - "amd64"
   # - "arm64"
   platforms:
-  - "debian_vs.yml"
+  - "debian_vs"
   # - "debian_sid.yml"
 
-combinations:
+combinations: [] 
 # - platform: "debian_vs.yml"
-#   architecture: "amd64"
-#  - platform: "debian_sid.yml"
-#    architecture: "arm64"
-  - platform: "openwrt_arm64.yml"
-    architecture: "armvirt"
+#   target: "amd64"
+# - platform: "debian_sid.yml"
+#   target: "arm64"
+# - platform: "openwrt_arm64.yml"
+#   target: "armvirt"

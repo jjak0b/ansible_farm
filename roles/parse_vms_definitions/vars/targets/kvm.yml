@@ -2,7 +2,7 @@ vm:
   metadata:
     arch_name: "{{ ansible_architecture }}"
   virt_domain: kvm
-  arch: "{{ arch }}"
+  arch: "{{ target }}"
   emulator: "/usr/bin/kvm"
   machine: q35
   

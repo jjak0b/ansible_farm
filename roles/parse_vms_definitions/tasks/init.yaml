@@ -3,19 +3,22 @@
 - name: Init vms vars list
   set_fact:
     virtual_machines: []
-    combine: "{{ definitions.combine | default(omit, true) }}"
-    combinations: "{{ definitions.combinations | default(omit, true) }}"
+    permutations: "{{ config.permutations | default(omit, true) }}"
+    definitions: "{{ config.definitions | default([] ) }}"
 
-- name: Init all vms combinations
-  include_tasks: init/init_architectures.yaml
-  when: combine is defined
+- name: Init permutations
+  include_tasks: init/init_permutations.yaml
+  when: permutations is defined
 
-- name: "Init all definitions of vms list"
+- name: "Init all vms of definitions list"
 
-  loop: "{{ combinations }}"
+  loop: "{{ definitions }}"
 
-  include_tasks: init/init_vm_from_definition.yaml
+  include_tasks: init/init_vm.yaml
+  vars:
+    platform: "{{ vm_definition.platform }}"
+    target: "{{ vm_definition.target }}"
 
   loop_control:
     loop_var: vm_definition
-  when: combinations is defined
+  when: definitions is defined

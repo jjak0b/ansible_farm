@@ -7,6 +7,8 @@ vm:
   # metadata properties are used inside a task for installation and setup purposes
   metadata:
     name: "{{ arch_name }} - debian with virtualsquare pkgs"
+    platform_name: debian_vs
+    hostname: "V2-20220101-874.{{ arch_name }}.debian_vs.vm"
    # connection: "qemu:///session"
     libvirt_pool_dir: "{{ansible_env.HOME}}/vms/images/"
     auth:
@@ -14,7 +16,6 @@ vm:
       become_password: &root_pass "virtualsquare"
       user: "user"
       password: *root_pass
-    hostname: V2-20220101-874
     sources:
     - uri: "https://www.cs.unibo.it/~renzo/virtualsquare/daily_brewed/yearly/debian-sid-v2-{{ arch_name }}-daily-20220101-874.qcow2.bz2"
       resource_name: "debian-sid-v2-{{ arch_name }}-daily-20220101-874.qcow2.bz2"

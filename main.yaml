@@ -12,11 +12,13 @@
   - name: Loading vm definitions
     include_vars:
       file: vm_definitions.yaml
-      name: definitions
+      name: define
     
   - name: Init virtual machines definitions
     include_role: 
       name: parse_vms_definitions
+    vars:
+      config: "{{ define }}"
 
   - name: QEMU Provision role
     include_role:

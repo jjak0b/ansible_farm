@@ -1,9 +1,7 @@
 ---
 - name: "Init VM definition"
   set_fact:
-    platform: "{{ vm_definition.platform }}"
-    arch: "{{ vm_definition.architecture }}"
 
-- name: "Init VM"
-  include_tasks: init/init_vm.yaml
+
+
 

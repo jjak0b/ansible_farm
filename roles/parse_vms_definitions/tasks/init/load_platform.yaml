@@ -1,0 +1,48 @@
+
+- name: "include default platform vars of '{{ platform }}'"
+  include_vars:
+    file: "{{ item }}"
+    name: default_platform_vars
+  with_items: "{{ lookup('first_found', params, errors='ignore') }}"
+  vars:
+    params:
+      files:
+      - defaults.yml
+      paths:
+      - vars/platforms
+      skip: True
+
+- name: "include platform vars of '{{ platform }}'"
+  include_vars:
+    file: "{{ item }}"
+    name: custom_platform_vars
+  with_items: "{{ lookup('first_found', params, errors='ignore') }}"
+  vars:
+    params:
+      files:
+      - "{{ platform }}.yml"
+      paths:
+      - vars/platforms
+      skip: True
+    target_vars: "{{ target_vars }}"
+
+- name: Merge VM configuration for platform
+  set_fact:
+    merged_vars: "{{ default_platform_vars | combine (custom_platform_vars, recursive=True) }}"
+- set_fact:
+    platform_vars: "{{ merged_vars }}"
+  
+- name: "Include platform tasks of '{{ platform }}'"
+  include_tasks:
+    file: "{{ item }}"
+  with_items: "{{ lookup('first_found', params, errors='ignore') }}"
+  vars:
+    params:
+      files:
+      - "{{ platform }}.yaml"
+      - default.yaml
+      paths:
+      - tasks/platforms
+      skip: True
+    target_vars: "{{ target_vars }}"
+    platform_vars: "{{ platform_vars }}"

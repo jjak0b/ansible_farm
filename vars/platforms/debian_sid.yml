@@ -4,16 +4,16 @@
 
 # TODO: find a way to evaluate these on jinja bracket while importing into variable 
 # my_root_url: "http://cdimage.debian.org/cdimage/cloud/sid/daily/latest/"
-# my_base_image_name: "debian-11-generic-{{ arch }}"
+# my_base_image_name: "debian-11-generic-{{ target }}"
 
 vm:
 
 # metadata properties are used inside a task for installation and setup purposes #
 
   metadata:
-    dependencies:
-    - "curl"
     name: "{{ arch_name }} - debian sid"
+    platform_name: debian_sid
+    hostname: "{{ arch_name }}.debian_sid.vm"
    # connection: "qemu:///session"
     libvirt_pool_dir: "{{ansible_env.HOME}}/.local/share/libvirt/images/"
     sources:

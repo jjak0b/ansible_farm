@@ -1,0 +1,15 @@
+---
+    
+- name: "Setup permutation targets of platform '{{ platform }}' "
+
+  loop: "{{ permutations.targets }}"
+
+  include_tasks: init/add_vm_definition.yaml
+  vars:
+    definition:
+      target: "{{ target }}"
+      platform: "{{ platform }}"
+
+  loop_control:
+    loop_var: target
+  when: permutations.targets is defined
