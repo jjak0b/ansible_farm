@@ -1,0 +1,14 @@
+# vars:
+#   vm_name: "Vm name"
+#   snapshot_name: "snapshot name"
+#   uri: "session uri"  example: qemu:///system
+---
+
+- name: "Delete snapshot for vm {{ vm_name }}"
+  shell: 
+    cmd: >-
+      virsh
+      --connect {{ uri | quote }}
+      snapshot-delete
+      --domain {{ vm_name | quote }}
+      --snapshotname {{ snapshot_name | quote }}

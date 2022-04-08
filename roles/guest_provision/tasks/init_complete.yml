@@ -1,8 +1,0 @@
----
-
-- name: "Creating snapshot for vm {{ vm.metadata.name }}"
-  shell: 
-    cmd: >-
-      virsh snapshot-create-as
-        --domain {{ vm.metadata.name }}
-        --name ""

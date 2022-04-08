@@ -1,7 +1,7 @@
 ---
 
 - name: Main
-  hosts: localhost
+  hosts: kvm_hosts
   tasks:
  # - name: Init
  #   include_tasks: tasks/init.yaml

@@ -41,6 +41,7 @@
     ansible_become_password: "{{ vm.metadata.auth.become_password | default(omit, true) }}"
     # other host vars
     vm: "{{ vm }}"
+    kvm_host: "{{ inventory_hostname }}"
 
 
 # - name: "Ensure first snapshot saved"

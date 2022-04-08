@@ -1,0 +1,16 @@
+- name: Assert vm var is defined
+  fail:
+    msg: VM definition is not defined
+  when: not ( vm is defined )
+
+- name: "Add VM {{ vm.metadata.hostname }} to vms group"
+  include_tasks: add_vm_to_group.yml
+  when: should_add_vm is defined and should_add_vm
+
+- name: Starting VM Main lifecycle
+
+  include_tasks: guest_main.yml
+  loop: "{{ groups['vms'] }}"
+
+  when: should_run_guest_main is defined and should_run_guest_main
+  

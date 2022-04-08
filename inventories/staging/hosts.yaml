@@ -1,19 +1,7 @@
 all:
-  localhost:
   children:
-    kvm:
+    kvm_hosts:
       hosts:
         localhost:
-        myRPI4Host:
-    x86_64:
-      hosts:
-        localhost:
-    arm:
-      children:
-        arm64:
-          hosts:
-            myRPI4Host:
-        arm:
-          hosts:
-            myRPI2Host:
+
 

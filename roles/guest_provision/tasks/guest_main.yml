@@ -5,12 +5,39 @@
     platform_name: "{{ vm.metadata.platform_name }}"
     target_name: "{{ vm.metadata.arch_name }}"
     import_path: "{{ vm.metadata.platform_name }}/{{ vm.metadata.arch_name }}"
-  
+
+- block:
+  - name: "Request Clean Snapshot"
+    include_tasks: snapshot_create.yaml
+    vars:
+      vm_name: "{{ vm.metadata.name }}"
+      snapshot_name: "clean"
+      uri: "{{ vm.metadata.connection | default(omit, true) }}"
+  delegate_to: "{{ kvm_host }}"
+
 - name: "Install Common Prerequisites on Guest"
   include_tasks: install/install_shared.yml
 
+- block:
+  - name: "Request Snapshot after common dependencies end"
+    include_tasks: snapshot_create.yaml
+    vars:
+      vm_name: "{{ vm.metadata.name }}"
+      snapshot_name: "common_dependencies"
+      uri: "{{ vm.metadata.connection | default(omit, true) }}"
+  delegate_to: "{{ kvm_host }}"
+
 - name: "Install Dependencies on Guest"
   include_tasks: "install/install_dependencies.yml"
+
+- block:
+  - name: "Request Snapshot after dependencies end"
+    include_tasks: snapshot_create.yaml
+    vars:
+      vm_name: "{{ vm.metadata.name }}"
+      snapshot_name: "dependencies"
+      uri: "{{ vm.metadata.connection | default(omit, true) }}"
+  delegate_to: "{{ kvm_host }}"
 
 - name: "Start Init phase"
   include_tasks:
@@ -24,9 +51,15 @@
       - "tasks/{{ import_path }}/phases"
       - tasks/phases
       skip: True
-  
-# - name: "Start first Snapshot"
-#   include_tasks: init_complete.yml
+
+- block:
+  - name: "Request Snapshot after init phase"
+    include_tasks: snapshot_create.yaml
+    vars:
+      vm_name: "{{ vm.metadata.name }}"
+      snapshot_name: "init"
+      uri: "{{ vm.metadata.connection | default(omit, true) }}"
+  delegate_to: "{{ kvm_host }}"
 
 - name: "Start Main phase"
   include_tasks:

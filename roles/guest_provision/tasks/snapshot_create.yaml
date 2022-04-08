@@ -1,0 +1,15 @@
+# vars:
+#   vm_name: "Vm name"
+#   snapshot_name: "snapshot name"
+#   uri: "session uri"  example: qemu:///system
+---
+
+- name: "Create snapshot for vm '{{ vm_name }}'"
+  shell: 
+    cmd: >-
+      virsh
+      --connect {{ uri | quote }}
+      snapshot-create-as
+      --domain {{ vm_name | quote }}
+      --name {{ snapshot_name | quote }}
+        
