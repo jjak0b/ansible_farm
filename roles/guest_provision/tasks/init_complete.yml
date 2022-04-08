@@ -5,4 +5,4 @@
     cmd: >-
       virsh snapshot-create-as
         --domain {{ vm.metadata.name }}
-        --name {{ }}
+        --name ""

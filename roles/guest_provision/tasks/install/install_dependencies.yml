@@ -6,3 +6,45 @@
       - curl
     state: present
   become: yes
+
+- name: Init dependencies
+  set_fact:
+    dependencies: []
+  
+- name: Setup dependencies
+  block: 
+  - name: include dependencies vars for Custom System components
+    include_vars:
+      file: "{{ lookup('first_found', params) }}"
+      name: dependencies_vars
+    vars:
+      params:
+        files:
+        - dependencies.yaml
+        paths:
+        - "vars/{{ import_path }}"
+        - "vars"
+        skip: True
+    
+  - name: Include dependencies tasks for Custom System components
+    include_tasks:
+      file: "{{ lookup('first_found', params) }}"
+    vars:
+      params:
+        files:
+        - dependencies.yaml
+        paths:
+        - "tasks/{{ import_path }}"
+        - "tasks"
+        skip: True
+  
+  - name: "Union dependencies"
+    set_fact:
+      dependencies: "{{ (dependencies_vars.dependencies | default([]) ) | union(dependencies) }}"
+    when: dependencies_vars is defined
+
+- name: Install dependencies
+  package:
+    name: "{{ dependencies }}"
+    state: present
+  become: yes

@@ -1,7 +1,55 @@
 ---
 
+- name: "Init vars"
+  set_fact:
+    platform_name: "{{ vm.metadata.platform_name }}"
+    target_name: "{{ vm.metadata.arch_name }}"
+    import_path: "{{ vm.metadata.platform_name }}/{{ vm.metadata.arch_name }}"
+  
 - name: "Install Common Prerequisites on Guest"
   include_tasks: install/install_shared.yml
 
 - name: "Install Dependencies on Guest"
-  include_tasks: install/install_dependencies.yml
+  include_tasks: "install/install_dependencies.yml"
+
+- name: "Start Init phase"
+  include_tasks:
+    file: "{{ item }}"
+  with_items: "{{ lookup('first_found', params) }}"
+  vars:
+    params:
+      files:
+      - "init.yaml"
+      paths:
+      - "tasks/{{ import_path }}/phases"
+      - tasks/phases
+      skip: True
+  
+# - name: "Start first Snapshot"
+#   include_tasks: init_complete.yml
+
+- name: "Start Main phase"
+  include_tasks:
+    file: "{{ item }}"
+  with_items: "{{ lookup('first_found', params) }}"
+  vars:
+    params:
+      files:
+      - "main.yaml"
+      paths:
+      - "tasks/{{ import_path }}/phases"
+      - tasks/phases
+      skip: True
+  
+- name: "Start Terminate phase"
+  include_tasks:
+    file: "{{ item }}"
+  with_items: "{{ lookup('first_found', params) }}"
+  vars:
+    params:
+      files:
+      - "terminate.yaml"
+      paths:
+      - "tasks/{{ import_path }}/phases"
+      - "tasks/phases"
+      skip: True

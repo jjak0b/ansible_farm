@@ -24,7 +24,7 @@
 
 - name: "Add vm host to 'vms', '{{ vm.metadata.arch_name}}' groups with variables"
   add_host:
-    name: "{{ vm_conn.host }}"
+    name: "{{ vm.metadata.hostname }}"
     groups:
     - vms 
     - "{{ vm.metadata.name }}"
