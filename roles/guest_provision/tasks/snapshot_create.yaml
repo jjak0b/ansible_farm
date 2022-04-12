@@ -4,12 +4,22 @@
 #   uri: "session uri"  example: qemu:///system
 ---
 
-- name: "Create snapshot for vm '{{ vm_name }}'"
-  shell: 
-    cmd: >-
-      virsh
-      --connect {{ uri | quote }}
-      snapshot-create-as
-      --domain {{ vm_name | quote }}
-      --name {{ snapshot_name | quote }}
+- name: Ensure snapshot exists
+  block: 
+  - name: listing snapshots
+    include_tasks: snapshot_list.yaml
+  rescue:
+  - name: Empty list
+    set_fact:
+      snapshot_list: [] 
+  always:
+  - name: "Create snapshot for vm '{{ vm_name }}'"
+    shell: 
+      cmd: >-
+        virsh
+        --connect {{ uri | quote }}
+        snapshot-create-as
+        --domain {{ vm_name | quote }}
+        --name {{ snapshot_name | quote }}
+    when: not ( snapshot_name in snapshot_list )
         
