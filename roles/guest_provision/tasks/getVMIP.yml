@@ -27,7 +27,8 @@
       var: ip_scan
 
   - name: fail on host not found on dhcp pool
-    command: /bin/false
+    fail:
+      msg: &msg_host_not_found "Host matching with mac {{ vm.net.mac | quote }} not found"
     when: &is_ip_scan_failed ip_scan is skipped or ip_scan is failed or not (ip_scan is defined and ip_scan.stdout | length > 0)
   
   - name: "Set found ip"
@@ -45,9 +46,13 @@
         ip neighbor show dev {{ network_name }} | grep -i "{{ vm.net.mac }}" | cut -d" " -f1
       register: ip_scan
       when: vm.net.type == "bridge"
+      until: (ip_scan is defined and ip_scan.stdout | length > 0) 
+      retries: 15
+      delay: 2
 
     - name: fail on host not found on dev
-      command: /bin/false
+      fail:
+        msg: *msg_host_not_found
       when: *is_ip_scan_failed
 
     - name: "Set found ip"
@@ -61,9 +66,13 @@
       shell: | 
         ip neighbor show | grep -i "{{ vm.net.mac }}" | cut -d" " -f1
       register: ip_scan
+      until: (ip_scan is defined and ip_scan.stdout | length > 0) 
+      retries: 15
+      delay: 2
 
     - name: fail on host not found 
-      command: /bin/false
+      fail:
+        msg: *msg_host_not_found
       when: *is_ip_scan_failed
 
     - name: "Set found ip"
