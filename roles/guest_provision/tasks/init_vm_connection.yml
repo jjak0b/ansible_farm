@@ -2,14 +2,20 @@
   set_fact:
     isIP_static: "{{ (vm.net.ip is defined and not (vm.net.ip == \"dhcp\")) and vm.net.mac is defined }}"
     network_name: "{{ vm.net.source }}"
+  
+  # if guest will perform a DHCP request, then will get the ip from DHCP pool
+  # - if ip should be set static, then DHCP poll will provide the (static) ip from network pool's entries
+  # - otherwise, the DHCP will provide an available ip
+  # else we assume guest set its ip statically (enhancement: we can assume this if ip is set by editing the guest image)
 - block:
   - debug:
       msg: "should assign static IP '{{ vm.net.ip }}' to network type '{{ vm.net.type }}'"
   
+  # add static ip entry to the network DHCP pool
   - name: "Assign static IP to DHCP Pool of network '{{ network_name }}'"
     include_tasks: addVMIPToDHCPPool.yml
     when: vm.net.type == "network"
-
+  
   - debug: 
       msg: "Assuming IP has been already statically set on VM or will request a fixed IP from DHCP Pool"
   when: isIP_static

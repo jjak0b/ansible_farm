@@ -6,6 +6,8 @@
 # - name: Ensure snapshot is hasn't been created
   
 - block:
+  - set_fact:
+      snapshot_list: [] 
   - name: "List snapshot for vm '{{ vm_name }}'"
     shell: 
       cmd: >-

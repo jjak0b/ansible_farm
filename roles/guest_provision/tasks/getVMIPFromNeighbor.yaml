@@ -1,0 +1,40 @@
+
+- block:
+  - name: "Find ip using neighbor on interface {{ network_name }}"
+    shell: | 
+      ip neighbor show dev {{ network_name }} | grep -i "{{ vm.net.mac }}" | cut -d" " -f1
+    register: ip_scan
+    when: vm.net.type == "bridge"
+    until: (ip_scan is defined and ip_scan.stdout | length > 0) 
+    retries: 15
+    delay: 2
+
+  - name: "Assert ip found on interface '{{ network_name }}'"
+    fail:
+      msg: &msg_host_not_found "Host matching with mac {{ vm.net.mac | quote }} not found in interface '{{ network_name }}'"
+    when: &is_ip_scan_failed ip_scan is skipped or ip_scan is failed or not (ip_scan is defined and ip_scan.stdout | length > 0)
+
+  - name: "Set found ip"
+    set_fact:
+      result:
+        ip: "{{ ip_scan.stdout }}"
+
+  rescue:
+
+  - name: "Fallback to find ip using neighbor"
+    shell: | 
+      ip neighbor show | grep -i "{{ vm.net.mac }}" | cut -d" " -f1
+    register: ip_scan
+    until: (ip_scan is defined and ip_scan.stdout | length > 0) 
+    retries: 15
+    delay: 2
+
+  - name: Assert ip found on neighbor
+    fail:
+      msg: *msg_host_not_found
+    when: *is_ip_scan_failed
+
+  - name: "Set found ip"
+    set_fact:
+      result:
+        ip: "{{ ip_scan.stdout }}"

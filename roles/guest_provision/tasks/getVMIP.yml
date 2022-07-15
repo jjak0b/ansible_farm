@@ -1,5 +1,5 @@
 ---
-- name: Wait DHCP leases
+- name: "Wait DHCP leases for network '{{ network_name }}'"
   community.libvirt.virt_net:
     name: "{{ network_name }}"
     command: info
@@ -9,74 +9,31 @@
   retries: 15
   delay: 2
 
-- name: "DHCP leases"
+- name: "DHCP leases of network '{{ network_name }}'"
   debug:
     msg: "{{ networks_info }}"
   
 - name: "Find VM's dhcp lease"
   block:
+  - name: "Find dhcp lease entry in network '{{ network_name }}'"
+    include_tasks: getVMIPFromNetwork.yaml
 
-  - name: "Find dhcp lease matching with VM's mac in network {{ network_name }}"
-    set_fact:
-      leases: "{{ networks_info.networks[ network_name ].dhcp_leases }}"
-      lease_index: "{{ lookup('ansible.utils.index_of', data=leases, test='eq', value=(vm.net.mac|lower), key='mac', wantlist=False) }}"
-    register: ip_scan
-    when: vm.net.type == "network" and network_name in networks_info.networks
-
-  - debug:
-      var: ip_scan
-
-  - name: fail on host not found on dhcp pool
-    fail:
-      msg: &msg_host_not_found "Host matching with mac {{ vm.net.mac | quote }} not found"
-    when: &is_ip_scan_failed ip_scan is skipped or ip_scan is failed or not (ip_scan is defined and ip_scan.stdout | length > 0)
-  
-  - name: "Set found ip"
+  - name: "Update found ip in vm connection config"
     set_fact:
       vm_conn:
-        ip: "{{ leases[ lease_index ].ipaddr }}"
-        hostname: "{{ leases[ lease_index ].hostname }}"
+        ip: "{{ result.ip }}"
+        hostname: "{{ result.hostname }}"
+    when: network_name in networks_info.networks
 
   rescue:
   - name: "Lease not found on network {{ network_name }} "
     block:
 
-    - name: "Fallback to find ip using neighbor on interface {{ network_name }}"
-      shell: | 
-        ip neighbor show dev {{ network_name }} | grep -i "{{ vm.net.mac }}" | cut -d" " -f1
-      register: ip_scan
-      when: vm.net.type == "bridge"
-      until: (ip_scan is defined and ip_scan.stdout | length > 0) 
-      retries: 15
-      delay: 2
+    - name: "Fallback to find ip using neighbors"
+      include_tasks: getVMIPFromNeighbor.yaml
 
-    - name: fail on host not found on dev
-      fail:
-        msg: *msg_host_not_found
-      when: *is_ip_scan_failed
-
-    - name: "Set found ip"
+    - name: "Update found ip in vm connection config"
       set_fact:
         vm_conn:
-          ip: "{{ ip_scan.stdout }}"
-    
-    rescue:
-
-    - name: "Fallback to find ip using neighbor"
-      shell: | 
-        ip neighbor show | grep -i "{{ vm.net.mac }}" | cut -d" " -f1
-      register: ip_scan
-      until: (ip_scan is defined and ip_scan.stdout | length > 0) 
-      retries: 15
-      delay: 2
-
-    - name: fail on host not found 
-      fail:
-        msg: *msg_host_not_found
-      when: *is_ip_scan_failed
-
-    - name: "Set found ip"
-      set_fact:
-        vm_conn:
-          ip: "{{ ip_scan.stdout }}"
+          ip: "{{ result.ip }}"
 

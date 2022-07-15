@@ -1,0 +1,27 @@
+
+---
+- name: "Assert '{{ network_name}}' is a network"
+  fail:
+    msg: "'{{ network_name}}' is not a network"
+  when: not( network_name in networks_info.networks )
+
+- name: "Find dhcp lease matching with VM's mac in network '{{ network_name }}'"
+  set_fact:
+    leases: "{{ networks_info.networks[ network_name ].dhcp_leases }}"
+    lease_index: "{{ lookup('ansible.utils.index_of', data=leases, test='eq', value=(vm.net.mac|lower), key='mac', wantlist=False) }}"
+  register: ip_scan
+  when: vm.net.type == "network"
+
+- debug:
+    var: ip_scan
+
+- name: fail on host not found on dhcp pool
+  fail:
+    msg: &msg_host_not_found "Host matching with mac {{ vm.net.mac | quote }} not found in network '{{ network_name }}'"
+  when: &is_ip_scan_failed ip_scan is skipped or ip_scan is failed or not (ip_scan is defined and ip_scan.stdout | length > 0)
+
+- name: "Set found ip"
+  set_fact:
+    result: 
+      ip: "{{ leases[ lease_index ].ipaddr }}"
+      hostname: "{{ leases[ lease_index ].hostname }}"

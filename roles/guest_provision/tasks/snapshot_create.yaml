@@ -13,7 +13,7 @@
     set_fact:
       snapshot_list: [] 
   always:
-  - name: "Create snapshot for vm '{{ vm_name }}'"
+  - name: "Create snapshot for vm '{{ vm_name }}' as '{{ snapshot_name }}'"
     shell: 
       cmd: >-
         virsh
