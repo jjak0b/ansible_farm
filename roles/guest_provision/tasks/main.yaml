@@ -8,9 +8,6 @@
   when: should_add_vm is defined and should_add_vm
 
 - name: Starting VM Main lifecycle
-
   include_tasks: guest_main.yml
-  loop: "{{ groups['vms'] }}"
-
   when: should_run_guest_main is defined and should_run_guest_main
   

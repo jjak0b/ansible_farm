@@ -28,6 +28,7 @@
     groups:
     - vms 
     - "{{ vm.metadata.name }}"
+    - "{{ vm.metadata.platform_name }}"
     - "{{ vm.metadata.arch_name }}"
     
     # - "{{ vm.metadata.platform_name}}"
@@ -42,9 +43,3 @@
     # other host vars
     vm: "{{ vm }}"
     kvm_host: "{{ inventory_hostname }}"
-
-
-# - name: "Ensure first snapshot saved"
-#  include_tasks: create_snapshot.yml
-
-
