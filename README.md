@@ -135,20 +135,30 @@ The VM Guest lifecycle is decribed by `roles/guest_provision/tasks/guest_main.ym
 
 1. **dependencies** phase
    - Create 'clean' snapshot
-   - Install internal dependencies (`roles/guest_provision/tasks/install/install_shared.yml`)
    - Install use case dependencies
-     - Import var dependencies (`vars[/import_path]/dependencies.yaml`)
-     - Run dependencies tasks (`tasks[/import_path]/dependencies.yaml`)
-     - Create 'dependencies' snapshot
-1. **Init** use case phase: 
-   - Run init tasks `tasks[/import_path]/phases/init.yaml`
+     - Import var dependencies if any (`vars/phases[/import_path]/dependencies.yaml`)
+       - Install defined dependencies ( uses [ansible.builtin.package module](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/package_module.html))
+     - Run dependencies tasks (`tasks/phases[/import_path]/dependencies.yaml`)
+   - Create 'dependencies' snapshot
+2. **Init** use case phase: 
+   - Run init tasks `tasks/phases[/import_path]/init.yaml`
    - Create 'init' snapshot
-2. **Main** use case phase: 
-   - Run main tasks `tasks[/import_path]/phases/main.yaml`
-3. **Terminate** use case phase: 
-   - Run end tasks `tasks[/import_path]/phases/terminate.yaml`
+3. **Main** use case phase: 
+   - Run main tasks `tasks/phases[/import_path]/main.yaml`
+4. **Terminate** use case phase: 
+   - Run end tasks `tasks/phases[/import_path]/terminate.yaml`
 
-Where `import_path` is optional and it's a subpath of 2 nested folders if the use case needs specific tasks/vars for platform and target; for instance:
-- "debian_11" folder (`vm.metadata.platform_name` value in `platforms/debian_sid.yml`)
-    - "amd64" (`vm.metadata.arch_name` value in `targets/amd64.yml`)
-    - "arm64" (`vm.metadata.arch_name` value in `targets/arm64.yml`)
+Where `import_path` is optional and it's a subpath of 2 nested folders if the use case needs specific tasks/vars for a target on platform or only platform; for instance:
+- *debian_11* folder (`vm.metadata.platform_name` value in `platforms/debian_sid.yml`)
+    - *amd64* folder (`vm.metadata.arch_name` value in `targets/amd64.yml`)
+      - tasks or vars files, ... specific for *amd64* targets in *debian_11* platforms
+    - *arm64* folder (`vm.metadata.arch_name` value in `targets/arm64.yml`)
+      - tasks or vars files, ... specific for *arm64* targets in *debian_11* platforms
+- *fedora_36* folder (`vm.metadata.platform_name` value in `platforms/fedora_36.yml`)
+    - *amd64* folder (`vm.metadata.arch_name` value in `targets/amd64.yml`)
+      - tasks or vars files, ... specific for *amd64* targets in *fedora_36* platforms
+    - tasks or vars files, ... specific *fedora_36* platforms but any target
+- tasks or vars files, ... generic for any platform and target which file does not exists with a specific `import_path` sub path
+
+This is useful when some dependencies have different alias in some platform's packets manager, or user needs "ad hoc" tasks/vars for some others use cases.
+
