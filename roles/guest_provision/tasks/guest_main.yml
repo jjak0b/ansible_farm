@@ -4,7 +4,11 @@
   set_fact:
     platform_name: "{{ vm.metadata.platform_name }}"
     target_name: "{{ vm.metadata.arch_name }}"
-    import_path: "{{ vm.metadata.platform_name }}/{{ vm.metadata.arch_name }}"
+    import_path: "{{ ( vm.metadata.platform_name, vm.metadata.arch_name) | path_join }}"
+    priority_import_paths:
+    - "{{ ( 'phases', vm.metadata.platform_name, vm.metadata.arch_name) | path_join }}"
+    - "{{ ( 'phases', vm.metadata.platform_name ) | path_join }}"
+    - "phases"
 
 - block:
   - name: "Request Clean Snapshot"
@@ -12,18 +16,6 @@
     vars:
       vm_name: "{{ vm.metadata.name }}"
       snapshot_name: "clean"
-      uri: "{{ vm.metadata.connection | default(omit, true) }}"
-  delegate_to: "{{ kvm_host }}"
-
-- name: "Install Common Prerequisites on Guest"
-  include_tasks: install/install_shared.yml
-
-- block:
-  - name: "Request Snapshot after common dependencies end"
-    include_tasks: snapshot_create.yaml
-    vars:
-      vm_name: "{{ vm.metadata.name }}"
-      snapshot_name: "common_dependencies"
       uri: "{{ vm.metadata.connection | default(omit, true) }}"
   delegate_to: "{{ kvm_host }}"
 
@@ -46,10 +38,8 @@
   vars:
     params:
       files:
-      - "init.yaml"
-      paths:
-      - "tasks/{{ import_path }}/phases"
-      - tasks/phases
+      - init.yaml
+      paths: "{{ ['tasks'] | product( priority_import_paths ) | map('path_join') }}"
       skip: True
 
 - block:
@@ -69,9 +59,7 @@
     params:
       files:
       - "main.yaml"
-      paths:
-      - "tasks/{{ import_path }}/phases"
-      - tasks/phases
+      paths: "{{ ['tasks'] | product( priority_import_paths ) | map('path_join') }}"
       skip: True
   
 - name: "Start Terminate phase"
@@ -82,7 +70,5 @@
     params:
       files:
       - "terminate.yaml"
-      paths:
-      - "tasks/{{ import_path }}/phases"
-      - "tasks/phases"
+      paths: "{{ ['tasks'] | product( priority_import_paths ) | map('path_join') }}"
       skip: True
