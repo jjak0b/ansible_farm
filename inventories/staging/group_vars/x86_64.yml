@@ -1,8 +1,0 @@
----
-#  VM related vars
-arch: "x86_64"
-libvirt_pool_dir: "/var/lib/libvirt/images/"
-name: "virtual-square-{arch}"
-vcpus: 2
-ram_mb: 2048
-net: default
