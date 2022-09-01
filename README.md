@@ -29,13 +29,13 @@ A vm_definitions object is a yaml, with the following scheme:
 permutations: 
   # lists of target's yaml filename (no extension)
   targets: [] 
-  # lists of platform's yaml filename
+  # lists of platform's yaml filename (no extension)
   platforms: [] 
 
 # There will be this list of VMs with specific platform and target
-combinations: 
+definitions: 
   - platform: platform's yaml filename (no extension)
-    target: target's yaml filename 
+    target: target's yaml filename (no extension)
   - ...
   ...
 ```

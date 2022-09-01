@@ -10,6 +10,10 @@
   include_tasks: init/init_permutations.yaml
   when: permutations is defined
 
+- name: Normalize definitions list
+  set_fact:
+    definitions: "{{ definitions | unique }}"
+
 - name: "Init all vms of definitions list"
 
   loop: "{{ definitions }}"

@@ -5,10 +5,10 @@ permutations:
     - "amd64"
   # - "arm64"
   platforms:
-  - "debian_vs"
+    - "debian_vs"
   # - "debian_sid.yml"
 
-combinations: [] 
+definitions: [] 
 # - platform: "debian_vs.yml"
 #   target: "amd64"
 # - platform: "debian_sid.yml"

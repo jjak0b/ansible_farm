@@ -1,2 +1,16 @@
-- name: Generating VMs permutations and add them to 
-  include_tasks: init/permutate_platforms.yaml
+- name: Define VMs permutations
+  set_fact:
+    permutation_list: "{{ permutations.platforms | product( permutations.targets ) | default( [] ) }}"
+
+- name: Add permutated (platform, target) to definitions
+  loop: "{{ permutation_list }}"
+
+  include_tasks: init/add_vm_definition.yaml
+  vars:
+    definition:
+      target: "{{ pair[1] }}"
+      platform: "{{ pair[0] }}"
+
+  loop_control:
+    loop_var: pair
+
