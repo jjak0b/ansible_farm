@@ -8,7 +8,9 @@
     include_vars:
       file: vm_definitions.yaml
       name: define
-    
+    # allow to override using -e
+    when: not( define is defined ) 
+
   - name: Init virtual machines definitions
     include_role: 
       name: parse_vms_definitions
