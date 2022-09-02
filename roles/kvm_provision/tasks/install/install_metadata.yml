@@ -10,6 +10,7 @@
 - name: Ensure images directory exists and own to libvirt-qemu
   file:
     path: "{{ vm.metadata.libvirt_pool_dir }}" 
+    state: directory
     owner: "{{ ansible_env.USER }}"
     group: libvirt-qemu
     mode: u+rwx,g+rwx,o+rx
