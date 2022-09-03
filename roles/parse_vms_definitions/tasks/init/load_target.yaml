@@ -17,6 +17,13 @@
       - vars/targets
       skip: True
 
+- name: Set default arch_name
+  ansible.utils.update_fact:
+    updates:
+    - path: target_vars.vm.metadata.arch_name
+      value: "{{ target }}"
+  when: not ( target_vars.vm.metadata.arch_name is defined )
+
 - name: "Include target tasks of '{{ target }}'"
   include_tasks:
     file: "{{ item }}"

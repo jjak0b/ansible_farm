@@ -12,6 +12,13 @@
       - vars/platforms
       skip: True
 
+- name: Set default platform_name
+  ansible.utils.update_fact:
+    updates:
+    - path: default_platform_vars.vm.metadata.platform_name
+      value: "{{ platform }}"
+  when: not ( default_platform_vars.vm.metadata.platform_name is defined )
+
 - name: "include platform vars of '{{ platform }}'"
   include_vars:
     file: "{{ item }}"
@@ -28,10 +35,8 @@
 
 - name: Merge VM configuration for platform
   set_fact:
-    merged_vars: "{{ default_platform_vars | combine (custom_platform_vars, recursive=True) }}"
-- set_fact:
-    platform_vars: "{{ merged_vars }}"
-  
+    platform_vars: "{{ default_platform_vars | combine (custom_platform_vars, recursive=True) }}"
+
 - name: "Include platform tasks of '{{ platform }}'"
   include_tasks:
     file: "{{ item }}"
@@ -39,10 +44,8 @@
   vars:
     params:
       files:
-      - "{{ platform }}.yaml"
+      - "{{ platform }}.yml"
       - default.yaml
       paths:
       - tasks/platforms
       skip: True
-    target_vars: "{{ target_vars }}"
-    platform_vars: "{{ platform_vars }}"
