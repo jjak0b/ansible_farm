@@ -123,6 +123,7 @@ For instance `vcpus` can be defined instead into the target definition if using 
 ## VM template XML definition
 A `default.xml.j2` VM template definition scheme has been provided in `roles/kvm_provision/templates`
 Otherwise custom templates are applied, searching into `templates` folder with the matching name and the following priority order:
+- `{{ vm.metadata.template }}.xml.j2`
 - `{{ vm.metadata.name }}.xml.j2`
 - `{{ vm.arch }}.xml.j2`
 
