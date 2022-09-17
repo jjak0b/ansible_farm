@@ -1,7 +1,0 @@
----
-- name: "Init VM definition"
-  set_fact:
-
-
-
-

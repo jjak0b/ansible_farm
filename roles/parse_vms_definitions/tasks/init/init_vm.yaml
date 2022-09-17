@@ -17,6 +17,13 @@
 - name: "Load VM platform vars - {{ platform }}"
   include_tasks: load_platform.yaml
 
+- name: Set vm template from definitions if defined
+  ansible.utils.update_fact:
+    updates:
+    - path: platform_vars.vm.metadata.template
+      value: "{{ vm_definition.template }}"
+  when: vm_definition.template is defined
+
 - name: "adding vm config"
   block:
   - name: "Fail if vm configs has not been loaded correctly"

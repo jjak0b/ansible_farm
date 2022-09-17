@@ -13,6 +13,7 @@
   vars:
     params:
       files:
+        - "{{ vm.metadata.template }}.xml.j2"
         - "{{ vm.metadata.name }}.xml.j2"
         - "{{ vm.arch }}.xml.j2"
         - default.xml.j2
