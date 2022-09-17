@@ -36,6 +36,7 @@ permutations:
 definitions: 
   - platform: platform's yaml filename (no extension)
     target: target's yaml filename (no extension)
+    template: dedicated's xml.j2 filename (no extension)
   - ...
   ...
 ```
@@ -126,7 +127,7 @@ Otherwise custom templates are applied, searching into `templates` folder with t
 - `{{ vm.metadata.template }}.xml.j2`
 - `{{ vm.metadata.name }}.xml.j2`
 - `{{ vm.arch }}.xml.j2`
-
+A template name can be provided through a `template` field into a `VM definition` which will override the `vm.metadata.template` field.
 Each template during the templating process can access to the `vm` root property of the `VM configuration` to define a dynamic XML for each VM. Then a custom template can be fully customizable.
 
 For XML advanced use, see [https://libvirt.org/format.html](https://libvirt.org/format.html).
