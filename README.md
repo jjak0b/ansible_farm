@@ -132,6 +132,23 @@ Each template during the templating process can access to the `vm` root property
 
 For XML advanced use, see [https://libvirt.org/format.html](https://libvirt.org/format.html).
 
+## Install hypervisor prerequisites
+Before processing the VM installation, some system components may be required according to the vm `target` type. So the tasks specified in `tasks/hypervisor/prerequisite/{{ vm.arch }}.yml` will run on the KVM host. Some qemu target architectures are already defined (see folder in `roles/kvm_provision`) but according to your use case you can create a custom `tasks/hypervisor/prerequisite/{{ vm.arch }}.yml` file into your inventory directory to override them or create a not defined architecture prerequisite's tasks.
+
+- For example: 
+  If your `vars/targets/AnARMTarget.yml` defines `vm.arch: aarch64`,
+  then you can create a `tasks/hypervisor/prerequisite/aarch64.yml` containing
+  ```
+  - name: Ensure arch System components
+    package:
+      name:
+        - qemu-system-arm
+      state: present
+    become: yes
+  # - name: Otherwise this will include the already bundled tasks for qemu
+  #   include_tasks: arm.yml
+  ```
+
 ## The VM Guest lifecycle
 The VM Guest lifecycle is decribed by `roles/guest_provision/tasks/guest_main.yml`
 

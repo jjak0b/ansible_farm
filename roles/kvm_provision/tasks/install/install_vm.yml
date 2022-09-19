@@ -1,8 +1,7 @@
 
-- name: "Install specific {{ vm.arch }} System components"
-  
-  # TODO: maybe this should use "with_first_found" with a regex for mathing files
-  include_tasks: "target/{{ vm.arch }}.yml"
+- name: "Install specific '{{ vm.arch }}' System components"
+  include_tasks:
+    file: "{{ ('hypervisor', 'prerequisite', 'targets', vm.arch + '.yml' ) | path_join }}"
 
 - name: Setup metadata
 
