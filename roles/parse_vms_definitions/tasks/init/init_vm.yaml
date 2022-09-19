@@ -17,12 +17,20 @@
 - name: "Load VM platform vars - {{ platform }}"
   include_tasks: load_platform.yaml
 
-- name: Set vm template from definitions if defined
-  ansible.utils.update_fact:
-    updates:
-    - path: platform_vars.vm.metadata.template
-      value: "{{ vm_definition.template }}"
-  when: vm_definition.template is defined
+- name: Override Platform vars
+  block:
+  - name: init vars to override
+    set_fact:
+      override_platform_vars:
+        vm:
+          metadata:
+            template: "{{ vm_definition.template }}"
+    when: vm_definition.template is defined
+
+  - name: Override vars
+    set_fact:
+      platform_vars: "{{ platform_vars | combine (override_platform_vars, recursive=True) }}"
+    when: override_platform_vars is defined
 
 - name: "adding vm config"
   block:

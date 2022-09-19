@@ -10,12 +10,12 @@
 - name: Search for VM template
 
   vars:
+    file_list:
+      - "{{ vm.metadata.name }}.xml.j2"
+      - "{{ vm.arch }}.xml.j2"
+      - default.xml.j2
     params:
-      files:
-        - "{{ vm.metadata.template }}.xml.j2"
-        - "{{ vm.metadata.name }}.xml.j2"
-        - "{{ vm.arch }}.xml.j2"
-        - default.xml.j2
+      files: "{{ [ vm.metadata.template + '.xml.j2' ] + file_list if vm.metadata.template is defined else file_list }}"
       paths:
         - templates
   set_fact:
