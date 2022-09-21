@@ -1,3 +1,5 @@
+# params:
+# - force: boolean if true will force to override the vm resources, otherwise will use cached resources if available. xml is updated on both cases
 ---
 
 # - name: "Install Common Prerequisites"
