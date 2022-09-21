@@ -154,10 +154,29 @@ vm:
     devname: "hda"
     src: *image_file_name
 ```
-Properties defined in vm.metadata needs their respective name because are also used internally, but other properties can customized or renamed if using a custom XML template for VM definitions.
-For instance `vcpus` can be defined instead into the target definition if using the default XML template (it doesn't matter where it's located but it's important that is defined in target or platform definition), or change the property name if using a custom one and use the changed name into the new xml into the right place.
+Properties defined in `vm.metadata` needs their respective name because are also used internally, but other properties can customized or renamed if you are using a custom XML template for VM definitions.
+For instance `vcpus` can be defined into the target definition if you are using the default XML template (it doesn't matter where it's located but it's important that is defined in target or platform definition). Otherwise you canchange the property name if you are using a custom XML template and use the reference of the changed name into the new xml.
 
 **Note: both target and platform definitions use a default yaml, but some of the properties must me overrided according to your use case.**
+### Run platform dependent tasks
+On `roles/parse_vms_definitions` processing you can run custom tasks defined in a yaml file placed in `tasks/platforms/<platform_name>.yml` before the merge of target and platform vars and before the template is processed.
+A use case for this can be an utility to override the internal var `platform_vars.vm` / `target_vars.vm` according to your use case
+For instance:
+```
+# run some checks and we require to change resources' uri and other stuff
+# ensure to compile stuff for specific target_vars.vm.metadata.arch_name, and serve it locally and override the uris in vm.metadata.sources if needed
+# ... 
+- name: Override platform vars for some specific use case
+  set_fact: 
+    platform_vars: "{{ platform_vars | combine (override_platform_vars, recursive=True) }}"
+  vars:
+    override_platform_vars: 
+      vm:
+        vcpu: 4
+        # ... and any other field 
+  
+```
+
 ## VM template XML definition
 A `default.xml.j2` VM template definition scheme has been provided in `roles/kvm_provision/templates`
 Otherwise custom templates are applied, searching into `templates` folder with the matching name and the following priority order:
