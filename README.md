@@ -28,13 +28,15 @@ An ansible tool to provision an host with VMs of different machine, architecture
   - libvirt environment
     - libvirt daemon active and running
 - User:
-  - require to have access to libvirt and eventually kvm features
-    - group: `libvirt`
+  - group: `libvirt_group` var value (default: `libvirt`)
+    - require to have access to libvirt features
       - See your distribution requirements to use libvirt features
-  - require to change files ownership to allow the hypervisor to access to
-    - group: `libvirt-qemu`
-      - default is qemu; in general see your hypervisor requirements
-    
+  - group: `kvm`
+    - require to use kvm device
+  - group: `hypervisor_group` var value (default: `libvirt-qemu` )
+    - require to change files ownership to allow the hypervisor to access to
+      - in general see your hypervisor requirements
+  - Note: default `hypervisor_group` and `libvirt_group` vars are defined in `roles/kvm_provision/defaults/main.yaml`, so they can be overridden on hypervisor's host (group)vars according to your use case.
 
 ## Usage
 
