@@ -205,9 +205,45 @@ Before processing the VM installation, some system components may be required ac
   #   include_tasks: arm.yml
   ```
 
-## The VM Guest lifecycle
-The VM Guest lifecycle is decribed by `roles/guest_provision/tasks/guest_main.yml`
+## The VM Guest provisioning
+### Prerequisite
 
+After you ran the `kvm_provision` role, before start the VM guest provisioning you have to run the `guest_provision` role first to include the VM you want to process and add them them as ansible hosts with a dynamic inventory with the following role utility:
+```
+- name: Add into Virtual Machines lifecycle
+  loop: "{{ virtual_machines }}"
+
+  include_role:
+    name: guest_provision
+  vars:
+    vm: "{{ vm }}"
+    should_add_vm: True
+
+  loop_control:
+    loop_var: vm
+```
+After that
+- each VM host is added as ansible host
+- the `VM definition` is added as global `vm`  host var in VM's lifecycle.
+- the hypervisor's inventory host is added as global `kvm_host` host var in VM's lifecycle.
+- Each VM host are added to the following ansible groups:
+  - `vms`
+  - `"{{ vm.metadata.name }}"`
+  - `"{{ vm.metadata.platform_name }}"`
+  - `"{{ vm.metadata.arch_name }}"`
+
+In your playbook you can start the guest provisioning using:
+```
+- name: "Start Guest provisioning"
+  hosts: vms # or any group you want 
+  serial: 1
+  tasks:
+  - include_role:
+      name: guest_provision
+    vars:
+      should_run_guest_main: True
+```
+### The VM Guest lifecycle
 1. **dependencies** phase
    - Create 'clean' snapshot
    - Install use case dependencies
