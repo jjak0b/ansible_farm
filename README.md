@@ -1,6 +1,41 @@
 # TEST FARM
 
 An ansible tool to provision an host with VMs of different machine, architecture and OS configs and to provision VMs with custom tasks
+## Requirements
+- Packages
+  - `python` >= 2.6
+  - `python3-libvirt`
+    - required by community.libvirt.virt  
+  - `python3-lxml`
+    - required by community.libvirt.virt_net
+  - `sshpass`
+    - optional but required to use password on ssh on vm connections
+    - otherwise use [ansible vault](https://docs.ansible.com/ansible/2.8/user_guide/vault.html)
+  - `libvirt-bin`
+    - required by `guest_provision` role to handle snapshots using virsh
+  - `ip`
+    - required to detect VM ip through an interface if not provided
+  - [unarchive](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/unarchive_module.html) module dependencies
+  - `gzip`, `bunzip2`
+    - required if using unsupported archive format by the unarchive module
+- System running hypervisor:
+  - Supported platform:
+    - Theoretically any GNU/Linux distribution
+    - Tested:
+      - debian
+  - hypervisor
+    - default: `qemu`
+  - libvirt environment
+    - libvirt daemon active and running
+- User:
+  - require to have access to libvirt and eventually kvm features
+    - group: `libvirt`
+      - See your distribution requirements to use libvirt features
+  - require to change files ownership to allow the hypervisor to access to
+    - group: `libvirt-qemu`
+      - default is qemu; in general see your hypervisor requirements
+    
+
 ## Usage
 
 If you want use custom ansible config, you can use `ANSIBLE_CONFIG="./ansible.cfg"` first.

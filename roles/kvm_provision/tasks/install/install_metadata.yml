@@ -12,9 +12,9 @@
     path: "{{ vm.metadata.libvirt_pool_dir }}" 
     state: directory
     owner: "{{ ansible_env.USER }}"
-    group: libvirt-qemu
+    group: "{{ hypervisor_group }}"
     mode: u+rwx,g+rwx,o+rx
-  become: True
+#   become: True
   
 - name: Fetch and install required resources
 

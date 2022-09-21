@@ -1,7 +1,7 @@
 ---
 
-- name: "Install Common Prerequisites"
-  include_tasks: install/install_shared.yml
+# - name: "Install Common Prerequisites"
+#   include_tasks: install/install_shared.yml
 
 - name: Run Virtual Machines lifecycle
   loop: "{{ virtual_machines }}"

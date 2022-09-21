@@ -1,2 +1,4 @@
 ---
 # defaults file for kvm_provision
+libvirt_group: libvirt
+hypervisor_group: libvirt-qemu

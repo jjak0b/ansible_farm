@@ -35,9 +35,9 @@
   file:
     path: "{{ vm.metadata.libvirt_pool_dir }}{{ source.unarchived }}" 
     owner: "{{ ansible_env.USER }}"
-    group: libvirt-qemu
+    group: "{{ hypervisor_group }}"
     mode: u+rwx,g+rwx,o+rx
-  become: True
+#   become: True
 
 # TODO: give error errorno 2: file or direcotry not found
 # - name: Configure the image
