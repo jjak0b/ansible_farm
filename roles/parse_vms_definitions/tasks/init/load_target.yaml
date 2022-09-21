@@ -15,6 +15,7 @@
       - default.yml
       paths:
       - vars/targets
+      - defaults/targets
       skip: True
 
 - name: Set default arch_name

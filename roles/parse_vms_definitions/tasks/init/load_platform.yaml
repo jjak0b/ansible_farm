@@ -10,6 +10,7 @@
       - defaults.yml
       paths:
       - vars/platforms
+      - defaults/platforms
       skip: True
 
 - name: Set default platform_name
@@ -30,6 +31,7 @@
       - "{{ platform }}.yml"
       paths:
       - vars/platforms
+      - defaults/platforms
       skip: True
     target_vars: "{{ target_vars }}"
 
