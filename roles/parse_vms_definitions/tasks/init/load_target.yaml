@@ -14,7 +14,7 @@
       - "{{ target }}.yml"
       - default.yml
       paths:
-      - vars/targets
+      - "{{ ( parse_lookup_dir_path, 'targets' ) | path_join }}"
       - defaults/targets
       skip: True
 
@@ -35,7 +35,7 @@
       - "{{ target }}.yaml"
       - default.yaml
       paths:
-      - tasks/targets
+      - "{{ ('tasks', parse_lookup_dir_path, 'targets' ) | path_join }}"
       skip: True
 
 # - name: Merge VM configuration for target

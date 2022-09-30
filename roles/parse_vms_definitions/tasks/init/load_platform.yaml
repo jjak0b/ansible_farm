@@ -9,7 +9,7 @@
       files:
       - defaults.yml
       paths:
-      - vars/platforms
+      - &var_path_platforms "{{ ( parse_lookup_dir_path, 'platforms' ) | path_join }}"
       - defaults/platforms
       skip: True
 
@@ -30,7 +30,7 @@
       files:
       - "{{ platform }}.yml"
       paths:
-      - vars/platforms
+      - *var_path_platforms
       - defaults/platforms
       skip: True
     target_vars: "{{ target_vars }}"
@@ -49,5 +49,5 @@
       - "{{ platform }}.yml"
       - default.yaml
       paths:
-      - tasks/platforms
+      - "{{ ( 'tasks', parse_lookup_dir_path, 'platforms' ) | path_join }}"
       skip: True

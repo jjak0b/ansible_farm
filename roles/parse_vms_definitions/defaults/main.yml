@@ -1,2 +1,4 @@
 ---
 # defaults file for parse_vms_definitions
+# lookup directory for parsing platforms and targets
+parse_lookup_dir_path: setup_vm

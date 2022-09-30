@@ -1,2 +1,4 @@
 ---
 # defaults file for guest_provision
+# lookup directory for (searching and ) running phases
+phases_lookup_dir_path: provision_phases

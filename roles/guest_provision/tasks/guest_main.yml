@@ -6,9 +6,9 @@
     target_name: "{{ vm.metadata.arch_name }}"
     import_path: "{{ ( vm.metadata.platform_name, vm.metadata.arch_name) | path_join }}"
     priority_import_paths:
-    - "{{ ( 'phases', vm.metadata.platform_name, vm.metadata.arch_name) | path_join }}"
-    - "{{ ( 'phases', vm.metadata.platform_name ) | path_join }}"
-    - "phases"
+    - "{{ ( phases_lookup_dir_path, vm.metadata.platform_name, vm.metadata.arch_name) | path_join }}"
+    - "{{ ( phases_lookup_dir_path, vm.metadata.platform_name ) | path_join }}"
+    - "{{ phases_lookup_dir_path }}"
 
 - block:
   - name: "Request Clean Snapshot"
@@ -39,7 +39,7 @@
     params:
       files:
       - init.yaml
-      paths: "{{ ['tasks'] | product( priority_import_paths ) | map('path_join') }}"
+      paths: "{{ priority_import_paths }}"
       skip: True
 
 - block:
@@ -59,7 +59,7 @@
     params:
       files:
       - "main.yaml"
-      paths: "{{ ['tasks'] | product( priority_import_paths ) | map('path_join') }}"
+      paths: "{{ priority_import_paths }}"
       skip: True
   
 - name: "Start Terminate phase"
@@ -70,5 +70,5 @@
     params:
       files:
       - "terminate.yaml"
-      paths: "{{ ['tasks'] | product( priority_import_paths ) | map('path_join') }}"
+      paths: "{{ priority_import_paths }}"
       skip: True
