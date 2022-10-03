@@ -1,14 +1,12 @@
 # params:
+# - vm: VM definition object 
 # - force: boolean if true will force to override the vm resources, otherwise will use cached resources if available. xml is updated on both cases
 ---
 
-# - name: "Install Common Prerequisites"
-#   include_tasks: install/install_shared.yml
+- name: "VM Main lifecycle: {{ vm.metadata.name }}"
+  debug:
+    var: vm
 
-- name: Run Virtual Machines lifecycle
-  loop: "{{ virtual_machines }}"
-
-  include_tasks: vm.yml
+- name: Install VM
+  include_tasks: install/install_vm.yml
   
-  loop_control:
-    loop_var: vm
