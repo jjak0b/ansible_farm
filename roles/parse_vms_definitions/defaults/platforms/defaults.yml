@@ -9,12 +9,6 @@ vm:
   # connection: "qemu:///session" 
   # libvirt_pool_dir: "{{ansible_env.HOME}}/.local/share/libvirt/images/"
     auth:
-      become_user: &root_user "root"
-      become_password: &root_pass ""
-      become_method: "su"
-      user: *root_user
-      password: *root_pass
-      root_pass: *root_pass
     # TODO 
       ssh_key: "{{ansible_env.HOME}}/.ssh/id_rsa.pub"
     sources:
