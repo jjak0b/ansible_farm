@@ -7,16 +7,16 @@ This role provision VMs with custom VM lifecycle phases organized in snapshotted
 1. **dependencies** phase
    - Create 'clean' snapshot
    - Install use case dependencies
-     - Run dependencies tasks (`tasks/phases[/import_path]/dependencies.yaml`)
+     - Run dependencies tasks (`{{ import_path }}/dependencies.yaml`)
    - Create 'dependencies' snapshot
 2. **Init** use case phase: 
-   - Run init tasks `tasks/phases[/import_path]/init.yaml`
+   - Run init tasks `{{ import_path }}/init.yaml`
    - Create 'init' snapshot
 3. **Main** use case phase: 
-   - Run main tasks `tasks/phases[/import_path]/main.yaml`
+   - Run main tasks `{{ import_path }}/main.yaml`
 4. **Terminate** use case phase: 
-   - Run end tasks `tasks/phases[/import_path]/terminate.yaml`
-
+   - Run end tasks `{{ import_path }}/terminate.yaml`
+ - 
 Where `import_path` is a subpath that match with the most detailited phase file location, according to the target and platform type of the VM.
 The `import_path` is the one in the following priority list path which contains a phase file:
 - `"{{ ( phases_lookup_dir_path, vm.metadata.platform_name, vm.metadata.arch_name) | path_join }}"`
@@ -35,7 +35,7 @@ A use case may needs specific tasks/vars for a target on platform or only platfo
     - tasks or vars files, ... specific *fedora_36* platforms but any target
 - tasks or vars files, ... generic for any platform and target which file does not exists with a specific `import_path` sub path
 
-This is useful when some dependencies have different alias in some platform's packets manager, or user needs "ad hoc" tasks/vars for some others use cases.
+The `import_path` is useful when some dependencies have different alias in some platform's packets manager, or user needs "ad hoc" tasks/vars for some others use cases.
 
 Requirements
 ------------
