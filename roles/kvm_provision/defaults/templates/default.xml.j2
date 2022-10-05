@@ -25,7 +25,13 @@
     <vcpu placement='static'>{{ vm.vcpus }}</vcpu>
   {% endif %}
   
-  <clock sync="localtime"/>
+  <clock offset="utc" />
+  <!--
+  <features>
+    <acpi/>
+    <apic/>
+  </features>
+  -->
   <devices>
     <emulator>{{ vm.emulator }}</emulator>
 
@@ -71,6 +77,7 @@
       <target type="serial" port="0"/>
     </console>
     <channel type="unix">
+      <source mode="bind"/>
       <target type="virtio" name="org.qemu.guest_agent.0"/>
     </channel>
     <video>
