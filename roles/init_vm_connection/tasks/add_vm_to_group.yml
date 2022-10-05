@@ -9,22 +9,12 @@
 - name: init vm connection of
   include_tasks: init_vm_connection.yml
 
-- name: Ensure VM is started
-  community.libvirt.virt:
-    name: "{{ vm.metadata.name }}"
-    state: running
-    uri: "{{ vm.metadata.connection | default(omit, true) }}"
-  register: vm_start_results
-  until: "vm_start_results is success"
-  retries: 15
-  delay: 2
-
 - name: Connect to VM
   include_tasks: connect_to_vm.yml
 
 - name: "Add vm host to 'vms', '{{ vm.metadata.arch_name}}' groups with variables"
   add_host:
-    name: "{{ vm.metadata.hostname }}"
+    name: "{{ vm.metadata.name }}"
     groups:
     - vms 
     - "{{ vm.metadata.name }}"
@@ -35,11 +25,13 @@
     ansible_connection: ssh 
     ansible_port: "22"
     ansible_host: "{{ vm_conn.host }}"
+
     ansible_user: "{{ vm.metadata.auth.user }}"
     ansible_password: "{{ vm.metadata.auth.password | default(omit, true) }}"
     ansible_become_method: "{{ vm.metadata.auth.become_method | default(omit, true) }}"
     ansible_become_user: "{{ vm.metadata.auth.become_user }}"
     ansible_become_password: "{{ vm.metadata.auth.become_password | default(omit, true) }}"
+
     # other host vars
     vm: "{{ vm }}"
     kvm_host: "{{ inventory_hostname }}"

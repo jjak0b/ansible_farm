@@ -1,0 +1,47 @@
+---
+
+- name: "Init VM's network"
+  block:
+  - name: Define Network
+    include_role: 
+      name: libvirt_network
+      tasks_from: define
+  - name: Insert DHCP entry
+    include_role:
+      name: libvirt_network
+      tasks_from: add
+    vars:
+      mac: "{{ vm.net.mac }}"
+      ip: "{{ vm.net.ip }}"
+      hostname: "{{ vm.metadata.hostname }}"
+  vars:
+    name: "{{ vm.net.source }}"
+    libvirt_uri: "{{ vm.metadata.connection | default(omit, true) }}"
+  when: vm.net is defined and vm.net.type == 'network'
+
+- name: "Init VM's ansible host"
+  block:
+  - name: "include VM '{{ vm.metadata.name }}' as ansible's inventory host"
+    add_host:
+      name: "{{ vm.metadata.name }}"
+      groups:
+      - vms 
+      - "{{ vm.metadata.name }}"
+      - "{{ vm.metadata.platform_name }}"
+      - "{{ vm.metadata.arch_name }}"
+
+      # ansible_connection: ssh 
+      # ansible_port: "22"
+      ansible_host: "{{ vm.net.ip }}"
+      ansible_hostname: "{{ vm.metadata.hostname }}"
+      # other host vars
+      vm: "{{ vm }}"
+      kvm_host: "{{ inventory_hostname }}"
+
+  # need to place it here because after the previous add_host module, i can know if a different connection type have been specified from host_vars / group_vars
+  - name: "Update VM's ansible_host as VM's domain name for libvirt_qemu connection plugin"
+    add_host:
+      name: "{{ vm.metadata.name }}"
+      ansible_host: "{{ hostvars[ vm.metadata.name ].inventory_hostname }}"
+      ansible_libvirt_uri: "{{ vm.metadata.connection | default(omit, true) }}"
+    when: hostvars[ vm.metadata.name ].ansible_connection is defined and hostvars[ vm.metadata.name ].ansible_connection == 'community.libvirt.libvirt_qemu'

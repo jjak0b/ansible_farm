@@ -1,0 +1,27 @@
+---
+# tasks file for create_vm_inventory
+- name: "Init vars"
+  set_fact:
+    vm_conn:
+      host: null
+- name: Search for network definition
+  set_fact:
+    net_xml_path: lookup( 'first_found', params, errors='ignore' )
+  vars:
+    params:
+      files:
+      - "{{ network.name }}.xml.j2"
+      paths:
+      - "{{ ( hypervisor_lookup_dir_path, 'networks' ) | path_join }}"
+      - defaults/networks
+
+- name: Ensure libvirt network exists
+  community.libvirt.virt_net:
+    command: define
+    name: "{{ network_name }}"
+    uri: "{{ vm.metadata.connection | default(omit, true) }}"
+    xml: "{{ lookup('template', net_xml_path ) }}"
+  
+
+- name: init vm connection
+  include_tasks: init_vm_connection.yml
