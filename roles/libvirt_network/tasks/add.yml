@@ -1,0 +1,8 @@
+
+  # Add a new host in the dhcp pool
+- name: "Add static ip to network dhcp pool of '{{ name }}'"
+  community.libvirt.virt_net:
+    command: modify
+    name: "{{ name }}"
+    uri: "{{ libvirt_uri | default(omit, true) }}"
+    xml: "<host  mac='{{ mac }}' ip='{{ ip }}' name='{{ hostname }}'/>"

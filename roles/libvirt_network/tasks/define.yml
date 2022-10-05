@@ -1,0 +1,36 @@
+# params
+# - name: the name of network  
+# - libvirt_uri: libvirt uri 
+# - net_parse_lookup_dir_path: path root of definition searching 
+
+---
+# tasks file for parse_net_definition
+
+- name: "Search network definition '{{ name }}'"
+  include_vars:
+    file: "{{ lookup( 'first_found', params, errors='ignore' ) }}"
+    name: network
+  vars:
+    params:
+      files:
+      - "{{ name }}.yml"
+      paths: &default_paths
+      - "{{ ( net_parse_lookup_dir_path, 'networks' ) | path_join }}"
+      - defaults/networks
+
+- name: Search for network template
+  set_fact:
+    net_xml_path: "{{ lookup( 'first_found', params, errors='ignore' ) }}"
+  vars:
+    params:
+      files:
+      - "{{ network.template }}.xml.j2"
+      paths: *default_paths
+
+- name: Ensure libvirt network exists
+  community.libvirt.virt_net:
+    command: define
+    name: "{{ network.name }}"
+    state: present
+    uri: "{{ libvirt_uri | default(omit, true)}}"
+    xml: "{{ lookup('template', net_xml_path ) }}"

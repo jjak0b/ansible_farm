@@ -1,0 +1,11 @@
+template: default
+name: default-net
+bridge: 
+  name: virbr1
+  stp: True
+  mac: "52:54:00:00:00:01"
+  ip: "10.0.0.254"
+  netmask: "255.0.0.0"
+dhcp:
+  start: "10.0.0.1"
+  end: "10.0.0.253"

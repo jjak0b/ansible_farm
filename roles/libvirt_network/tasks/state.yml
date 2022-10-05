@@ -1,0 +1,15 @@
+# params
+# - name: the name of network
+# - state: the status of network (active | inactive | present | absent ) 
+  
+# - libvirt_uri: libvirt uri 
+# - net_parse_lookup_dir_path: path root of definition searching 
+
+---
+# tasks file for parse_net_definition
+
+- name: "Ensure libvirt network '{{ name }}' to state '{{ state }}'"
+  community.libvirt.virt_net:
+    name: "{{ name }}"
+    state: "{{ state }}"
+    uri: "{{ libvirt_uri | default(omit, true)}}"

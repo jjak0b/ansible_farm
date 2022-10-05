@@ -1,0 +1,3 @@
+---
+# defaults file for parse_net_definition
+net_parse_lookup_dir_path: setup_net

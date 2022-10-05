@@ -2,4 +2,4 @@
 - hosts: localhost
   remote_user: root
   roles:
-    - create_vm_inventory
+    - parse_net_definition

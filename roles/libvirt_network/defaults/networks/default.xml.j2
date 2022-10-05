@@ -1,0 +1,16 @@
+<network>
+  <name>{{ network.name }}</name>
+  <forward mode="open"/>
+  <bridge name="{{ network.bridge.name }}" stp="{{ 'on' if network.bridge.stp else 'off' }}" delay="0"/>
+  <mac address="{{ network.bridge.mac }}"/>
+  {% if network.domain_name is defined %}
+  <domain name="{{ network.domain_name }}"/>
+  {% endif %}
+  <ip address="{{ network.bridge.ip }}" netmask="{{ network.bridge.netmask }}">
+  {% if network.dhcp is defined %}
+    <dhcp>
+      <range start="{{ network.dhcp.start }}" end="{{ network.dhcp.end }}"/>
+    </dhcp>
+ {% endif %}
+  </ip>
+</network>
