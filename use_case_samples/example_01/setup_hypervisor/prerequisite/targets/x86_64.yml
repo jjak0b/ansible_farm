@@ -1,0 +1,8 @@
+---
+# Override Task file for x86_64 prerequisites
+- name: Ensure qemu System components for x86_64 Override
+  package:
+    name:
+      - qemu-system-x86
+    state: present
+  become: yes

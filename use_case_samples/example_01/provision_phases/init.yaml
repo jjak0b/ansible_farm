@@ -1,0 +1,8 @@
+- name: "Init"
+  debug:
+    msg: "Good Morning"
+# pkg_mgr subset fact is required for use of 'package'
+- name: gather min facts
+  setup:
+    gather_subset: 
+    - '!all'

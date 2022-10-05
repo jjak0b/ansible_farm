@@ -1,0 +1,43 @@
+
+# Fetch urls and base resource name
+# my_root_url : "https://www.cs.unibo.it/~renzo/virtualsquare/daily_brewed/yearly/"
+# my_base_image_name: "debian-sid-v2-{{ arch_name }}-daily-20220101-874"
+
+vm:
+  # metadata properties are used inside a task for installation and setup purposes
+  metadata:
+    name: "{{ arch_name }} - debian with virtualsquare pkgs"
+    platform_name: debian_vs
+    hostname: "V2-20220101-874.{{ arch_name }}.debian_vs.vm"
+   # connection: "qemu:///session"
+    libvirt_pool_dir: "{{ansible_env.HOME}}/vms/images/"
+    auth:
+      become_user: &root_user "root"
+      become_password: &root_pass "virtualsquare"
+      user: "user"
+      password: *root_pass
+    sources:
+    - uri: "https://www.cs.unibo.it/~renzo/virtualsquare/daily_brewed/yearly/debian-sid-v2-{{ arch_name }}-daily-20220101-874.qcow2.bz2"
+      resource_name: "debian-sid-v2-{{ arch_name }}-daily-20220101-874.qcow2.bz2"
+      checksum_uri: "https://www.cs.unibo.it/~renzo/virtualsquare/daily_brewed/yearly/debian-sid-v2-{{ arch_name }}-daily-20220101-874.qcow2.sha1sum"
+      checksum_type: "sha1"
+      # fallback checksum value
+      checksum_value: "53cc5c9645121f20018fb8934e1e16178e2ae373"
+      # image name unarchived / processed
+      unarchived: &image_file_name "debian-sid-v2-{{ arch_name }}-daily-20220101-874.qcow2"
+
+  # Others properties are fully custom to templating a custom vm's xml
+
+  # Some properties here, if needed, could override specific architecture values for all architectures
+  vcpus: 2
+  ram: 2048
+  disks:
+  - type: "qcow2"
+    devname: "hda"
+    src: *image_file_name
+  net:
+    type: network
+    source: default-net
+    mac: "{{ '52:54:00' | random_mac( seed = 'debian_vs_' + arch_name ) }}"
+    ip: "10.0.0.5"
+    # source: virbr0

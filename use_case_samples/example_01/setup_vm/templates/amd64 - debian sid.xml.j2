@@ -1,0 +1,76 @@
+<domain type="{{ vm.virt_domain }}">
+  <name>{{ vm.metadata.name }}</name>
+  <os>
+    <type arch="{{ vm.arch }}" machine="{{ vm.machine }}">hvm</type>
+    <boot dev='hd'/>
+  </os>
+  <memory unit='MiB'>{{ vm.ram }}</memory>
+  <currentMemory unit='MiB'>{{ vm.ram }}</currentMemory>
+  <features>
+    <acpi/>
+    <apic/>
+    <vmport state="off"/>
+  </features>
+  {% if vm.virt_domain == "kvm" %}
+    <cpu mode='host-passthrough' check='none'/>
+  {% else %}
+    <cpu mode="custom" match="exact">
+      <model>{{ vm.cpu }}</model>
+    </cpu>
+    <vcpu placement='static'>{{ vm.vcpus }}</vcpu>
+  {% endif %}
+  
+  <clock offset="utc">
+    <timer name="rtc" tickpolicy="catchup"/>
+    <timer name="pit" tickpolicy="delay"/>
+    <timer name="hpet" present="no"/>
+  </clock>
+  <pm>
+    <suspend-to-mem enabled="no"/>
+    <suspend-to-disk enabled="no"/>
+  </pm>
+  <devices>
+    <emulator>{{ vm.emulator }}</emulator>
+
+    {% for disk in vm.disks %}
+    <disk type='file' device='disk'>
+      <driver name='qemu' type="{{ disk.type }}"/>
+      <source file="{{ vm.metadata.libvirt_pool_dir }}{{ disk.src }}"/>
+      <target dev="{{ disk.devname }}" bus='virtio'/>
+      <address type='pci' domain='0x0000' bus='0x05' slot='0x00' function='0x0'/>
+    </disk>
+    {% endfor %}
+
+    <interface type="{{ vm.net.type }}">
+      <mac address="{{ vm.net.mac }}"/>
+      <model type='virtio'/>
+      {% if vm.net.type == "bridge" %}
+      <source bridge="{{ vm.net.source }}"/>
+      {% elif vm.net.type == "user" %}
+      {% else %}
+      <source network="{{ vm.net.source }}"/>
+      {% endif %}
+    </interface>
+
+    <input type='mouse' bus='ps2'/>
+    <input type='keyboard' bus='ps2'/>
+    <console type="pty"/>
+    <channel type='unix'>
+      <target type='virtio' name='org.qemu.guest_agent.0'/>
+    </channel>
+    <channel type="spicevmc">
+      <target type="virtio" name="com.redhat.spice.0"/>
+    </channel>
+    <graphics type="spice" port="-1" tlsPort="-1" autoport="yes">
+      <image compression="off"/>
+    </graphics>
+    <video>
+      <model type="virtio" heads="1" primary="yes"/>
+    </video>
+    <memballoon model='virtio'>
+    </memballoon>
+    <rng model='virtio'>
+      <backend model='random'>/dev/urandom</backend>
+    </rng>
+  </devices>
+</domain>

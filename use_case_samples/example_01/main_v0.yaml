@@ -1,0 +1,40 @@
+---
+
+- name: Hypervisor provisioning
+  hosts: hypervisors
+  pre_tasks:
+  - name: Loading vm definitions
+    include_vars:
+      file: vm_definitions.yaml
+      name: vm_config
+    # allow to override using -e
+    when: not( vm_config is defined ) 
+  
+  roles:
+  - role: parse_vms_definitions
+    vars:
+      config: "{{ vm_config }}"
+  
+  tasks:  
+  - name: Init virtual machines definitions
+    loop: "{{ virtual_machines }}"
+
+    include_tasks: 
+      file: foreach_vm.yaml
+    
+    loop_control:
+      loop_var: vm
+
+- name: VM provisioning
+  hosts: vms
+  gather_facts: no
+  serial: 1
+  tasks:
+  - block:
+    - name: "Start VM provisioning of '{{ vm.metadata.name }}' "
+      include_role: 
+        name: guest_provision
+      tags:
+      - guest_provision
+    
+    

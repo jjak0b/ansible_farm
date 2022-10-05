@@ -1,0 +1,9 @@
+vm:
+  metadata:
+    arch_name: amd64
+  virt_domain: "{{ (ansible_architecture != 'x86_64') | ternary('qemu', 'kvm') }}"
+  arch: "x86_64"
+  emulator: "/usr/bin/qemu-system-x86_64"
+  cpu: "{{ (ansible_architecture != 'x86_64') | ternary('qemu64', '') | default(omit, true) }}"
+  machine: q35
+  

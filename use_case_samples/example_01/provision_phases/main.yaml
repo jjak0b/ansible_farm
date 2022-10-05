@@ -1,0 +1,53 @@
+- name: "main"
+  debug:
+    msg: "Hello World"
+
+- name: gather network facts
+  setup:
+    gather_subset: 
+    - 'network'
+- name: "test"
+  debug:
+    var: ansible_default_ipv4.address
+
+- name: ansible vars debug
+  block:
+  - name: debug ansible host
+    debug:
+      var: ansible_host
+  - name: debug ansible hostname
+    debug:
+      var: ansible_hostname
+  - name: debug ansible inv name
+    debug:
+      var: inventory_hostname
+    
+- name: who am i
+  shell:
+    cmd: whoami
+  register: result_whoami
+
+- name: who am i back to local
+  shell:
+    cmd: whoami
+  delegate_to: localhost
+  register: result_whoami_l
+
+- name: debug whoami
+  debug:
+    var: result_whoami
+- name: debug whoami delegated back
+  debug:
+    var: result_whoami_l
+
+- name: ip devs check
+  shell:
+    cmd: ip addr
+  register: result_ipcheck
+
+- name: debug ip check
+  debug:
+    var: result_ipcheck
+
+
+    

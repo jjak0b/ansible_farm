@@ -3,10 +3,9 @@
 permutations:
   targets:
     - "amd64"
-  # - "arm64"
   platforms:
     - "debian_vs"
-  # - "debian_sid.yml"
+    - "debian_vs_new"
 
 definitions: [] 
 # - platform: "debian_vs.yml"
@@ -15,3 +14,6 @@ definitions: []
 #   target: "arm64"
 # - platform: "openwrt_arm64.yml"
 #   target: "armvirt"
+#   template: "virtio"
+
+  

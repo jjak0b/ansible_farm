@@ -1,0 +1,56 @@
+---
+
+- name: Init VM on KVM
+  hosts: hypervisors
+  gather_facts: yes
+  pre_tasks:
+  - name: Loading vm definitions
+    include_vars:
+      file: vms_config.yaml
+      name: my_vm_config
+    # allow to override using -e
+    when: not( vm_config is defined ) 
+  
+  roles:
+  - role: parse_vms_definitions
+    vars:
+      config: "{{ my_vm_config }}"
+  
+  tasks:  
+  # add VMs definitions to the ansible inventory
+  - name: init VM connection
+    loop: "{{ virtual_machines }}"
+
+    include_role:
+      name: init_vm_connection
+    
+    loop_control:
+      loop_var: vm
+    vars:
+      vm: "{{ vm }}"
+
+- name: VM provisioning on Hypervisor host
+  hosts: vms
+  gather_facts: no
+  serial: 1
+  tasks:
+  - block:
+    - name: gather min facts if definitions use them
+      setup:
+        gather_subset: 
+        - '!all'
+    - name: "start KVM Provision role for '{{ vm.metadata.name }}'"
+      include_role: 
+        name: kvm_provision
+    delegate_to: "{{ kvm_host }}"
+    tags:
+    - kvm_provision
+  
+  - block:
+    - name: "Start VM provisioning of '{{ vm.metadata.name }}' "
+      include_role: 
+        name: guest_provision
+    tags:
+    - guest_provision
+  
+    

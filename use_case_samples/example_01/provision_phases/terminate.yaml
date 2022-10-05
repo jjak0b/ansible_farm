@@ -1,0 +1,4 @@
+- name: "terminate"
+  debug:
+    msg: "Good bye"
+    

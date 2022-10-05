@@ -1,0 +1,10 @@
+- name: "Dependencies"
+  debug:
+    msg: "Prepare to wake up"
+  
+- include_tasks: install_custom_dependencies.yml
+
+- name: After prepared dependencies
+  debug:
+    msg: "** yawns **"
+  

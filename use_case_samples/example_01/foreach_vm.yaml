@@ -1,0 +1,10 @@
+- name: "start KVM Provision role for '{{ vm.metadata.name }}'"
+  include_role: 
+    name: kvm_provision
+  tags:
+  - kvm_provision
+
+- name: "init VM connection for '{{ vm.metadata.name }}'"
+  include_role:
+    name: init_vm_connection
+  
