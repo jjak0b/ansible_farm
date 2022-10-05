@@ -1,4 +1,4 @@
-# TEST FARM
+# jjak0b.deploy_farm Collection
 
 An ansible tool to provision an host with VMs of different machine, architecture and OS configs and to provision VMs with custom tasks
 
