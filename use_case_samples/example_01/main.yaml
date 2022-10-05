@@ -1,20 +1,21 @@
 ---
 
-- name: Init VM on KVM
+- name: Init VM on Hypervisor
   hosts: hypervisors
   gather_facts: yes
   pre_tasks:
   - name: Loading vm definitions
     include_vars:
       file: vms_config.yaml
-      name: my_vm_config
+      name: my_vms_config
     # allow to override using -e
-    when: not( vm_config is defined ) 
+    when: not( my_vms_config is defined ) 
+    ignore_errors: yes 
   
   roles:
   - role: parse_vms_definitions
     vars:
-      config: "{{ my_vm_config }}"
+      config: "{{ my_vms_config }}"
   
   tasks:  
   # add VMs definitions to the ansible inventory
