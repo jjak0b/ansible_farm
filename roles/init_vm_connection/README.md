@@ -1,31 +1,73 @@
-Role Name
+init_vm_connection
 =========
 
-A brief description of the role goes here.
+Ensure to add the VM definition as ansible inventory host, suck that:
+- Its inventory hostname is `"{{ vm.metadata.name }}"`
+- it's a member of the following groups:
+  - `vms`
+  - `"{{ vm.metadata.name }}"`
+  - `"{{ vm.metadata.platform_name }}"`
+  - `"{{ vm.metadata.arch_name }}"`
+
+The following vars are assigned to the VM's inventory such that:
+- `ansible_host`: `{{ vm.net.ip }}` or `{{ vm.metadata.name }}` if using `community.libvirt.libvirt_qemu` as VM ansible connection
+- `ansible_hostname`: `{{ vm.metadata.hostname }}`
+- `vm` : the `VM definition`
+- `kvm_host` the `{{ inventory_hostname }}`of hypervisor hostname
+
+This role defines also the libvirt network used by the `VM definition` if doesn't exist and add a DHCP entry using:
+- mac address: `{{ vm.net.mac }}`
+- ip: `{{ vm.net.ip }}`
+- hostname: `{{ vm.metadata.hostname }}`
 
 Requirements
 ------------
-
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+None
 
 Role Variables
 --------------
-
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+- `vm`
+  - required
+  - It's the `VM definition` object
 
 Dependencies
 ------------
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+- `libvirt_network` role
+  - used to define networks and add DHCP entries
 
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+```
+- name: Init VM on KVM
+  hosts: hypervisors
+  gather_facts: yes
+  pre_tasks:
+  - name: Loading vm definitions from file
+    include_vars:
+      file: vms_config.yaml
+      name: my_vm_config
+    # allow to override using -e
+    when: not( vm_config is defined ) 
+  
+  roles:
+  - role: parse_vms_definitions
+    vars:
+      config: "{{ my_vm_config }}"
+  
+  tasks:  
+  # add VMs definitions to the ansible inventory
+  - name: init VM connection
+    loop: "{{ virtual_machines }}"
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+    include_role:
+      name: init_vm_connection
+    
+    loop_control:
+      loop_var: vm
+
+```
 
 License
 -------
@@ -35,4 +77,4 @@ BSD
 Author Information
 ------------------
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+None

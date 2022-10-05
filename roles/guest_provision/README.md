@@ -52,13 +52,20 @@ Requirements
     - otherwise use [ansible vault](https://docs.ansible.com/ansible/2.8/user_guide/vault.html)
   - `libvirt-bin`
     - required by `guest_provision` role to handle snapshots using virsh
-  - `ip`
-    - required to detect VM ip through an interface if not provided
 
 Role Variables
 --------------
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+- `kvm_host`
+  - required
+  - it's the hypervisor's inventory_name that allow to delegate some tasks related to the hypervisor
+- `vm`
+  - required
+  - It's the `VM definition` object required to specify which VM have to be provisioned
+- `ansible_connection`
+  - recommended
+  - standard connection plugins are supported
+  - `community.libvirt.libvirt_qemu` is supported
 
 Dependencies
 ------------
@@ -68,8 +75,31 @@ Dependencies
 
 Example Playbook
 ----------------
-
-None
+```
+- name: VM provisioning on Hypervisor host
+  hosts: vms
+  gather_facts: no
+  serial: 1
+  tasks:
+  - block:
+    - name: gather min facts if definitions use them
+      setup:
+        gather_subset: 
+        - '!all'
+    - name: "start KVM Provision role for '{{ vm.metadata.name }}'"
+      include_role: 
+        name: kvm_provision
+    delegate_to: "{{ kvm_host }}"
+    tags:
+    - kvm_provision
+  
+  - block:
+    - name: "Start VM provisioning of '{{ vm.metadata.name }}' "
+      include_role: 
+        name: guest_provision
+    tags:
+    - guest_provision
+```
 
 License
 -------

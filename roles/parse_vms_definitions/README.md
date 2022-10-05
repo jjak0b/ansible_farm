@@ -50,12 +50,13 @@ Example Playbook
 ----------------
 
 ```
-- hosts: servers
+- hosts: hypervisors
+  gather_facts: yes
   vars:
     # we 
     parse_lookup_dir_path: 'setup_vm'
 
-    define:
+    my_vm_config:
       permutations: 
         targets:
         - amd64
@@ -70,11 +71,11 @@ Example Playbook
         - platform: debian_11
           target: armvirt64
           template: virtio
-  tasks:
-  - name: create virtual machines definitions
-    include_role: parse_vms_definitions
+  
+  roles:
+  - role: parse_vms_definitions
     vars:
-      config: "{{ define }}"
+      config: "{{ my_vm_config }}"
 ```
 License
 -------
