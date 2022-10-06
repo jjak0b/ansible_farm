@@ -4,7 +4,7 @@
 #   uri: "session uri"  example: qemu:///system
 ---
 
-- name: "Restore snapshot for vm {{ vm_name }}"
+- name: "Restore snapshot '{{ snapshot_name }}' for vm {{ vm_name }}"
   shell: 
     cmd: >-
       virsh

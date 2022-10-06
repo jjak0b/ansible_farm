@@ -9,66 +9,100 @@
     - "{{ ( phases_lookup_dir_path, vm.metadata.platform_name, vm.metadata.arch_name) | path_join }}"
     - "{{ ( phases_lookup_dir_path, vm.metadata.platform_name ) | path_join }}"
     - "{{ phases_lookup_dir_path }}"
-
-- block:
-  - name: "Request Clean Snapshot"
-    include_tasks: snapshot_create.yaml
-    vars:
-      vm_name: "{{ vm.metadata.name }}"
-      snapshot_name: "clean"
-      uri: "{{ vm.metadata.connection | default(omit, true) }}"
-  delegate_to: "{{ kvm_host }}"
-
-- name: "Install Dependencies on Guest"
-  include_tasks: "install/install_dependencies.yml"
-
-- block:
-  - name: "Request Snapshot after dependencies end"
-    include_tasks: snapshot_create.yaml
-    vars:
-      vm_name: "{{ vm.metadata.name }}"
-      snapshot_name: "dependencies"
-      uri: "{{ vm.metadata.connection | default(omit, true) }}"
-  delegate_to: "{{ kvm_host }}"
-
-- name: "Start Init phase"
-  include_tasks:
-    file: "{{ item }}"
-  with_items: "{{ lookup('first_found', params) }}"
+    snapshot_prefix: "{{ prefix }}"
+    # snapshot_phase_name: "{{ dict( phases | zip( [ prefix ] | product( snapshot_names ) | map('join', '.') ) ) }}"
+    snapshot_phase_name: 
+      clean: "clean"
+      init: "{{ prefix }}.init"
+    phases:
+    - clean
+    - init
+    - 
   vars:
-    params:
-      files:
-      - init.yaml
-      paths: "{{ priority_import_paths }}"
-      skip: True
+    prefix: "{{ project_id }}.{{ project_revision }}"
+#     snapshot_names:
+#     - init
 
-- block:
-  - name: "Request Snapshot after init phase"
-    include_tasks: snapshot_create.yaml
-    vars:
-      vm_name: "{{ vm.metadata.name }}"
-      snapshot_name: "init"
-      uri: "{{ vm.metadata.connection | default(omit, true) }}"
-  delegate_to: "{{ kvm_host }}"
-
-- name: "Start Main phase"
-  include_tasks:
-    file: "{{ item }}"
-  with_items: "{{ lookup('first_found', params) }}"
+- name: Lists snapshots
+  import_tasks: snapshot_list.yaml
   vars:
-    params:
-      files:
-      - "main.yaml"
-      paths: "{{ priority_import_paths }}"
-      skip: True
+    vm_name: "{{ vm.metadata.name }}"
+    uri: "{{ vm.metadata.connection | default(omit, true) }}"
+  delegate_to: "{{ kvm_host }}"
+- name: Ensure a init phase
+  vars:
+    vm_name: "{{ vm.metadata.name }}"
+    uri: "{{ vm.metadata.connection | default(omit, true) }}"
+  block:
+  - name: Use cached init phase
+    block:
+    - name: "Restore Init Snapshot"
+      import_tasks: snapshot_restore.yaml
+      failed_when: not (snapshot_phase_name.init in snapshot_list)
+      register: result_restore_init
+    vars:
+      snapshot_name: "{{ snapshot_phase_name.init }}"
+    delegate_to: "{{ kvm_host }}"
   
-- name: "Start Terminate phase"
-  include_tasks:
-    file: "{{ item }}"
-  with_items: "{{ lookup('first_found', params) }}"
-  vars:
-    params:
-      files:
-      - "terminate.yaml"
-      paths: "{{ priority_import_paths }}"
-      skip: True
+  rescue:
+  - name: Ensure a clean phase
+    block:
+    - name: Restore Clean Snapshot
+      import_tasks: snapshot_restore.yaml
+      failed_when: not (snapshot_phase_name.clean in snapshot_list)
+      register: result_restore_clean
+    rescue:
+    - name: Request Clean Snapshot
+      import_tasks: snapshot_create.yaml
+      register: result_restore_clean
+    vars:
+      snapshot_name: "{{ snapshot_phase_name.clean }}"
+    delegate_to: "{{ kvm_host }}"
+  
+  - name: Init phase
+    block:
+    - name: Install Dependencies on Guest
+      import_tasks: "install/install_dependencies.yml"
+  
+    - name: Start Init phase
+      include_tasks:
+        file: "{{ item }}"
+      loop: "{{ lookup('first_found', params, wantlist=True) }}"
+      vars:
+        params:
+          files:
+          - init.yaml
+          paths: "{{ priority_import_paths }}"
+          skip: True
+
+    - block:
+      - name: Request Init Snapshot
+        import_tasks: snapshot_create.yaml
+      vars:
+        snapshot_name: "{{ snapshot_phase_name.init }}"
+      delegate_to: "{{ kvm_host }}"
+  
+- name: Ensure to complete phases
+  block:
+  - name: "Start Main phase"
+    include_tasks:
+      file: "{{ item }}"
+    loop: "{{ lookup('first_found', params, wantlist=True) }}"
+    vars:
+      params:
+        files:
+        - "main.yaml"
+        paths: "{{ priority_import_paths }}"
+        skip: True
+  
+  - name: "Start Terminate phase"
+    include_tasks:
+      file: "{{ item }}"
+    loop: "{{ lookup('first_found', params, wantlist=True) }}"
+    vars:
+      params:
+        files:
+        - "terminate.yaml"
+        paths: "{{ priority_import_paths }}"
+        skip: True
+  
