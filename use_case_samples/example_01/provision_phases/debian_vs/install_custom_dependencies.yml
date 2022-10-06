@@ -1,6 +1,6 @@
 - include_vars:
     file: dependencies_list.yml
-
+  
 - name: "install deps: {{ dependencies }} "
   package:
     name: "{{ dependencies }}"
