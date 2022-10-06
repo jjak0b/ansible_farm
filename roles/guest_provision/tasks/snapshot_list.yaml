@@ -1,3 +1,4 @@
+# Store snapshot names available for the specified VM into snapshot_list fact
 # vars:
 #   vm_name: "Vm name"
 #   snapshot_name: "snapshot name"
@@ -6,9 +7,7 @@
 # - name: Ensure snapshot is hasn't been created
   
 - block:
-  - set_fact:
-      snapshot_list: [] 
-  - name: "List snapshot for vm '{{ vm_name }}'"
+  - name: "Get snapshots for vm '{{ vm_name }}'"
     shell: 
       cmd: >-
         virsh
@@ -16,17 +15,13 @@
         snapshot-list
         --domain {{ vm_name | quote }}
     register: list_result
-    # skip header and separator line, and collect values in "Name" column
-  - name: Collecting snapshot names
-    loop: "{{ list_result.stdout_lines }}"
-    loop_control:
-      index_var: line_index
-      loop_var: line
-    when: line_index > 1
-   # Add first value of mathing group array to the list
+    # skip header, split words by whitespaces, and collect values in "Name" column
+  - name: List snapshot names
     set_fact:
-      snapshot_list: "{{ (snapshot_list | default([]) ) + [ line | regex_search( '^\\s((\\w|\\s)*\\w)\\s+[0-9]', '\\1') | first ] }}"
+      snapshot_list: "{{ [] if (list_result.stdout_lines | length <= 2)
+                            else (list_result.stdout_lines[2:] | map( 'split' ) | map( 'first' ) | list) }}"    
   rescue:
     - set_fact:
-        snapshot_list: [] 
+        snapshot_list: []
+
   
