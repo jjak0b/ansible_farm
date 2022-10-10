@@ -9,3 +9,6 @@ bridge:
 dhcp:
   start: "10.0.0.1"
   end: "10.0.0.253"
+nat:
+  port_start: 1024
+  port_end: 65535

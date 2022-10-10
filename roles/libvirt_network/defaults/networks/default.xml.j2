@@ -1,11 +1,24 @@
 <network>
   <name>{{ network.name }}</name>
-  <forward mode="open"/>
+  <forward mode="nat"/>
+  {% if network.nat is defined %}
+  <nat>
+    <port start="{{ network.nat.port_start }}" end="{{ network.nat.port_end }}"/>
+  </nat>
+  {% endif %}
+  
+  {% if network.bridge.name is defined %}
   <bridge name="{{ network.bridge.name }}" stp="{{ 'on' if network.bridge.stp else 'off' }}" delay="0"/>
+  {% endif %}
+
+  {% if network.bridge.mac is defined %}
   <mac address="{{ network.bridge.mac }}"/>
+  {% endif %}
+
   {% if network.domain_name is defined %}
   <domain name="{{ network.domain_name }}"/>
   {% endif %}
+
   <ip address="{{ network.bridge.ip }}" netmask="{{ network.bridge.netmask }}">
   {% if network.dhcp is defined %}
     <dhcp>
