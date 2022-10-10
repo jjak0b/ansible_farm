@@ -1,2 +1,29 @@
+# Perform provided operations on the specified VM's snapshots
+# Note: if all params are specified, the operations will be done in the following order: delete, create, restore, list.
+# params:
+# - uri: libvirt connection uri 
+# - vm_name: name of target VM
+# - delete: (optional) snapshot name to delete if any
+# - create: (optional) snapshot name to create if any
+# - restore: (optional) snapshot name to restore if any
+# - list: (optional) true if you want to list all snapshot names of the VM into the snapshot_list fact, nothing otherwise
 ---
 # tasks file for libvirt_snapshot
+
+- import_tasks: delete.yaml
+  vars:
+    snapshot_name: "{{ delete }}"
+  when: delete is defined
+
+- import_tasks: create.yaml
+  vars:
+    snapshot_name: "{{ create }}"
+  when: create is defined
+
+- import_tasks: restore.yaml
+  vars:
+    snapshot_name: "{{ restore }}"
+  when: restore is defined
+
+- import_tasks: list.yaml
+  when: list is defined and list

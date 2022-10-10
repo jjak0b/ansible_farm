@@ -12,3 +12,5 @@
       snapshot-create-as
       --domain {{ vm_name | quote }}
       --name {{ snapshot_name | quote }}
+  register: snapshot_create_result
+

@@ -27,7 +27,7 @@
   block:
   - import_role:
       name: libvirt_snapshot
-      tasks_from: snapshot_list
+      tasks_from: list
     vars:
       vm_name: "{{ vm.metadata.name }}"
       uri: "{{ vm.metadata.connection | default(omit, true) }}"
@@ -42,7 +42,7 @@
     - name: "Restore Init Snapshot"
       import_role: 
         name: libvirt_snapshot
-        tasks_from: snapshot_restore
+        tasks_from: restore
       failed_when: not (snapshot_phase_name.init in snapshot_list)
       register: result_restore_init
     vars:
@@ -55,14 +55,14 @@
     - name: Restore Clean Snapshot
       import_role: 
         name: libvirt_snapshot
-        tasks_from: snapshot_restore
+        tasks_from: restore
       failed_when: not (snapshot_phase_name.clean in snapshot_list)
       register: result_restore_clean
     rescue:
     - name: Request Clean Snapshot
       import_role: 
         name: libvirt_snapshot
-        tasks_from: snapshot_create
+        tasks_from: create
       register: result_restore_clean
     vars:
       snapshot_name: "{{ snapshot_phase_name.clean }}"
@@ -88,7 +88,7 @@
       - name: Request Init Snapshot
         import_role:
           name: libvirt_snapshot
-          tasks_from: snapshot_create
+          tasks_from: create
       vars:
         snapshot_name: "{{ snapshot_phase_name.init }}"
       delegate_to: "{{ kvm_host }}"

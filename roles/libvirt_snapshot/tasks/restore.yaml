@@ -12,3 +12,4 @@
       snapshot-revert
       --domain {{ vm_name | quote }}
       --snapshotname {{ snapshot_name | quote }}
+  register: snapshot_restore_result

@@ -12,3 +12,4 @@
       snapshot-delete
       --domain {{ vm_name | quote }}
       --snapshotname {{ snapshot_name | quote }}
+  register: snapshot_delete_result
