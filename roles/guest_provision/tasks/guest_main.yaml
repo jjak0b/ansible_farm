@@ -24,10 +24,13 @@
 #     - init
 
 - name: Lists snapshots
-  import_tasks: snapshot_list.yaml
-  vars:
-    vm_name: "{{ vm.metadata.name }}"
-    uri: "{{ vm.metadata.connection | default(omit, true) }}"
+  block:
+  - import_role:
+      name: libvirt_snapshot
+      tasks_from: snapshot_list
+    vars:
+      vm_name: "{{ vm.metadata.name }}"
+      uri: "{{ vm.metadata.connection | default(omit, true) }}"
   delegate_to: "{{ kvm_host }}"
 - name: Ensure a init phase
   vars:
@@ -37,7 +40,9 @@
   - name: Use cached init phase
     block:
     - name: "Restore Init Snapshot"
-      import_tasks: snapshot_restore.yaml
+      import_role: 
+        name: libvirt_snapshot
+        tasks_from: snapshot_restore
       failed_when: not (snapshot_phase_name.init in snapshot_list)
       register: result_restore_init
     vars:
@@ -48,12 +53,16 @@
   - name: Ensure a clean phase
     block:
     - name: Restore Clean Snapshot
-      import_tasks: snapshot_restore.yaml
+      import_role: 
+        name: libvirt_snapshot
+        tasks_from: snapshot_restore
       failed_when: not (snapshot_phase_name.clean in snapshot_list)
       register: result_restore_clean
     rescue:
     - name: Request Clean Snapshot
-      import_tasks: snapshot_create.yaml
+      import_role: 
+        name: libvirt_snapshot
+        tasks_from: snapshot_create
       register: result_restore_clean
     vars:
       snapshot_name: "{{ snapshot_phase_name.clean }}"
@@ -77,7 +86,9 @@
 
     - block:
       - name: Request Init Snapshot
-        import_tasks: snapshot_create.yaml
+        import_role:
+          name: libvirt_snapshot
+          tasks_from: snapshot_create
       vars:
         snapshot_name: "{{ snapshot_phase_name.init }}"
       delegate_to: "{{ kvm_host }}"

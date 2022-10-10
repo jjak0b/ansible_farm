@@ -53,5 +53,3 @@
         name: guest_provision
     tags:
     - guest_provision
-  
-    
