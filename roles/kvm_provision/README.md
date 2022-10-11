@@ -138,12 +138,19 @@ Requirements
           state: present
         become: yes
       ```
+- ansible collections:
+  - [community.libvirt](https://galaxy.ansible.com/community/libvirt) 
+    - ```ansible-galaxy collection install community.libvirt```
 - ansible modules:
-  - community.libvirt.virt
-  - community.libvirt.virt_net
   - [unarchive](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/unarchive_module.html) 
 - Packages
-  - `gzip`, `bunzip2`
+  - `zipinfo` (unarchive module dep)
+  - `zstd` to expand .tar.zst files (unarchive module optional dep)
+  - `unzip` to handle .zip files (unarchive module optional dep)
+  - `gtar` to handle .tar.* files (unarchive module optional dep)
+  - `gzip` to handle .gz files (optional)
+    - required **if** using unsupported archive format by the unarchive module
+  - `bunzip2` to handle .bz2 files (optional)
     - required **if** using unsupported archive format by the unarchive module
 - System running hypervisor:
   - Supported platform:
@@ -152,16 +159,18 @@ Requirements
       - debian
   - hypervisor
     - default: `qemu`
+    - tested:
+      - `qemu`
   - libvirt environment
     - libvirt daemon active and running
-- User:
+- Ansible User:
   - group: `libvirt_group` var value (default: `libvirt`)
     - require to have access to libvirt features
       - See your distribution requirements to use libvirt features
   - group: `kvm`
-    - require to use kvm device
+    - required to use KVM
   - group: `hypervisor_group` var value (default: `libvirt-qemu` )
-    - require to change files ownership to allow the hypervisor to access to
+    - required to change files ownership to allow the hypervisor to access it
       - in general see your hypervisor requirements
   - Note: default `hypervisor_group` and `libvirt_group` vars are defined in `roles/kvm_provision/defaults/main.yaml`, so they can be overridden on hypervisor's host (group)vars according to your use case.
 
