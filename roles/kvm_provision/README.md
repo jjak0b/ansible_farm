@@ -144,6 +144,9 @@ Requirements
 - ansible modules:
   - [unarchive](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/unarchive_module.html) 
 - Packages
+  - `python` >= 2.6
+  - `python3-libvirt` ( community.libvirt dep )
+  - `python3-lxml` ( community.libvirt dep )
   - `zipinfo` (unarchive module dep)
   - `zstd` to expand .tar.zst files (unarchive module optional dep)
   - `unzip` to handle .zip files (unarchive module optional dep)

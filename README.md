@@ -65,20 +65,26 @@ The `import_path` is useful when some dependencies have different alias in some 
 Requirements
 ------------
 
+- ansible collections:
+  - [community.libvirt](https://galaxy.ansible.com/community/libvirt) 
+    - ```ansible-galaxy collection install community.libvirt```
 - Packages
   - `python` >= 2.6
-  - `python3-libvirt`
-    - required by community.libvirt.virt  
-  - `python3-lxml`
-    - required by community.libvirt.virt_net
+  - `python3-libvirt` ( community.libvirt dep )
+  - `python3-lxml` ( community.libvirt dep )
+  - `zipinfo` (unarchive module dep)
+  - `zstd` to expand .tar.zst files (unarchive module optional dep)
+  - `unzip` to handle .zip files (unarchive module optional dep)
+  - `gtar` to handle .tar.* files (unarchive module optional dep)
+  - `gzip` to handle .gz files (optional)
+    - required **if** using unsupported archive format by the unarchive module
+  - `bunzip2` to handle .bz2 files (optional)
+    - required **if** using unsupported archive format by the unarchive module
   - `sshpass`
     - optional but required to use password on ssh on vm connections
     - otherwise use [ansible vault](https://docs.ansible.com/ansible/2.8/user_guide/vault.html)
   - `libvirt-bin`
     - required by `guest_provision` role to handle snapshots using virsh
-  - [unarchive](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/unarchive_module.html) module dependencies
-  - `gzip`, `bunzip2`
-    - required if using unsupported archive format by the unarchive module
 - System running hypervisor:
   - Supported platform:
     - Theoretically any GNU/Linux distribution
@@ -86,16 +92,18 @@ Requirements
       - debian
   - hypervisor
     - default: `qemu`
+    - tested:
+      - `qemu`
   - libvirt environment
     - libvirt daemon active and running
-- User:
+- Ansible User:
   - group: `libvirt_group` var value (default: `libvirt`)
     - require to have access to libvirt features
       - See your distribution requirements to use libvirt features
   - group: `kvm`
-    - require to use kvm device
+    - required to use KVM
   - group: `hypervisor_group` var value (default: `libvirt-qemu` )
-    - require to change files ownership to allow the hypervisor to access to
+    - required to change files ownership to allow the hypervisor to access it
       - in general see your hypervisor requirements
   - Note: default `hypervisor_group` and `libvirt_group` vars are defined in `roles/kvm_provision/defaults/main.yaml`, so they can be overridden on hypervisor's host (group)vars according to your use case.
 
@@ -116,5 +124,4 @@ All prerequisites are satisfied by the usage help above, but if you need advance
 Dependencies
 ------------
 
-- community.libvirt.virt
-- community.libvirt.virt_net
+- [community.libvirt](https://galaxy.ansible.com/community/libvirt)
