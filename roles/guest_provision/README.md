@@ -1,0 +1,1 @@
+../../docs/roles/guest_provision.md
