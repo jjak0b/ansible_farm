@@ -8,16 +8,16 @@
 [Roles]()
   
   * # Main roles 
-  * [kvm_provision](../roles/kvm_provision/README.md)
-  * [guest_provision](../roles/guest_provision/README.md)
+  * [kvm_provision](roles/kvm_provision.md)
+  * [guest_provision](roles/guest_provision.md)
   - - - -
   * # Recommended utility roles
-  * [init_vm_connection](../roles/init_vm_connection/README.md)
-  * [parse_vms_definitions](../roles/parse_vms_definitions/README.md)
+  * [init_vm_connection](roles/init_vm_connection.md)
+  * [parse_vms_definitions](roles/parse_vms_definitions.md)
   - - - -
   * # Others utility roles
-  * [libvirt_network](../roles/libvirt_network/README.md)
-  * [libvirt_snapshot](../roles/libvirt_snapshot/README.md)
+  * [libvirt_network](roles/libvirt_network.md)
+  * [libvirt_snapshot](roles/libvirt_snapshot.md)
 
 [Examples]()
 
