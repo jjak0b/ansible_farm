@@ -83,11 +83,19 @@ vm:
     devname: "hda"
     src: *image_file_name
 ```
-**Properties defined in `vm.metadata` needs their respective name because are also used internally**, but other properties can customized or renamed if you are using a custom XML template for VM definitions.
-For instance `vcpus` is a property that depends by a template (the default one if not overrided) and can be defined into the target or platform definition: it doesn't matter where it's definied but it's important that is defined in final vm definition. Otherwise you can change the property name if you are using a custom XML template and use the reference of the changed name into the new xml.
 
 You can instanciate the `VM definitions` by using the `roles/parse_vms_definitions` utility role to create definitions from separated files organized by platform and targets. See its documentations for more details.
 **Note: the use of `parse_vms_definitions` role is recommended because both target and platform definitions use a default definition, but some of the properties must me overrided according to your use case.**
+
+### Definition use details
+- properties of `vm.metada.auth` may be declared instead as host/group variables adding the "ansible_" prefix to the property' names (for example ansible_user) and they depends by the connection method used to allow ansible to connect and login to the virtualized hosts.
+- Each uri entry of `vm.metadata.sources` :
+  - is fetched using [ansible.builtin.get_url](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/get_url_module.html) module which supports HTTP, HTTPS, or FTP URLs
+  - is extracted if the `.unarchived` 's filename is different than the `.uri`'s filename
+-  **Properties defined in `vm.metadata` needs their respective API names because are also used internally by the roles**
+-  Other properties in the `vm` root, except for `vm.metadata`, can be customized or renamed if you are using a custom XML template for VM definitions.
+   - For instance `vcpus` is a property that is used by the default template but the variable name can be changed if you are using a custom XML template and use the new reference name inside of it.
+   - About the custom variables the important thing is that they must be defined in final `VM definition` but **it doesn't matter where the custom variable is defined** since both definitions are merged together and so they can be defined into the target or platform definitions.
 ### Run platform dependent tasks
 On `roles/parse_vms_definitions` processing you can run custom tasks defined in a yaml file placed in `tasks/platforms/<platform_name>.yml` before the merge of target and platform vars and before the template is processed.
 A use case for this can be an utility to override the internal var `platform_vars.vm` / `target_vars.vm` according to your use case
