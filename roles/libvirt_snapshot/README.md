@@ -17,7 +17,8 @@ Role Variables
 - `restore`: (optional) snapshot name to restore if any
 - `list`: (optional) true if you want to list all snapshot names of the VM into the snapshot_list fact, nothing otherwise
 
-Each optional operation register the command result into `snapshot_<operation>_result` registered var
+Each optional operation register the command result into `snapshot_<operation>_result` registered var.
+
 Note: if any subset of operations are specified, then the operations are executed in the following order:
 1. `delete`
 2. `create`

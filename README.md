@@ -110,6 +110,7 @@ Requirements
 For more details see each role's requirements
 
 All prerequisites are satisfied by the usage help above, but if you need advanced usage these informations may help:
+
 - `roles/guest_provision` requires that
   - each **already defined** VM host have
     - an already defined ansible_connection plugin with relative variables

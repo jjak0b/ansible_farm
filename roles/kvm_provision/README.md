@@ -5,8 +5,8 @@ This role configures and creates VMs on a hypervisor which supports libvirt API 
 
 ## Vocabulary
 
-- platform: synonym of OS; it's the definition of used OS; it's the definition used in each vm configuration to setup network, admin, user, vm images and other assets.
-- target: synonym of machine, architecture of machine; it's the definition of the architecture type used in each vm configuration, like CPU, machine type, emulator, etc ...
+- `platform`: synonym of OS; it's the definition of used OS; it's the definition used in each vm configuration to setup network, admin, user, vm images and other assets.
+- `target`: synonym of machine, architecture of machine; it's the definition of the architecture type used in each vm configuration, like CPU, machine type, emulator, etc ...
 - `VM definition` indicates the object which is a combination of nested target and platform definitions' properties used to create VM template in XML libvirt format.
 ## Target definition
 A target definition has the following scheme example:
@@ -85,6 +85,7 @@ vm:
 ```
 
 You can instanciate the `VM definitions` by using the `roles/parse_vms_definitions` utility role to create definitions from separated files organized by platform and targets. See its documentations for more details.
+
 **Note: the use of `parse_vms_definitions` role is recommended because both target and platform definitions use a default definition, but some of the properties must me overrided according to your use case.**
 
 ### Definition use details
@@ -96,6 +97,7 @@ You can instanciate the `VM definitions` by using the `roles/parse_vms_definitio
 -  Other properties in the `vm` root, except for `vm.metadata`, can be customized or renamed if you are using a custom XML template for VM definitions.
    - For instance `vcpus` is a property that is used by the default template but the variable name can be changed if you are using a custom XML template and use the new reference name inside of it.
    - About the custom variables the important thing is that they must be defined in final `VM definition` but **it doesn't matter where the custom variable is defined** since both definitions are merged together and so they can be defined into the target or platform definitions.
+
 ### Run platform dependent tasks
 On `roles/parse_vms_definitions` processing you can run custom tasks defined in a yaml file placed in `tasks/platforms/<platform_name>.yml` before the merge of target and platform vars and before the template is processed.
 A use case for this can be an utility to override the internal var `platform_vars.vm` / `target_vars.vm` according to your use case
@@ -187,19 +189,19 @@ Requirements
 
 Role Variables
 --------------
-- `virtual_machines`
+- `vm`
   - required
-  - it's a list of `VM definition`
+  - it's a `VM definition` object
 - `parse_lookup_dir_path`
-  - optional (default: see defaults/ )
+  - optional (default: see [defaults/main](./defaults/main.yml)  )
   - It's the lookup path for searching VM templates
 - `hypervisor_lookup_dir_path`
-  - optional (default: see defaults/ )
+  - optional (default: see [defaults/main](./defaults/main.yml) )
   - It's the lookup path for searching hypervisor prerequisite tasks
 - `libvirt_group`: 
-  - optional (default: libvirt)
+  - optional (default: *libvirt*)
 - `hypervisor_group`:
-  - optional (default: libvirt-qemu)
+  - optional (default: *libvirt-qemu*)
 
 template scope:
 - `vm` definition object is accessibile into XML.j2 templates 

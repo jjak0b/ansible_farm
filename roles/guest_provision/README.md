@@ -4,19 +4,18 @@ Role Name
 This role provision VMs with custom VM lifecycle phases organized in snapshotted phases
 
 ### The VM Guest lifecycle
-1. **dependencies** phase
-   - Create 'clean' snapshot
-   - Install use case dependencies
-     - Run dependencies tasks (`{{ import_path }}/dependencies.yaml`)
-   - Create 'dependencies' snapshot
-2. **Init** use case phase: 
-   - Run init tasks `{{ import_path }}/init.yaml`
-   - Create 'init' snapshot
-3. **Main** use case phase: 
+0. Restore to '**init**' snapshot (if exists)
+   1. otherwise restore or create the '**clean**' snapshot
+   2. **dependencies** phase
+      - Run dependencies tasks (`{{ import_path }}/dependencies.yaml`)
+   3. **Init** use case phase: 
+      - Run init tasks `{{ import_path }}/init.yaml`
+      - Create 'init' snapshot
+1. **Main** use case phase: 
    - Run main tasks `{{ import_path }}/main.yaml`
-4. **Terminate** use case phase: 
+2. **Terminate** use case phase: 
    - Run end tasks `{{ import_path }}/terminate.yaml`
- - 
+
 Where `import_path` is a subpath that match with the most detailited phase file location, according to the target and platform type of the VM.
 The `import_path` is the one in the following priority list path which contains a phase file:
 - `"{{ ( phases_lookup_dir_path, vm.metadata.platform_name, vm.metadata.arch_name) | path_join }}"`
@@ -24,8 +23,9 @@ The `import_path` is the one in the following priority list path which contains 
 - `"{{ phases_lookup_dir_path }}"`
 
 A use case may needs specific tasks/vars for a target on platform or only platform; for instance:
+
 - *debian_11* folder (`vm.metadata.platform_name` value in `platforms/debian_sid.yml`)
-    - *amd64* folder (`vm.metadata.arch_name` value )
+  - *amd64* folder (`vm.metadata.arch_name` value )
       - tasks or vars files, ... specific for *amd64* targets in *debian_11* platforms
     - *arm64* folder (`vm.metadata.arch_name` value )
       - tasks or vars files, ... specific for *arm64* targets in *debian_11* platforms

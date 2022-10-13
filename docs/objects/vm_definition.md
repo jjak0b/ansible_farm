@@ -51,12 +51,11 @@ vm:
     cleanup_tmp: boolean indicating if the uri's resource should be deleted
 
   net:
-    type: libvirt network type: 'user' or 'network' or 'bridge' or 'vde'
-    source: Network'default' or 'a network name' | 'virbr0'
-    mac: "52:54:00:ca:cc:ac"
-    # ipv4 for now is supported 
-    ip: "192.168.100.1" or 'dhcp'
-    mask: "24" # only if ip is not 'dhcp' 
+    type: libvirt network type ('user' or 'network' or 'bridge' or 'vde')
+    source: what network should use ( 'default' or 'a network name' or a interface name like 'virbr0', or a VDE network)
+    mac: The mac address of the VM
+    ip: IPv4 address
+    mask: Netmask in CIDR notation
 
   # Here can be inserted others fully custom properties for templating a custom vm's xml
 
@@ -79,18 +78,21 @@ The `VM definition` is used by many roles of this collection but is mainly used 
 The scheme of a `VM definition` allow the user to define its custom target and platform properties whose combination is accessible by the template scope.
 
 The `VM definition` object is used as variable parameter of the following roles for different use:
+
 - `kvm_provision` role :
   - Each uri entry of `vm.metadata.sources` :
     - is fetched using [ansible.builtin.get_url](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/get_url_module.html) module which supports HTTP, HTTPS, or FTP URLs
     - is extracted if the `.unarchived` 's filename is different than the `.uri`'s filename
   -  will render the template defined by the `vm.metadata.template` file (otherwise the default one) by using the `VM definition` object accessible on its scope.
+
 - `init_vm_connection` role :
   - will eventually look for auth variables inside the `vm.metadata.auth` and add them as ansible auth variables (ansible_user, ansible_password, etc ...).
-    - **Note**: You can declare them instead as host/group variables adding the "ansible_" prefix to each property's name (for example ansible_user) however it depends by the connection plugin used to allow ansible to connect to the virtualized hosts. This alternative way is compatible with [ansible vault](https://docs.ansible.com/ansible/latest/user_guide/vault.html) used to encrypt credentials.
+    - Note: You can declare them instead as host/group variables adding the "ansible_" prefix to each property's name (for example ansible_user) however it depends by the connection plugin used to allow ansible to connect to the virtualized hosts. This alternative way is compatible with [ansible vault](https://docs.ansible.com/ansible/latest/user_guide/vault.html) used to encrypt credentials.
   - will eventually install its used libvirt network if `vm.net.type` is `network` (leveraging the creation to `libvirt_network` role) and add DHCP entry by using the `vm.net` and `vm.metadata.hostname` info.
   - will add the VM as ansible host to its inventory with alias `vm.metadata.name`, address of `vm.net.ip` and will add the host as member of the following ansible groups
     - `'vms'`
     - `vm.metadata.platform_name`
     - `vm.metadata.arch_name`
+
 - `guest_provision` role
   - will use `vm.metadata.platform_name` and `vm.metadata.arch_name` to lookup the most specific available phase files. Custom variables may be also used by the user-defined phases.

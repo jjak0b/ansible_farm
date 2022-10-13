@@ -15,6 +15,7 @@ The definition file is considered as a vars file and must contains the `vm` vari
 Role Variables
 --------------
 Note: See `defaults/main` default values for all optional vars
+
 - `parse_lookup_dir_path` is the root search path used to search for matching target and platforms definition files
   - optional
   - For instance:
@@ -22,7 +23,7 @@ Note: See `defaults/main` default values for all optional vars
     - otherwise if any of these is missing then will search definitions into `defaults/targets/` and `defaults/platforms/` folders of the role as fallback
 - `config` it's a `configuration` object
   - required
-  - has following properties:
+  - has the following properties:
     ```
     # There will be a VM of each platform for each target
     permutations: 

@@ -25,6 +25,6 @@ definitions:
 - `definitions` : It's a list of all explicit declaration of some `(platform, target)` object pairs. It may contains also tuples in the `(platform, target, template)` form to assign a template name inside the `VM definition` if it requires to be used while installed.
 
 ## Usage
-
 This object is used as variable parameter for the `parse_vms_definitions` role which will combine both the permutations and definitions lists and so will lookup, parse and merge both platform and target definitions for each pair of the combined list.
+
 **Note**: foreach `(platform, target, template)` tuple the `parse_vms_definitions` role will set the template name to the `vm.metadata.template` property.
