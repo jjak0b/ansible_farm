@@ -118,22 +118,8 @@ Requirements
 ------------
 
 - hypervisor Requirements
-  - Before processing the VM installation, some system components may be required according to the vm `target` type.
-  This role will run the tasks on the KVM/Hypervisor host specified in:
-    - `{{ hypervisor_lookup_dir_path }}/prerequisite/targets/{{ vm.arch }}.yml` if exists
-    - `defaults/prerequisite/targets/{{ vm.arch }}.yml` otherwise.
-  
-    Some qemu target architectures are already defined (see folder in `roles/kvm_provision/defaults`) but according to your use case you can create a custom `prerequisite/{{ vm.arch }}.yml` file to override them or create a new architecture prerequisite's tasks file.
-    - For example: 
-      If your `VM definition` object defines `vm.arch: aarch64`, then you can create a `{{ hypervisor_lookup_dir_path }}/prerequisite/targets/aarch64.yml` containing
-      ```
-      - name: Ensure arch System components
-        package:
-          name:
-            - qemu-system-arm
-          state: present
-        become: yes
-      ```
+  - System components like `qemu-system-<architecture>` if you are using qemu
+    - these must be present before processing the VM installation
 - ansible collections:
   - [community.libvirt](https://galaxy.ansible.com/community/libvirt) 
     - ```ansible-galaxy collection install community.libvirt```

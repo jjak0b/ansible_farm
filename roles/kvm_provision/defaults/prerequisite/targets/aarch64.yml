@@ -1,4 +1,0 @@
----
-# Task file for arm - arm64 prerequisites
-- name: Ensure arch System components
-  include_tasks: arm.yml

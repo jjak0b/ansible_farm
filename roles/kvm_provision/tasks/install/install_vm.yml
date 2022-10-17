@@ -1,15 +1,4 @@
 
-- name: "Install specific '{{ vm.arch }}' System components"
-  include_tasks:
-    file: "{{ lookup('first_found', params, errors='ignore' ) }}"
-  vars:
-    params:
-      files:
-      - "{{ vm.arch }}.yml"
-      paths:
-      - "{{ ( hypervisor_lookup_dir_path, 'prerequisite', 'targets' ) | path_join }}"
-      - defaults/prerequisite/targets
-
 - name: Setup metadata
 
   include_tasks: "install_metadata.yml"

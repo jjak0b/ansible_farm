@@ -1,8 +1,0 @@
----
-# Task file for kvm prerequisites
-- name: Ensure kvm arch System components
-  package:
-    name:
-      - qemu-kvm
-    state: present
-  become: yes
