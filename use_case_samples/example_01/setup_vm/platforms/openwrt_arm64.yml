@@ -6,53 +6,53 @@
 # my_root_url: "http://cdimage.debian.org/cdimage/cloud/sid/daily/latest/"
 # my_base_image_name: "debian-11-generic-{{ target }}"
 
-vm:
+- name: Define platform definition
+  set_fact:
+    vm:
 
-# metadata properties are used inside a task for installation and setup purposes #
+    # metadata properties are used inside a task for installation and setup purposes #
 
-  metadata:
-    dependencies:
-    - "curl"
-    name: "{{ arch_name }}64 - OPENWRT"
-   # connection: "qemu:///session"
-    libvirt_pool_dir: "{{ansible_env.HOME}}/.local/share/libvirt/images/"
+      metadata:
+        name: "{{ vm.metadata.target_name }}64 - OPENWRT"
+      # connection: "qemu:///session"
+        libvirt_pool_dir: "{{ansible_env.HOME}}/.local/share/libvirt/images/"
 
-    import:
-      root_pass: ""
-    sources:
-   # - uri: "{{ my_root_url }}{{ my_base_image_name }}.qcow2"
-    - uri: "https://downloads.openwrt.org/releases/21.02.2/targets/{{ arch_name }}/64/openwrt-21.02.2-{{ arch_name }}-64-Image"
-      resource_name: &kernel_file_name "openwrt-21.02.2-{{ arch_name }}-64-Image"
-      # checksum_uri: "{{ my_root_url }}{{ my_base_image_name }}.qcow2.sha1sum"
-      checksum_type: null
-      #  fallback checksum value
-      checksum_value: null
-      #  image name unarchived / processed
-      unarchived: *kernel_file_name
-    - uri: "https://downloads.openwrt.org/releases/21.02.2/targets/{{ arch_name }}/64/openwrt-21.02.2-{{ arch_name }}-64-rootfs-ext4.img.gz"
-      resource_name: "openwrt-21.02.2-{{ arch_name }}-64-rootfs-ext4.img.gz"
-      checksum_type: null
-      checksum_value: null
-      #  image name unarchived / processed
-      unarchived: &rootfs_file_name "openwrt-21.02.2-{{ arch_name }}-64-rootfs-ext4.img"
-  
-  #  Others properties are fully custom to templating a custom vm's xml  #
-  
-  net:
-    type: bridge
-    source: virbr0
-   # type: user
-   # source: user
-    mac: "52:54:00:fb:20:be"
-    ip: "192.168.100.1"
+        import:
+          root_pass: ""
+        sources:
+      # - uri: "{{ my_root_url }}{{ my_base_image_name }}.qcow2"
+        - uri: "https://downloads.openwrt.org/releases/21.02.2/targets/{{ vm.metadata.target_name }}/64/openwrt-21.02.2-{{ vm.metadata.target_name }}-64-Image"
+          resource_name: &kernel_file_name "openwrt-21.02.2-{{ vm.metadata.target_name }}-64-Image"
+          # checksum_uri: "{{ my_root_url }}{{ my_base_image_name }}.qcow2.sha1sum"
+          checksum_type: null
+          #  fallback checksum value
+          checksum_value: null
+          #  image name unarchived / processed
+          unarchived: *kernel_file_name
+        - uri: "https://downloads.openwrt.org/releases/21.02.2/targets/{{ target_name }}/64/openwrt-21.02.2-{{ target_name }}-64-rootfs-ext4.img.gz"
+          resource_name: "openwrt-21.02.2-{{ target_name }}-64-rootfs-ext4.img.gz"
+          checksum_type: null
+          checksum_value: null
+          #  image name unarchived / processed
+          unarchived: &rootfs_file_name "openwrt-21.02.2-{{ target_name }}-64-rootfs-ext4.img"
+      
+      #  Others properties are fully custom to templating a custom vm's xml  #
+      
+      net:
+        type: bridge
+        source: virbr0
+      # type: user
+      # source: user
+        mac: "52:54:00:fb:20:be"
+        ip: "192.168.100.1"
 
-  #  Some properties here, if needed, could override specific architecture values for all architectures  #
-  kernel:
-    src: *kernel_file_name
-    params: "console=ttyAMA0 root=/dev/vda rootfstype=ext4 rootwait"
-  disks:
-  - type: "raw"
-    devname: "vda"
-    src: *rootfs_file_name
+      #  Some properties here, if needed, could override specific architecture values for all architectures  #
+      kernel:
+        src: *kernel_file_name
+        params: "console=ttyAMA0 root=/dev/vda rootfstype=ext4 rootwait"
+      disks:
+      - type: "raw"
+        devname: "vda"
+        src: *rootfs_file_name
 
 

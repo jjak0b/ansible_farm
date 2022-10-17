@@ -1,53 +1,43 @@
+---
 
-- name: "include default platform vars of '{{ platform }}'"
-  include_vars:
-    file: "{{ item }}"
-    name: default_platform_vars
-  with_items: "{{ lookup('first_found', params, errors='ignore') }}"
+- name: include defaults platform tasks
+  loop: "{{ lookup('first_found', params, errors='ignore', wantlist=True) }}"
+  include_tasks:
+    file: "{{ path }}"
+  loop_control:
+    loop_var: path 
   vars:
     params:
       files:
+      - defaults.yaml
       - defaults.yml
       paths:
-      - &var_path_platforms "{{ ( parse_lookup_dir_path, 'platforms' ) | path_join }}"
       - defaults/platforms
       skip: True
 
-- name: Set default platform_name
-  ansible.utils.update_fact:
-    updates:
-    - path: default_platform_vars.vm.metadata.platform_name
-      value: "{{ platform }}"
-  when: not ( default_platform_vars.vm.metadata.platform_name is defined )
-
-- name: "include platform vars of '{{ platform }}'"
-  include_vars:
-    file: "{{ item }}"
-    name: custom_platform_vars
-  with_items: "{{ lookup('first_found', params, errors='ignore') }}"
-  vars:
-    params:
-      files:
-      - "{{ platform }}.yml"
-      paths:
-      - *var_path_platforms
-      - defaults/platforms
-      skip: True
-    target_vars: "{{ target_vars }}"
-
-- name: Merge VM configuration for platform
+- name: Merge VM definition with defaults
   set_fact:
-    platform_vars: "{{ default_platform_vars | combine (custom_platform_vars, recursive=True) }}"
+    platform_vars: "{{ target_vars | combine (vm, recursive=True) }}"
 
-- name: "Include platform tasks of '{{ platform }}'"
+- name: "include platform tasks of '{{ platform }}'"
+  loop: "{{ lookup('first_found', params, errors='ignore', wantlist=True) }}"
   include_tasks:
-    file: "{{ item }}"
-  with_items: "{{ lookup('first_found', params, errors='ignore') }}"
+    file: "{{ path }}"
+  loop_control:
+    loop_var: path 
   vars:
     params:
       files:
+      - "{{ platform }}.yaml"
       - "{{ platform }}.yml"
       - default.yaml
+      - default.yml
       paths:
-      - "{{ ( 'tasks', parse_lookup_dir_path, 'platforms' ) | path_join }}"
+      - "{{ ( parse_lookup_dir_path, 'platforms' ) | path_join }}"
+      - defaults/platforms
       skip: True
+    vm: "{{ platform_vars }}"    
+
+- name: Merge VM configuration for target and platform
+  set_fact:
+    vm: "{{ platform_vars | combine (vm, recursive=True) }}"

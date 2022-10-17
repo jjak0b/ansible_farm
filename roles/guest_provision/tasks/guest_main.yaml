@@ -3,10 +3,10 @@
 - name: "Init vars"
   set_fact:
     platform_name: "{{ vm.metadata.platform_name }}"
-    target_name: "{{ vm.metadata.arch_name }}"
-    import_path: "{{ ( vm.metadata.platform_name, vm.metadata.arch_name) | path_join }}"
+    target_name: "{{ vm.metadata.target_name }}"
+    import_path: "{{ ( vm.metadata.platform_name, vm.metadata.target_name) | path_join }}"
     priority_import_paths:
-    - "{{ ( phases_lookup_dir_path, vm.metadata.platform_name, vm.metadata.arch_name) | path_join }}"
+    - "{{ ( phases_lookup_dir_path, vm.metadata.platform_name, vm.metadata.target_name) | path_join }}"
     - "{{ ( phases_lookup_dir_path, vm.metadata.platform_name ) | path_join }}"
     - "{{ phases_lookup_dir_path }}"
     snapshot_prefix: "{{ prefix }}"

@@ -1,43 +1,28 @@
-# - name: Init vars
-#   set_fact:
-#     default_target_vars: {}
-#     target_vars: {}
+---
 
-- name: "include target vars of '{{ target }}'"
-  include_vars:
-    file: "{{ item }}"
-    name: target_vars
-  with_items: "{{ lookup('first_found', params, errors='ignore') }}"
+- name: "Include target tasks of '{{ target }}'"
+  loop: "{{ lookup('first_found', params, errors='ignore', wantlist=True) }}"
+  include_tasks:
+    file: "{{ path }}"
+  loop_control:
+    loop_var: path 
   vars:
     params:
       files:
+      - "{{ target }}.yaml"
       - "{{ target }}.yml"
+      - default.yaml
       - default.yml
       paths:
       - "{{ ( parse_lookup_dir_path, 'targets' ) | path_join }}"
       - defaults/targets
       skip: True
 
-- name: Set default arch_name
-  ansible.utils.update_fact:
-    updates:
-    - path: target_vars.vm.metadata.arch_name
-      value: "{{ target }}"
-  when: not ( target_vars.vm.metadata.arch_name is defined )
 
-- name: "Include target tasks of '{{ target }}'"
-  include_tasks:
-    file: "{{ item }}"
-  with_items: "{{ lookup('first_found', params, errors='ignore') }}"
-  vars:
-    params:
-      files:
-      - "{{ target }}.yaml"
-      - default.yaml
-      paths:
-      - "{{ ('tasks', parse_lookup_dir_path, 'targets' ) | path_join }}"
-      skip: True
+- name: Merge VM definition with defaults
+  set_fact:
+    vm: "{{ default_vm_vars | combine (vm, recursive=True) }}"
 
-# - name: Merge VM configuration for target
-# set_fact:
-#     target_vars: "{{ default_target_vars | combine (target_vars, recursive=True) }}"
+- name: Save VM configuration for target
+  set_fact:
+    target_vars: "{{ vm }}"

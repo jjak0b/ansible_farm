@@ -12,14 +12,14 @@
 - name: Connect to VM
   include_tasks: connect_to_vm.yml
 
-- name: "Add vm host to 'vms', '{{ vm.metadata.arch_name}}' groups with variables"
+- name: "Add vm host to 'vms', '{{ vm.metadata.target_name}}' groups with variables"
   add_host:
     name: "{{ vm.metadata.name }}"
     groups:
     - vms 
     - "{{ vm.metadata.name }}"
     - "{{ vm.metadata.platform_name }}"
-    - "{{ vm.metadata.arch_name }}"
+    - "{{ vm.metadata.target_name }}"
     
     # - "{{ vm.metadata.platform_name}}"
     ansible_connection: ssh 

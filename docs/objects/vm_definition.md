@@ -10,7 +10,7 @@ A target definition has the following require scheme:
 ```
 vm:
   metadata:
-    arch_name:  the architecture name alias given to this target, it's the target identifier.
+    target_name:  the architecture name alias given to this target, it's the target identifier.
 ```
 Additional (target) properties that depends by the default template
 ```
@@ -92,7 +92,7 @@ The `VM definition` object is used as variable parameter of the following roles 
   - will add the VM as ansible host to its inventory with alias `vm.metadata.name`, address of `vm.net.ip` and will add the host as member of the following ansible groups
     - `'vms'`
     - `vm.metadata.platform_name`
-    - `vm.metadata.arch_name`
+    - `vm.metadata.target_name`
 
 - `guest_provision` role
-  - will use `vm.metadata.platform_name` and `vm.metadata.arch_name` to lookup the most specific available phase files. Custom variables may be also used by the user-defined phases.
+  - will use `vm.metadata.platform_name` and `vm.metadata.target_name` to lookup the most specific available phase files. Custom variables may be also used by the user-defined phases.

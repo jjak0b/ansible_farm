@@ -4,7 +4,7 @@
   set_fact:
     virtual_machines: []
     permutations: "{{ config.permutations | default(omit, true) }}"
-    definitions: "{{ config.definitions | default([] ) }}"
+    configurations: "{{ config.list | default([] ) }}"
 
 - name: Init permutations
   include_tasks: init/init_permutations.yaml
@@ -12,17 +12,17 @@
 
 - name: Normalize definitions list
   set_fact:
-    definitions: "{{ definitions | unique }}"
+    configurations: "{{ configurations | unique }}"
 
 - name: "Init all vms of definitions list"
 
-  loop: "{{ definitions }}"
+  loop: "{{ configurations }}"
 
   include_tasks: init/init_vm.yaml
   vars:
-    platform: "{{ vm_definition.platform }}"
-    target: "{{ vm_definition.target }}"
+    platform: "{{ configuration.platform }}"
+    target: "{{ configuration.target }}"
 
   loop_control:
-    loop_var: vm_definition
-  when: definitions is defined
+    loop_var: configuration
+  when: configurations is defined

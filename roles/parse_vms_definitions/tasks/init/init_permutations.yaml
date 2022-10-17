@@ -5,9 +5,9 @@
 - name: Add permutated (platform, target) to definitions
   loop: "{{ permutation_list }}"
 
-  include_tasks: init/add_vm_definition.yaml
+  include_tasks: init/add_vm_config.yaml
   vars:
-    definition:
+    configuration:
       target: "{{ pair[1] }}"
       platform: "{{ pair[0] }}"
 

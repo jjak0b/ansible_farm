@@ -15,7 +15,7 @@ vm:
   metadata:
     # This is the architecture name alias given to this target, it's the target identifier.
     # It's used to reference this when we use the term 'target name', (e.g. for `import_path` into guest lifecycle's tasks)
-    arch_name: "amd64"
+    target_name: "amd64"
 
   virt_domain: "qemu" or "kvm" 
 
@@ -39,7 +39,7 @@ vm:
   metadata:
     template: "mytemplateName" # will use the default.xml.j2 if this is not set
     # VM name identifier 
-    name: &vm_name "VM {{ arch_name }}"
+    name: &vm_name "VM {{ target_name}"
     # VM guest hostname
     hostname: *vm_name
     connection: "qemu:///system" # "qemu:///session"  
@@ -56,7 +56,7 @@ vm:
     # assets to be downloaded and processed, required for VM install 
     sources:
     # any uri to any file 
-    - uri: "myURI/myImage-{{ arch_name }}.qcow2.tar.gz"
+    - uri: "myURI/myImage-{{ target_name}.qcow2.tar.gz"
       checksum_uri: "myURI/myImage.qcow2.tar.gz.sha1sum"
       checksum_type: "sha1"
       # fallback checksum value
@@ -89,33 +89,14 @@ You can instanciate the `VM definitions` by using the `roles/parse_vms_definitio
 **Note: the use of `parse_vms_definitions` role is recommended because both target and platform definitions use a default definition, but some of the properties must me overrided according to your use case.**
 
 ### Definition use details
+-  **Properties defined in `vm.metadata` are required and needs their respective API names because are also used internally by the roles of its collection**
 - properties of `vm.metada.auth` may be declared instead as host/group variables adding the "ansible_" prefix to the property' names (for example ansible_user) and they depends by the connection method used to allow ansible to connect and login to the virtualized hosts.
 - Each uri entry of `vm.metadata.sources` :
   - is fetched using [ansible.builtin.get_url](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/get_url_module.html) module which supports HTTP, HTTPS, or FTP URLs
   - is extracted if the `.unarchived` 's filename is different than the `.uri`'s filename
--  **Properties defined in `vm.metadata` needs their respective API names because are also used internally by the roles**
 -  Other properties in the `vm` root, except for `vm.metadata`, can be customized or renamed if you are using a custom XML template for VM definitions.
    - For instance `vcpus` is a property that is used by the default template but the variable name can be changed if you are using a custom XML template and use the new reference name inside of it.
    - About the custom variables the important thing is that they must be defined in final `VM definition` but **it doesn't matter where the custom variable is defined** since both definitions are merged together and so they can be defined into the target or platform definitions.
-
-### Run platform dependent tasks
-On `roles/parse_vms_definitions` processing you can run custom tasks defined in a yaml file placed in `tasks/platforms/<platform_name>.yml` before the merge of target and platform vars and before the template is processed.
-A use case for this can be an utility to override the internal var `platform_vars.vm` / `target_vars.vm` according to your use case
-For instance:
-```
-# run some checks and we require to change resources' uri and other stuff
-# ensure to compile stuff for specific target_vars.vm.metadata.arch_name, and serve it locally and override the uris in vm.metadata.sources if needed
-# ... 
-- name: Override platform vars for some specific use case
-  set_fact: 
-    platform_vars: "{{ platform_vars | combine (override_platform_vars, recursive=True) }}"
-  vars:
-    override_platform_vars: 
-      vm:
-        vcpu: 4
-        # ... and any other field 
-  
-```
 
 ## VM template XML definition
 A `default.xml.j2` VM template definition scheme has been provided in `roles/kvm_provision/templates`
@@ -124,9 +105,14 @@ Otherwise custom templates are applied, searching into `templates` folder with t
 - `{{ vm.metadata.name }}.xml.j2`
 - `{{ vm.arch }}.xml.j2`
 
-Each template during the templating process can access to the `vm` root property of the `VM configuration` to define a dynamic XML for each VM. Then a custom template can be fully customizable.
+Each template during the templating process can access to the `vm` root property of the `VM definition` to define a dynamic XML for each VM. Then a custom template can be fully customizable.
 
 For XML advanced use, see [https://libvirt.org/format.html](https://libvirt.org/format.html).
+
+### Default template's variable dependencies
+
+The common and default definitions provided in `defaults/targets/` and `defaults/platforms/` role folders and they are used by the default provided template: All `vm`'s properties defined outside the `vm.metadata` are considered as "template dependencies".
+
 
 Requirements
 ------------
@@ -193,10 +179,10 @@ Role Variables
   - required
   - it's a `VM definition` object
 - `parse_lookup_dir_path`
-  - optional (default: see [defaults/main](./defaults/main.yml)  )
+  - optional (default: see defaults/main )
   - It's the lookup path for searching VM templates
 - `hypervisor_lookup_dir_path`
-  - optional (default: see [defaults/main](./defaults/main.yml) )
+  - optional (default: see defaults/main )
   - It's the lookup path for searching hypervisor prerequisite tasks
 - `libvirt_group`: 
   - optional (default: *libvirt*)
@@ -227,7 +213,7 @@ Example Playbook
       some_other_vms:
       - vm:
           metadata:
-            arch_name: "armvirt64"
+            target_name: " "armvirt64"
             name: "my VM name for armvirt64"
             hostname: "debian-armvirt64"
             connection: "qemu:///system"

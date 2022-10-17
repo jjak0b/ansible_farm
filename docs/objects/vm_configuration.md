@@ -10,7 +10,7 @@ permutations:
   targets: [] 
   # platforms names
   platforms: []
-definitions: 
+list:
   - platform: platform name
     target: target name
   - platform: platform name

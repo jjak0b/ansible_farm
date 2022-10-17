@@ -7,7 +7,7 @@ Ensure to add the VM definition as ansible inventory host, suck that:
   - `vms`
   - `"{{ vm.metadata.name }}"`
   - `"{{ vm.metadata.platform_name }}"`
-  - `"{{ vm.metadata.arch_name }}"`
+  - `"{{ vm.metadata.target_name }}"`
 
 The following vars are assigned to the VM's inventory such that:
 - `ansible_host`: `{{ vm.net.ip }}` or `{{ vm.metadata.name }}` if using `community.libvirt.libvirt_qemu` as VM ansible connection

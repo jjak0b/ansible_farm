@@ -1,47 +1,36 @@
----
 # vars:
 #   target: The architecture / target
 #   platform: The platform source file
+---
 
 - name: "Init VM - platform:'{{ platform }}', target:'{{ target }}'"
   debug:
-    var: vm_definition
+    var: configuration
+
+- name: Init vm definition
+  set_fact:
+    default_vm_vars:
+      metadata:
+        platform_name: "{{ platform }}"
+        target_name: "{{ target }}"
 
 - name: "Load VM target vars for '{{ target }}'"
   include_tasks: load_target.yaml
-
-- name: "Share arch_name alias with {{ platform }} vars"
-  set_fact:
-    arch_name: "{{ target_vars.vm.metadata.arch_name }}"
   
 - name: "Load VM platform vars - {{ platform }}"
   include_tasks: load_platform.yaml
 
-- name: Override Platform vars
+- name: Override template
   block:
-  - name: init vars to override
-    set_fact:
-      override_platform_vars:
-        vm:
-          metadata:
-            template: "{{ vm_definition.template }}"
+  - name: Add template defined into vm config
+    ansible.utils.update_fact:
+      updates:
+      - path: vm.metadata.template
+        value: "{{ vm_definition.template }}"
     when: vm_definition.template is defined
 
-  - name: Override vars
-    set_fact:
-      platform_vars: "{{ platform_vars | combine (override_platform_vars, recursive=True) }}"
-    when: override_platform_vars is defined
-
-- name: "adding vm config"
+- name: "adding vm definition"
   block:
-  - name: "Fail if vm configs has not been loaded correctly"
-    command: /bin/false
-    when: not (target_vars.vm is defined and platform_vars.vm is defined )
-
-  - name: Merge VM configuration for architecture and platform
+  - name: "Initialized VM definition - {{ vm.metadata.name }}"
     set_fact:
-      a_vm: "{{ target_vars.vm | combine (platform_vars.vm, recursive=True) }}"
-    
-  - name: "Initialized VM - {{ a_vm.metadata.name }}"
-    set_fact:
-      virtual_machines: "{{ virtual_machines + [ a_vm ] }}"
+      virtual_machines: "{{ virtual_machines + [ vm ] }}"

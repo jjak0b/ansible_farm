@@ -28,7 +28,7 @@
       - vms 
       - "{{ vm.metadata.name }}"
       - "{{ vm.metadata.platform_name }}"
-      - "{{ vm.metadata.arch_name }}"
+      - "{{ vm.metadata.target_name }}"
 
       # ansible_connection: ssh 
       # ansible_port: "22"

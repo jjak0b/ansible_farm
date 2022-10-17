@@ -1,9 +1,12 @@
-vm:
-  metadata:
-    arch_name: "arm64"
-  virt_domain: qemu
-  arch: "aarch64"
-  emulator: "/usr/bin/qemu-system-aarch64"
-  cpu: cortex-a57
-  machine: virt
+- name: Define target definition
+  set_fact:
+    vm:
+      metadata:
+        target_name: arm64
+      virt_domain: "{{ (ansible_architecture != 'aarch64') | ternary('qemu', 'kvm') }}"
+      arch: "aarch64"
+      emulator: "/usr/bin/qemu-system-aarch64"
+      cpu: cortex-a53
+      machine: virt
+
   

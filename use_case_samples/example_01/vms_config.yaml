@@ -4,10 +4,10 @@ permutations:
   targets:
     - "amd64"
   platforms:
-    - "debian_vs"
+#     - "debian_vs"
     - "debian_vs_new"
 
-definitions: [] 
+list: [] 
 # - platform: "debian_vs.yml"
 #   target: "amd64"
 # - platform: "debian_sid.yml"

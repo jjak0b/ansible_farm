@@ -1,3 +1,0 @@
-- name: "Adding definition: {{ definition }}"
-  set_fact:
-    definitions: "{{ definitions + [ definition ] }}"

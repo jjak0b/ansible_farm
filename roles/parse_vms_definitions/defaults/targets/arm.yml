@@ -1,8 +1,10 @@
-vm:
-  metadata:
-    arch_name: "arm"
-  virt_domain: qemu
-  arch: "arm"
-  emulator: "/usr/bin/qemu-system-arm"
-  cpu: cortex-a57
-  machine: virt
+- name: Define target definition
+  set_fact:
+    vm:
+      metadata:
+        target_name: arm
+      virt_domain: "{{ (ansible_architecture != 'arm') | ternary('qemu', 'kvm') }}"
+      arch: "arm"
+      emulator: "/usr/bin/qemu-system-arm"
+      cpu: cortex-a57
+      machine: virt
