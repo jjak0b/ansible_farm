@@ -86,7 +86,7 @@ Requirements
     - otherwise use [ansible vault](https://docs.ansible.com/ansible/2.8/user_guide/vault.html)
   - `libvirt-bin`
     - required by `guest_provision` role to handle snapshots using virsh
-  - any `qemu-system-<architecture>` packages (if you are using qemu)
+  - Any `qemu-system-<architecture>` (if you are using qemu)
     - these must be installed on the hypervisor host before processing the VM installation
 - System running hypervisor:
   - Supported platform:
