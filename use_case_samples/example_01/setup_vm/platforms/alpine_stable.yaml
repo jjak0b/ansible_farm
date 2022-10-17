@@ -1,0 +1,66 @@
+
+# Fetch urls and base resource name
+# my_root_url : "https://www.cs.unibo.it/~renzo/virtualsquare/daily_brewed/yearly/"
+# my_base_image_name: "debian-sid-v2-{{ target_name }}-daily-20220101-874"
+
+- name: defining alpine platform
+  vars:
+    uri_base: "http://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/{{ vm.arch }}"
+  block:
+  - block:
+    # get last version number
+    - name: fetch releases
+      uri:
+        url: "{{ uri_base }}/latest-releases.yaml"
+        return_content: yes
+        body_format: raw
+      register: version_fetch_result
+      
+    - name: set latest version
+      set_fact:
+        alpine_version: "{{ content.version  }}"
+        sha256: "{{ content.sha256 }}"
+      vars:
+        content: "{{ version_fetch_result.content | from_yaml | selectattr('flavor', 'equalto', 'alpine-virt') | list | first | to_json | from_json }}"
+    rescue:
+    - name: set latest version fallback
+      set_fact:
+        alpine_version: 3.16.1
+        sha256: "6c7cb998ec2c8925d5a1239410a4d224b771203f916a18f8015f31169dd767a2"
+
+  - name: Define platform definition
+    vars:
+      image_name: "alpine-virt-{{ alpine_version }}-{{ vm.arch }}"
+    set_fact:
+      vm:
+        # metadata properties are used inside a task for installation and setup purposes
+        metadata:
+          template: virtio
+          platform_name: alpine_stable
+          connection: "qemu:///system"
+          libvirt_pool_dir: "{{ansible_env.HOME}}/vms/images/"
+          auth: null
+          sources:
+          - uri: "{{ uri_base }}/{{ image_name }}.iso"
+            resource_name: "{{ image_name }}.iso"
+            checksum_uri: null
+            checksum_type: "sha256"
+            # fallback checksum value
+            checksum_value: "{{ sha256 }}"
+            # image name unarchived / processed
+            unarchived: &image_file_name "{{ image_name }}.iso"
+
+        # Others properties are fully custom to templating a custom vm's xml
+
+        # Some properties here, if needed, could override specific architecture values for all architectures
+        vcpus: 2
+        ram: 2048
+        disks:
+        - type: raw
+          devname: "hda"
+          src: *image_file_name
+        net:
+          type: network
+          source: default-net
+          ip: "10.0.0.5"
+          # source: virbr0

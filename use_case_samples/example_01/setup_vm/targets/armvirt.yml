@@ -9,3 +9,7 @@
       emulator: "/usr/bin/qemu-system-aarch64"
       cpu: cortex-a53
       machine: virt
+
+      # custom properties that i may use in platform definition
+      arch_family: "armvirt"
+      arch_subtarget: "64"

@@ -9,3 +9,8 @@
       emulator: "/usr/bin/qemu-system-x86_64"
       cpu: "{{ (ansible_architecture != 'x86_64') | ternary('qemu64', '') | default(omit, true) }}"
       machine: q35
+
+      # custom properties that i may use in platform definition
+      arch_family: "x86"
+      arch_subtarget: "64"
+      

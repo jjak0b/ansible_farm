@@ -1,0 +1,71 @@
+
+---
+
+
+# TODO: find a way to evaluate these on jinja bracket while importing into variable 
+# my_root_url: "http://cdimage.debian.org/cdimage/cloud/sid/daily/latest/"
+# my_base_image_name: "debian-11-generic-{{ target }}"
+
+- name: Defining platform
+  vars:
+    version: "21.02.2"
+    # foreach target add (image_name, resource_name) 
+    imageResource:
+      amd64:
+      - [ generic-kernel.bin ] 
+      - [ generic-ext4-rootfs.img, .gz ] 
+      armvirt:
+      - [ Image ] 
+      - [ rootfs-ext4.img, .gz ] 
+  block:
+  - name: Preprocessing
+    vars:
+      base_url: "https://downloads.openwrt.org/releases/{{ version }}/targets/{{ vm.arch_family }}/{{ vm.arch_subtarget }}"
+      base_image: "openwrt-{{ version }}-{{ vm.arch_family }}-{{ vm.arch_subtarget }}"
+    block:
+    - name: Define platform definition
+      # preprocess names 
+      vars:
+        resource_names: "{{ [ base_image ] | product( imageResource[ vm.metadata.target_name ] | map('join', '') ) | map('join', '-') }}"
+        image_names: "{{ [ base_image ] | product( imageResource[ vm.metadata.target_name ] | map('first') ) | map('join', '-') }}"
+      set_fact:
+        vm:
+          metadata:
+            connection: "qemu:///system"
+            libvirt_pool_dir: "{{ansible_env.HOME}}/.local/share/libvirt/images/"
+            auth:
+              user: root
+              password: ""
+              become_user: root
+              become_password: ""
+
+            sources:
+            - uri: "{{ base_url }}/{{ resource_names[ 0 ] }}"
+              resource_name: "{{ resource_names[ 0 ] }}"
+              checksum_type: null
+              checksum_value: null
+              unarchived: &kernel_file_name "{{ image_names[ 0 ] }}"
+
+            - uri: "{{ base_url }}/{{ resource_names[ 1 ] }}"
+              resource_name: "{{ resource_names[ 1 ] }}"
+              checksum_type: null
+              checksum_value: null
+              unarchived: &rootfs_file_name "{{ image_names[ 1 ] }}"
+          
+          #  Others properties are fully custom to templating a custom vm's xml  #
+          
+          net:
+            type: network
+            source: default-net
+            ip: "10.0.0.{{ 10 + lookup('ansible.utils.index_of', imageResource | dict2items | map(attribute='key') | sort, 'eq', vm.metadata.target_name ) }}"
+
+          #  Some properties here, if needed, could override specific architecture values for all architectures  #
+          kernel:
+            src: *kernel_file_name
+            params: "console=ttyAMA0 root=/dev/vda rootfstype=ext4 rootwait"
+          disks:
+          - type: "raw"
+            devname: "vda"
+            src: *rootfs_file_name
+
+

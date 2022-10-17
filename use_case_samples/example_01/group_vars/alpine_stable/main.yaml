@@ -1,0 +1,8 @@
+ansible_become_user: root
+ansible_become_password: "{{ false | default(omit, true) }}"
+ansible_become_method: sudo
+
+ansible_user: "{{ ansible_become_user }}"
+ansible_password: "{{ ansible_become_password }}"
+
+
