@@ -1,7 +1,7 @@
-Role Name
+guest_provision
 =========
 
-This role provision VMs with custom VM lifecycle phases organized in snapshotted phases
+This role provision VMs with custom VM lifecycle phases organized in phases. This role offer a revion-based cache for an **init** phase which may helpful to avoid long setup time.
 
 ### The VM Guest lifecycle
 The lifecycle of the provisioned VM runs the following phases:
@@ -69,6 +69,11 @@ Role Variables
   - recommended
   - standard connection plugins are supported
   - `community.libvirt.libvirt_qemu` is supported
+- `project_id`:
+  - Project identifier which identify the `init`'s owner base for snapshots, since multiple project may share the same image base and re-use their respective init snapshots as cache.
+- `revision_id`:
+  - Revision identifier which identify "a change" of the `init` phase. if this value is different than the current active snapsnot's revision then the cache is considered as invalid and a reset of the `init` phase will occur, by restoring to the clean base and re-process the init phase.
+    - You can interpret this as "a change version" or a sort of "hash" which "identify" the installed dependencies or the init phase's content.
 
 Dependencies
 ------------
