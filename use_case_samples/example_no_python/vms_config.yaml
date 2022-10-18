@@ -1,0 +1,10 @@
+---
+
+permutations:
+  targets:
+    - "amd64"
+    - "armvirt"
+  platforms:
+    - openwrt
+
+list: [] 

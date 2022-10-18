@@ -1,0 +1,29 @@
+---
+
+
+- block:
+  - name: Ensure VM shutdown before accessing to VM's image
+    community.libvirt.virt:
+      command: shutdown
+      name: "{{ vm.metadata.name }}"
+      state: shutdown
+      uri: &libvirt_uri "{{ vm.metadata.connection | default(ansible_libvirt_uri, true) | default(omit, true) }}"
+    register: vm_stop_result
+    retries: &shutdown_retries "{{ retry_count | default(10) }}"
+    until: &shutdown_until vm_stop_result is success and not(vm_stop_result is changed)
+    delay: &shutdown_delay "{{ retry_delay | default(5) }}"
+  rescue:
+  - name: Ensure VM is destroyed as fallback before accessing to VM's image
+    community.libvirt.virt:
+      command: destroy
+      name: "{{ vm.metadata.name }}"
+      state: destroyed
+      uri: *libvirt_uri
+    register: vm_stop_result
+    retries: *shutdown_retries
+    until: *shutdown_until
+    delay: *shutdown_delay
+
+- name: "Edit Image for platform '{{ vm.metadata.name }}'"
+  include_tasks: "{{ vm.metadata.platform_name }}.yaml"
+  ignore_errors: true

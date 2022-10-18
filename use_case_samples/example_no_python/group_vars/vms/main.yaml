@@ -1,0 +1,7 @@
+# shared variables with all VMs
+# you can override the default connection method (default is ssh)
+
+# see https://docs.ansible.com/ansible/latest/collections/community/libvirt/libvirt_qemu_connection.html 
+# Note: It requires org.qemu.guest_agent.0 serial (already included on default template)
+# Note: It requires qemu-guest-agent package installed on used image
+# ansible_connection: "community.libvirt.libvirt_qemu"

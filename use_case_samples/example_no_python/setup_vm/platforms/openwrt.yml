@@ -4,7 +4,7 @@
 #     by editing manually the image on post install (for example using virt-customize).
 # 2)  This platform doesn't contain python so the ansible connection will wait until timeout (wait_for_connection)
 #     because it rely on the ping ansible module which expect python to be installed on remote host.
-#     Since the ssh is enabled you have to set the ansible_connection as undefined for this platform
+#     Since the ssh is enabled you have to set the variable wait_until_port_reachable: true for this platform's host
 #     such that guest_provision role will wait until ssh port is reachable and so connect to using using ssh only
 #     and controller may use the raw module to install python on it or any other tasks. 
 #   

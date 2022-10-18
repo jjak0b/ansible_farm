@@ -1,0 +1,6 @@
+- name: "terminate"
+  debug:
+    msg: "Good bye"
+
+# - name: Shutdown OS
+#   community.general.shutdown:

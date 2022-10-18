@@ -1,0 +1,9 @@
+
+# override paths used by roles
+parse_lookup_dir_path: setup_vm
+net_parse_lookup_dir_path: setup_hypervisor
+hypervisor_lookup_dir_path: setup_hypervisor
+phases_lookup_dir_path: provision_phases
+
+project_id: example_no_python
+project_revision: 0

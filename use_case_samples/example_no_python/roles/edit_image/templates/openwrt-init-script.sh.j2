@@ -1,0 +1,18 @@
+#!/bin/sh
+# Example script
+
+# https://openwrt.org/docs/techref/initscripts
+# start after network start which has priority 40 
+# https://openwrt.org/docs/techref/process.boot#init
+
+
+echo "Bump! I'm your first-boot script."
+# commands to launch application
+/sbin/uci set network.lan.ipaddr="{{ vm.net.ip }}"
+/sbin/uci commit network
+/etc/init.d/network restart
+
+# Delete me
+rm -f "$0"
+
+return 0
