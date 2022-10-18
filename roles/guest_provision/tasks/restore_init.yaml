@@ -1,0 +1,25 @@
+- block:
+
+    - name: Restore Init Snapshot
+      vars:
+        snapshot_name: "{{ snapshot_phase_name.init }}"
+      import_role: 
+        name: libvirt_snapshot
+        tasks_from: restore
+      when:
+        - snapshot_phase_name.init in snapshot_list 
+        - ( 'restore init' in allowed_phases )
+      # ignore any error like "snaphot unsupported" or "snapshot already exists / doesn't exists"
+      failed_when: false
+    
+    - name: get snapshot result
+      shell: /bin/true
+      register: restore_init_result
+      # is skipped when rc != 0 
+      when: &on_success 
+        - not( snapshot_restore_result is skipped )
+        - snapshot_restore_result.rc == 0
+      # is changed when rc == 0
+      changed_when: *on_success
+
+  delegate_to: "{{ kvm_host }}"

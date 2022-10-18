@@ -6,18 +6,18 @@
     target_name: "{{ vm.metadata.target_name }}"
     import_path: "{{ ( vm.metadata.platform_name, vm.metadata.target_name) | path_join }}"
     priority_import_paths:
-    - "{{ ( phases_lookup_dir_path, vm.metadata.platform_name, vm.metadata.target_name) | path_join }}"
-    - "{{ ( phases_lookup_dir_path, vm.metadata.platform_name ) | path_join }}"
-    - "{{ phases_lookup_dir_path }}"
+      - "{{ ( phases_lookup_dir_path, vm.metadata.platform_name, vm.metadata.target_name) | path_join }}"
+      - "{{ ( phases_lookup_dir_path, vm.metadata.platform_name ) | path_join }}"
+      - "{{ phases_lookup_dir_path }}"
     snapshot_prefix: "{{ prefix }}"
     # snapshot_phase_name: "{{ dict( phases | zip( [ prefix ] | product( snapshot_names ) | map('join', '.') ) ) }}"
     snapshot_phase_name: 
       clean: "clean"
       init: "{{ prefix }}.init"
     phases:
-    - clean
-    - init
-    - 
+      - clean
+      - init
+    
   vars:
     prefix: "{{ project_id }}.{{ project_revision }}"
 #     snapshot_names:
@@ -25,95 +25,57 @@
 
 - name: Lists snapshots
   block:
+
   - import_role:
       name: libvirt_snapshot
       tasks_from: list
     vars:
       vm_name: "{{ vm.metadata.name }}"
       uri: "{{ vm.metadata.connection | default(omit, true) }}"
+  
   delegate_to: "{{ kvm_host }}"
-- name: Ensure a init phase
-  vars:
-    vm_name: "{{ vm.metadata.name }}"
-    uri: "{{ vm.metadata.connection | default(omit, true) }}"
+
+- name: Run lifecycle
   block:
-  - name: Use cached init phase
-    block:
-    - name: "Restore Init Snapshot"
-      import_role: 
-        name: libvirt_snapshot
-        tasks_from: restore
-      failed_when: not (snapshot_phase_name.init in snapshot_list)
-      register: result_restore_init
-    vars:
-      snapshot_name: "{{ snapshot_phase_name.init }}"
-    delegate_to: "{{ kvm_host }}"
-  
-  rescue:
-  - name: Ensure a clean phase
-    block:
-    - name: Restore Clean Snapshot
-      import_role: 
-        name: libvirt_snapshot
-        tasks_from: restore
-      failed_when: not (snapshot_phase_name.clean in snapshot_list)
-      register: result_restore_clean
-    rescue:
-    - name: Request Clean Snapshot
-      import_role: 
-        name: libvirt_snapshot
-        tasks_from: create
-      register: result_restore_clean
-    vars:
-      snapshot_name: "{{ snapshot_phase_name.clean }}"
-    delegate_to: "{{ kvm_host }}"
-  
-  - name: Init phase
-    block:
-    - name: Install Dependencies on Guest
-      import_tasks: "install/install_dependencies.yml"
-  
-    - name: Start Init phase
-      include_tasks:
-        file: "{{ item }}"
-      loop: "{{ lookup('first_found', params, wantlist=True) }}"
-      vars:
-        params:
-          files:
-          - init.yaml
-          paths: "{{ priority_import_paths }}"
-          skip: True
 
     - block:
-      - name: Request Init Snapshot
-        import_role:
-          name: libvirt_snapshot
-          tasks_from: create
-      vars:
-        snapshot_name: "{{ snapshot_phase_name.init }}"
-      delegate_to: "{{ kvm_host }}"
-  
-- name: Ensure to complete phases
-  block:
-  - name: "Start Main phase"
-    include_tasks:
-      file: "{{ item }}"
-    loop: "{{ lookup('first_found', params, wantlist=True) }}"
-    vars:
-      params:
-        files:
-        - "main.yaml"
-        paths: "{{ priority_import_paths }}"
-        skip: True
-  
-  - name: "Start Terminate phase"
-    include_tasks:
-      file: "{{ item }}"
-    loop: "{{ lookup('first_found', params, wantlist=True) }}"
-    vars:
-      params:
-        files:
-        - "terminate.yaml"
-        paths: "{{ priority_import_paths }}"
-        skip: True
-  
+
+        - name: Check cache for init phase
+          vars:
+            vm_name: "{{ vm.metadata.name }}"
+            uri: "{{ vm.metadata.connection | default(omit, true) }}"
+          block:
+
+            - import_tasks: restore_init.yaml
+
+            - import_tasks: restore_clean.yaml
+              when: &init_is_not_restored restore_init_result | ternary( restore_init_result is skipped or not( restore_init_result is changed ), false )
+            
+            - import_tasks: create_clean.yaml
+              when: restore_clean_result | ternary( restore_clean_result is skipped or not( restore_clean_result is changed ), false )
+
+        - name: Ensure init phase
+          block: 
+
+            - import_tasks: run_dependencies.yaml
+              when: ( "dependencies" in allowed_phases )
+
+            - import_tasks: run_init.yaml
+              when: ( "init" in allowed_phases )
+              
+            - import_tasks: create_init.yaml
+              when: ( "create init" in allowed_phases )
+
+          when: restore_init_result | ternary( restore_init_result is skipped or not( restore_init_result is changed ), false )
+
+    - block:
+
+        - name: Ensure main phase
+          import_tasks: run_main.yaml
+          when: ( "main" in allowed_phases )
+      
+  always:
+
+    - name: Ensure terminate phase
+      import_tasks: run_terminate.yaml
+      when: ( "terminate" in allowed_phases )

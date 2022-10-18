@@ -87,6 +87,18 @@ Role Variables
 - `revision_id`:
   - Revision identifier which identify "a change" of the `init` phase. if this value is different than the current active snapsnot's revision then the cache is considered as invalid and a reset of the `init` phase will occur, by restoring to the clean base and re-process the init phase.
     - You can interpret this as "a change version" or a sort of "hash" which "identify" the installed dependencies or the init phase's content.
+- `allowed_phases`: ( defaults: all sub-phases ):
+  - A list of (sub) phases of the lifecycle that are allowed to run, the unspecified phases are skipped. The values must be any subset of the following (unordered) list:
+    - `startup`: will start the VM
+    - `restore init`: will restore the init snapshot if possibile
+    - `create init`: will creare the init snapshot if possibile
+    - `restore clean`: will restore the clean snapshot if possibile
+    - `create clean`: will create the clean snapshot if possibile
+    - `dependencies`: will run the **dependencies** phase if possibile
+    - `init`: will run the **init** phase if possibile
+    - `main`: will run the **main** phase if possibile
+    - `terminate`: will run the **terminate** phase if possibile
+    - `shutdown` will shutdown the VM
 
 Dependencies
 ------------

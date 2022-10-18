@@ -23,6 +23,7 @@
     until: vm_start_result is success
     retries: "{{ retry_count | default(10) }}"
     delay: "{{ retry_delay | default(5) }}"
+    when: ( "startup" in allowed_phases )
   
   delegate_to: "{{ kvm_host }}"
 
@@ -47,7 +48,7 @@
     when: connection_wait_result is skipped
     register: connection_wait_result
 
-  - include_tasks: guest_main.yaml
+  - import_tasks: guest_main.yaml
     register: delegate_result
 
   rescue:
@@ -83,5 +84,6 @@
       until: *shutdown_until
       delay: *shutdown_delay
     delegate_to: "{{ kvm_host }}"
+    when: ( "shutdown" in allowed_phases )
 
   

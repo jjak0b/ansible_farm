@@ -5,3 +5,14 @@ phases_lookup_dir_path: provision_phases
 connection_timeout: 120
 retry_count: 10
 retry_delay: 5
+wait_until_port_reachable: false
+allowed_phases:
+  - startup
+  - restore clean
+  - create clean
+  - restore init
+  - create init
+  - init
+  - main
+  - terminate
+  - shutdown

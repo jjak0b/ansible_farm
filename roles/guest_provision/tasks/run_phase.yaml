@@ -1,0 +1,16 @@
+# vars
+# - name: name of file to include
+# - priority_import_paths: path where to search the file
+---
+
+- name: "Include {{ name }} phase"
+  include_tasks:
+    file: "{{ file }}"
+  loop: "{{ lookup('first_found', params, wantlist=true) }}"
+  loop_control:
+    loop_var: file
+  vars:
+    params:
+      files: "{{ [ name ] | product( [ 'yaml', 'yml' ] ) | map( 'join', '.' ) }}" 
+      paths: "{{ priority_import_paths }}"
+      skip: True
