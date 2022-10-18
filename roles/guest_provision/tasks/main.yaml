@@ -34,15 +34,17 @@
   block:
   - name: Wait for defined connection to VM
     wait_for_connection:
-    when: ansible_connection is defined
+      timeout: "{{ connection_timeout | default(120) }}"
+    when: ansible_connection is defined and not( wait_until_port_reachable )
     register: connection_wait_result
   
   - name: Wait until VM becomes reachable
-    wait_for:
+    local_action:
+      module: wait_for
       host: "{{ ansible_host }}"
       port: "{{ ansible_port | default( 22 ) }}"
       timeout: "{{ connection_timeout | default(120) }}"
-    when: not ( ansible_connection is defined )
+    when: connection_wait_result is skipped
     register: connection_wait_result
 
   - include_tasks: guest_main.yaml
@@ -58,15 +60,28 @@
       var: delegate_result
     when: delegate_result is failed
   always:
-  - name: Stopping VM
-    community.libvirt.virt:
-      command: shutdown
-      name: "{{ vm.metadata.name }}"
-      state: shutdown
-      uri: *libvirt_uri
+  - block:
+    - name: Ensure VM shutdown
+      community.libvirt.virt:
+        command: shutdown
+        name: "{{ vm.metadata.name }}"
+        state: shutdown
+        uri: *libvirt_uri
+      register: vm_stop_result
+      retries: &shutdown_retries "{{ retry_count }}"
+      until: &shutdown_until vm_stop_result is success and not(vm_stop_result is changed)
+      delay: &shutdown_delay "{{ retry_delay }}"
+    rescue:
+    - name: Ensure VM is destroyed as fallback
+      community.libvirt.virt:
+        command: destroy
+        name: "{{ vm.metadata.name }}"
+        state: destroyed
+        uri: *libvirt_uri
+      register: vm_stop_result
+      retries: *shutdown_retries
+      until: *shutdown_until
+      delay: *shutdown_delay
     delegate_to: "{{ kvm_host }}"
-    register: vm_stop_result
-    until: vm_stop_result is success
-    retries: "{{ retry_count | default(10) }}"
-    delay: "{{ retry_delay | default(5) }}"
+
   

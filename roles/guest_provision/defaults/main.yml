@@ -2,3 +2,6 @@
 # defaults file for guest_provision
 # lookup directory for (searching and ) running phases
 phases_lookup_dir_path: provision_phases
+connection_timeout: 120
+retry_count: 10
+retry_delay: 5

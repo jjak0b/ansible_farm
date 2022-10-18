@@ -65,10 +65,23 @@ Role Variables
 - `vm`
   - required
   - It's the `VM definition` object required to specify which VM have to be provisioned
-- `ansible_connection`
+
+- `ansible_connection` (and its required parameters):
   - recommended
-  - standard connection plugins are supported
-  - `community.libvirt.libvirt_qemu` is supported
+  - standard [connection plugins](https://docs.ansible.com/ansible/latest/plugins/connection.html)  are supported
+      - `community.libvirt.libvirt_qemu` is supported
+- `wait_until_port_reachable`: boolean
+  - required **only** if VM's platform doesn't ship with python or the `community.libvirt.libvirt_qemu` connection plugin isn't used
+  - if `true` the ansible controller will wait until the VM's host can be reached at the provided `ansible_port` (or default port 22); otherwise python must be installed on the VM and the [wait_for_connection](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/wait_for_connection_module.html) module will be used.
+- `connection_timeout`: (default: 120)
+  - optional
+  - Integer which indicates the max number of seconds the wait should last while trying the connection
+- `retry_count`: (default: 10)
+  - Integer which indicates the max count of attempts required to shutdown the VM
+    - may be usefull combined with `retry_delay`
+- `retry_delay`: (default: 5)
+  - Integer which indicates the delay in seconds that elapse between a shutdown attempt and another (since a platform OS may require long times to shutdown properly)
+    - may be usefull combined with `retry_count`
 - `project_id`:
   - Project identifier which identify the `init`'s owner base for snapshots, since multiple project may share the same image base and re-use their respective init snapshots as cache.
 - `revision_id`:
