@@ -1,10 +1,15 @@
+# IMPORTANT: Ansible won't be able to connect into the VM of this platform because of 2 reasons:
+# 1)  the ip address set on the image is statically set on 192.168.1.1.
+#     You need to edit the network config using like a initscript
+#     by editing manually the image on post install (for example using virt-customize).
+# 2)  This platform doesn't contain python so the ansible connection will wait until timeout (wait_for_connection)
+#     because it rely on the ping ansible module which expect python to be installed on remote host.
+#     Since the ssh is enabled you have to set the ansible_connection as undefined for this platform
+#     such that guest_provision role will wait until ssh port is reachable and so connect to using using ssh only
+#     and controller may use the raw module to install python on it or any other tasks. 
+#   
 
 ---
-
-
-# TODO: find a way to evaluate these on jinja bracket while importing into variable 
-# my_root_url: "http://cdimage.debian.org/cdimage/cloud/sid/daily/latest/"
-# my_base_image_name: "debian-11-generic-{{ target }}"
 
 - name: Defining platform
   vars:
@@ -35,10 +40,7 @@
             libvirt_pool_dir: "{{ansible_env.HOME}}/.local/share/libvirt/images/"
             auth:
               user: root
-              password: ""
               become_user: root
-              become_password: ""
-
             sources:
             - uri: "{{ base_url }}/{{ resource_names[ 0 ] }}"
               resource_name: "{{ resource_names[ 0 ] }}"
