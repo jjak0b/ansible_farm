@@ -8,83 +8,9 @@ This role configures and creates VMs on a hypervisor which supports libvirt API 
 - `platform`: synonym of OS; it's the definition of used OS; it's the definition used in each vm configuration to setup network, admin, user, vm images and other assets.
 - `target`: synonym of machine, architecture of machine; it's the definition of the architecture type used in each vm configuration, like CPU, machine type, emulator, etc ...
 - `VM definition` indicates the object which is a combination of nested target and platform definitions' properties used to create VM template in XML libvirt format.
-## Target definition
-A target definition has the following scheme example:
-```
-vm:
-  metadata:
-    # This is the architecture name alias given to this target, it's the target identifier.
-    # It's used to reference this when we use the term 'target name', (e.g. for `import_path` into guest lifecycle's tasks)
-    target_name: "amd64"
 
-  virt_domain: "qemu" or "kvm" 
-
-  # architeture name alias used by the VM XML definition
-  arch: "x86_64"  
-
-  # emulator path of this target into the KVM host, if virt_domain = "kvm" may be '/usr/bin/kvm' 
-  emulator: "/usr/bin/qemu-system-x86_64" 
-
-  # cpu name to emulate on this target, set this only if virt_domain is not 'kvm'
-  cpu: qemu64
-
-  # Machine type used by the emulator
-  machine: "q35" 
-```
-## Platform definition 
-A platform definition has the following scheme example:
-```
-vm:
-  # metadata properties are used inside a task for installation and setup purposes
-  metadata:
-    template: "mytemplateName" # will use the default.xml.j2 if this is not set
-    # VM name identifier 
-    name: &vm_name "VM {{ target_name}"
-    # VM guest hostname
-    hostname: *vm_name
-    connection: "qemu:///system" # "qemu:///session"  
-    # directory to store VM images
-    libvirt_pool_dir: "/var/lib/libvirt/images/" # libvirt_pool_dir: "{{ansible_env.HOME}}/.local/share/libvirt/images/"
-
-    # auth credentials to auth as user or become_user (root/admin) into this platform
-    auth:
-      become_user: "root / admin user"
-      become_password: "root / admin password"
-      become_method: "su" # see https://docs.ansible.com/ansible/latest/user_guide/become.html 
-      user: "user name"
-      password: "user password"
-    # assets to be downloaded and processed, required for VM install 
-    sources:
-    # any uri to any file 
-    - uri: "myURI/myImage-{{ target_name}.qcow2.tar.gz"
-      checksum_uri: "myURI/myImage.qcow2.tar.gz.sha1sum"
-      checksum_type: "sha1"
-      # fallback checksum value
-      checksum_value: "onlyThisIsSupported"
-      # image destination name after unarchived / processed, and moved to 'libvirt_pool_dir'
-      # for unarchive process, are supported: .gz, .bz2 and https://docs.ansible.com/ansible/latest/collections/ansible/builtin/unarchive_module.html
-      unarchived: &image_file_name "myImage.qcow2"
-    cleanup_tmp: no # if truthy will delete downloaded sources which are not into installation directory
-
-  # Here can be inserted others fully custom properties for templating a custom vm's xml
-
-  # Some properties here, if needed, could override specific architecture values for all architectures
-  vcpus: 4 # host cpu cores assigned to VM
-  ram: 2048 # MB 
-  net:
-    type: 'user' or 'network' or 'bridge'
-    source: 'default' | 'a network name' | 'virbr0'
-    mac: "52:54:00:ca:cc:ac"
-    # ipv4 for now is supported 
-    ip: "192.168.100.1" or 'dhcp'
-    mask: "24" # only if ip is not 'dhcp' 
-  disks:
-  - type: "raw"
-    devname: "hda"
-    src: *image_file_name
-```
-
-You can instanciate the `VM definitions` by using the `roles/parse_vms_definitions` utility role to create definitions from separated files organized by platform and targets. See its documentations for more details.
+## The VM definition
+You can instanciate each [ VM definition ](objects/vm_definition.md) by using the `roles/parse_vms_definitions` utility role to create definitions from separated files organized by [ platforms ](objects/vm_definition.md#Platform_definition)) and [targets](objects/vm_definition.md#Target_definition). See its documentations for more details.
 
 **Note: the use of `parse_vms_definitions` role is recommended because both target and platform definitions use a default definition, but some of the properties must me overrided according to your use case.**
 
@@ -107,7 +33,7 @@ Otherwise custom templates are applied, searching into `templates` folder with t
 
 Each template during the templating process can access to the `vm` root property of the `VM definition` to define a dynamic XML for each VM. Then a custom template can be fully customizable.
 
-For XML advanced use, see [https://libvirt.org/format.html](https://libvirt.org/format.html).
+For advanced libvirt XML, see its [format documentation](https://libvirt.org/format.html).
 
 ### Default template's variable dependencies
 
