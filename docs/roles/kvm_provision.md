@@ -55,13 +55,12 @@ Requirements
   - `python` >= 2.6
   - `python3-libvirt` ( community.libvirt dep )
   - `python3-lxml` ( community.libvirt dep )
-  - `zipinfo` (unarchive module dep)
   - `zstd` to expand .tar.zst files (unarchive module optional dep)
-  - `unzip` to handle .zip files (unarchive module optional dep)
-  - `gtar` to handle .tar.* files (unarchive module optional dep)
+  - `unzip` for `zipinfo` command and to handle .zip and .tar.* files (unarchive module optional dep)
+    - or `gtar` (unarchive module optional dep)
   - `gzip` to handle .gz files (optional)
     - required **if** using unsupported archive format by the unarchive module
-  - `bunzip2` to handle .bz2 files (optional)
+  - `bzip2` to handle .bz2 files (optional)
     - required **if** using unsupported archive format by the unarchive module
 - System running hypervisor:
   - Supported platform:

@@ -74,18 +74,17 @@ Requirements
   - `python` >= 2.6
   - `python3-libvirt` ( community.libvirt dep )
   - `python3-lxml` ( community.libvirt dep )
-  - `zipinfo` (unarchive module dep)
   - `zstd` to expand .tar.zst files (unarchive module optional dep)
-  - `unzip` to handle .zip files (unarchive module optional dep)
-  - `gtar` to handle .tar.* files (unarchive module optional dep)
+  - `unzip` for `zipinfo` and to handle .zip and .tar.* files (unarchive module optional dep)
+    - or `gtar` (unarchive module optional dep)
   - `gzip` to handle .gz files (optional)
     - required **if** using unsupported archive format by the unarchive module
-  - `bunzip2` to handle .bz2 files (optional)
+  - `bzip2` to handle .bz2 files (optional)
     - required **if** using unsupported archive format by the unarchive module
   - `sshpass`
     - optional but required to use password on ssh on vm connections
     - otherwise use [ansible vault](https://docs.ansible.com/ansible/2.8/user_guide/vault.html)
-  - `libvirt-bin`
+  - `libvirt-clients`
     - required by `guest_provision` role to handle snapshots using virsh
   - Any `qemu-system-<architecture>` (if you are using qemu)
     - these must be installed on the hypervisor host before processing the VM installation

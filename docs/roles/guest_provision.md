@@ -53,7 +53,7 @@ Requirements
   - `sshpass`
     - optional but required to use password on ssh on vm connections
     - otherwise use [ansible vault](https://docs.ansible.com/ansible/2.8/user_guide/vault.html)
-  - `libvirt-bin`
+  - `libvirt-clients`
     - required by `guest_provision` role to handle snapshots using virsh
 
 Role Variables
