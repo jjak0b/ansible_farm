@@ -43,16 +43,8 @@
       <address type='pci' domain='0x0000' bus='0x05' slot='0x00' function='0x0'/>
     </disk>
     {% endfor %}
-
-
-  {% if vm.net.type == "vde" %}
-    <qemu:commandline>
-      <qemu:arg value="-netdev"/>
-      <qemu:arg value="type=vde,id=vde0,sock={{ vm.net.source }}"/>
-      <qemu:arg value="-device"/>
-      <qemu:arg value="virtio-net-pci,netdev=vde0,mac={{ vm.net.mac }}"/>
-    </qemu:commandline>
-  {% else %}
+  
+    {% if not ( vm.net.type in [ "vde", "user" ] ) %}
     <interface type="{{ vm.net.type }}">
       
       {% if vm.net.type == "ethernet" %}
@@ -60,18 +52,16 @@
       {% else %}
       <mac address="{{ vm.net.mac }}"/>
       {% endif %}
+
       <model type='virtio'/>
       {% if vm.net.type == "bridge" %}
       <source bridge="{{ vm.net.source }}"/>
-      {% elif vm.net.type == "user" %}
-        {% if vm.net.ip is defined and vm.net.mask is defined %}
-      <ip family='ipv4' address="{{ vm.net.ip }}" prefix="{{ vm.net.mask }}"/>
-        {% endif %}
       {% else %}
       <source network="{{ vm.net.source }}"/>
       {% endif %}
+    
     </interface>
-  {% endif %}
+    {% endif %}
 
     <console type="pty">
       <target type="serial" port="0"/>
@@ -94,4 +84,18 @@
     </graphics>
 -->
   </devices>
+  <!-- qemu:commandline seems to work only if it's a direct children of the <domain/> for some strange reason -->
+  {% if vm.net.type in [ "vde", "user" ]  %}
+    <qemu:commandline>
+      <qemu:arg value="-netdev"/>
+      {% if vm.net.type == "vde" %}
+      <qemu:arg value="type=vde,id=vde0,sock={{ vm.net.source }}"/>
+      {% elif vm.net.type == "user" %}
+      <qemu:arg value="type=user,id=user0,{{ vm.net.source | default( 'hostfwd=tcp:127.0.0.1:8022-:22' ) }}"/>
+      {% endif %}
+
+      <qemu:arg value="-device"/>
+      <qemu:arg value="virtio-net-pci,netdev={{ vm.net.type }}0{{ vm.net.mac is defined | ternary( ',mac=' + vm.net.mac, '' ) }}"/>
+    </qemu:commandline>
+  {% endif %}
 </domain>
