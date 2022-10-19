@@ -19,7 +19,7 @@ the VMs configurations should be defined in a var file, for example `vms_config.
           - `vms`
           - `"{{ vm.metadata.name }}"`
           - `"{{ vm.metadata.platform_name }}"`
-          - `"{{ vm.metadata.target_name}"`
+          - `"{{ vm.metadata.target_name }}"`
     - `roles/kvm_provision` to define and install VM resources 
 
 - For each host in `vms` should run:
@@ -50,6 +50,7 @@ The `import_path` is the one in the following priority list path which contains 
 - `"{{ phases_lookup_dir_path }}"`
 
 A use case may needs specific tasks/vars for a target on platform or only platform; for instance:
+
 - *debian_11* folder (`vm.metadata.platform_name` value in `platforms/debian_sid.yml`)
     - *amd64* folder (`vm.metadata.target_namevalue )
       - tasks or vars files, ... specific for *amd64* targets in *debian_11* platforms

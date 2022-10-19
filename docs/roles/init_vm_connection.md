@@ -1,7 +1,8 @@
 init_vm_connection
 =========
 
-Ensure to add the VM definition as ansible inventory host, suck that:
+Ensure to add the VM definition as ansible inventory host, such that:
+
 - Its inventory hostname is `"{{ vm.metadata.name }}"`
 - it's a member of the following groups:
   - `vms`
