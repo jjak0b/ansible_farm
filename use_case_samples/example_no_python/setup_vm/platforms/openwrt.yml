@@ -41,6 +41,7 @@
             auth:
               user: root
               become_user: root
+            cleanup_tmp: yes
             sources:
             - uri: "{{ base_url }}/{{ resource_names[ 0 ] }}"
               resource_name: "{{ resource_names[ 0 ] }}"

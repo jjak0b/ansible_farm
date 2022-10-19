@@ -38,7 +38,6 @@
           template: virtio
           platform_name: alpine_stable
           connection: "qemu:///system"
-          libvirt_pool_dir: "{{ansible_env.HOME}}/vms/images/"
           auth: null
           sources:
           - uri: "{{ uri_base }}/{{ image_name }}.iso"

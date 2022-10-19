@@ -4,3 +4,6 @@ ansible_become_user: root
 ansible_become_password: virtualsquare
 ansible_become_method: su
 # NOTE: You SHOULD use https://docs.ansible.com/ansible/latest/user_guide/vault.html
+
+# we use usermode network forwading
+ansible_port: 8022

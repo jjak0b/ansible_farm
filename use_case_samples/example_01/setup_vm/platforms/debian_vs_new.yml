@@ -12,7 +12,6 @@
         platform_name: debian_vs_new
         hostname: "V2-20221001-1155.{{ vm.metadata.target_name }}.debian_vs_new.vm"
         connection: "qemu:///system"
-        libvirt_pool_dir: "{{ansible_env.HOME}}/vms/images/"
         auth:
           become_user: &root_user "root"
           become_password: &root_pass "virtualsquare"

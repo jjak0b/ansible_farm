@@ -2,6 +2,6 @@ all:
   children:
     hypervisors:
       hosts:
-        localhost:
-
-
+        local_hypervisor:  
+          ansible_host: localhost
+          ansible_connection: local
