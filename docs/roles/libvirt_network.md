@@ -11,21 +11,22 @@ You can define a custom template and configuration file in `{{ net_parse_lookup_
 Requirements
 ------------
 
-- `community.libvirt.virt_net`
+Note: The ansible user must have the right capabilities to be able to handle libvirt networking. See libvirt documentation for more details.
 
-The .yaml configuration filename must be same of libvirt network name and must have this network configuration scheme using default template:
+The .yaml configuration's filename must be same of libvirt network name.
+if you are using the default network template you have to use the following scheme in your configuration:
 ```
-template: default
-name: default-net
+template: the template name you are using (default)
+name: name of the libvirt network (default net: default-net)
 bridge: 
-  name: virbr1
-  stp: True
-  mac: "52:54:00:00:00:01"
-  ip: "10.0.0.254"
-  netmask: "255.0.0.0"
+  name: name of the bridge associated to this network
+  stp: boolean if you want stp enable on the bridge
+  mac: mac address of the bridge
+  ip: bridge's ip (IPv4)
+  netmask: bridge's netmask
 dhcp:
-  start: "10.0.0.1"
-  end: "10.0.0.253"
+  start: Start ip of DHCP pool
+  end: End ip of DHCP pool
 ```
 Otherwise you can define a custom network configuration and template files if you want more customized networks type.
 The network templates depends by the network configuration, so if you want to reuse a specific .xml.j2 template for your network configuration, specify it in the `template` property.
@@ -35,12 +36,12 @@ Role Variables
 
 - `net_parse_lookup_dir_path`: lookup root directory used to search network templates and configuration
 - `name`: network name of .yml (without extension) configuration file
-- 
+- `libvirt_uri`: the libvirt uri
 
 Dependencies
 ------------
 
-None
+- `community.libvirt`
 
 Example Playbook
 ----------------
