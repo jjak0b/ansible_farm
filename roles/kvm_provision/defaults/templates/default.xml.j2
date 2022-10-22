@@ -40,11 +40,10 @@
       <driver name='qemu' type="{{ disk.type }}"/>
       <source file="{{ vm.metadata.libvirt_pool_dir }}{{ disk.src }}"/>
       <target dev="{{ disk.devname }}" bus='virtio'/>
-      <address type='pci' domain='0x0000' bus='0x05' slot='0x00' function='0x0'/>
     </disk>
     {% endfor %}
   
-    {% if not ( vm.net.type in [ "vde", "user" ] ) %}
+    {% if vm.net.type is defined and not ( vm.net.type in [ "vde", "user" ] ) %}
     <interface type="{{ vm.net.type }}">
       
       {% if vm.net.type == "ethernet" %}
@@ -84,8 +83,11 @@
     </graphics>
 -->
   </devices>
-  <!-- qemu:commandline seems to work only if it's a direct children of the <domain/> for some strange reason -->
-  {% if vm.net.type in [ "vde", "user" ]  %}
+  <!-- 
+    qemu:commandline must a direct children of the <domain/> tag, 
+    source: https://libvirt.org/kbase/qemu-passthrough-security.html#xml-document-additions
+  -->
+  {% if vm.net.type is defined and vm.net.type in [ "vde", "user" ]  %}
     <qemu:commandline>
       <qemu:arg value="-netdev"/>
       {% if vm.net.type == "vde" %}
@@ -93,9 +95,13 @@
       {% elif vm.net.type == "user" %}
       <qemu:arg value="type=user,id=user0,{{ vm.net.source | default( 'hostfwd=tcp:127.0.0.1:8022-:22' ) }}"/>
       {% endif %}
-
+  <!--
+    Note: we can't use the <interface/> tag for user interface since it has no properties that allow the behavior of qemu's 'hostfwd' option.
+    Warning: the bus and address (slot) are required because qemu may assign the interface to an address already assigned by libvirt
+    and so it may cause a conflict with another device.
+  -->
       <qemu:arg value="-device"/>
-      <qemu:arg value="virtio-net-pci,netdev={{ vm.net.type }}0{{ vm.net.mac is defined | ternary( ',mac=' + vm.net.mac, '' ) }}"/>
+      <qemu:arg value="virtio-net-pci,bus=pcie.0,addr=0x03,netdev={{ vm.net.type }}0{{ vm.net.mac is defined | ternary( ',mac=' + vm.net.mac, '' ) }}"/>
     </qemu:commandline>
   {% endif %}
 </domain>
