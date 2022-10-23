@@ -1,14 +1,15 @@
 Deploy a VM and establish connection for VM provisioning
-===============================================
+========================================================
 
-## Intro
+Intro
+-----
 
 In this example we are going to show how to deploy a single VM on a hypervisor host using the default VM template and connect to it using SSH through the user network.
 
 Hypervisor provisioning
 -----------------------
 
-## Define the inventory: Add The hypervisor hosts
+### Define the inventory: Add The hypervisor hosts
 
 Define the hypervior host as localhost and using the local connection plugin inside the hosts.yaml file:
 
@@ -27,7 +28,7 @@ We are now going to define an ansible playbook which will deploy a VM on the hyp
 
 The `kvm_provision` role will deploy the VM, but it requires a `vm` variable associated to its `VM definition` object which is going to be generated through the `parse_vms_definitions` role. You can define your custom `VM definition` but it must satisfy the minimial `VM definition` scheme (see the `VM definition` 's documentation for more details).
 
-## Define a target
+### Define a target
 
 Let's define the **amd64** target definition which describe the architecture and the machine we are using, and store this as `setup_vm/targets/amd64.yaml`
 
@@ -44,7 +45,7 @@ Let's define the **amd64** target definition which describe the architecture and
       machine: q35
 ```
 
-## Define a platform
+### Define a platform
 
 Let's define the platform **debian_vs** which will use the image provided by [VirtualSquare](http://wiki.virtualsquare.org/#!/daily_brewed.md). Let's build the `VM definition` by defining it in to the `vm` fact and re-using some properties defined by the target in the `vm` fact, and store the following code as `setup_vm/platforms/debian_vs.yaml`:
 
@@ -99,7 +100,7 @@ Let's define the platform **debian_vs** which will use the image provided by [Vi
 if you want to apply some common properties to all VM definitions you can define a (incomplete) `vm` fact into `defaults/platforms/defaults.yaml`: this will run just before each platform definition. If you aren0t going to define it, the `parse_vms_definitions` role will use the one defined in its defaults.
 
 
-## Define the playbook: Deploy the VM into hypervisor
+### Define the playbook: Deploy the VM into hypervisor
 
 Let's define an ansible playbook which will deploy a VM on the hypervisor host.
 
@@ -154,7 +155,7 @@ ssh user@localhost -p 8022
 But in ansible we need to define the connection info required by ssh to connect to the VM, and we are going to do this by defining them as ansible inventory host variables.
 
 
-## Define the inventory: Add the VMs
+### Define the inventory: Add the VMs
 
 The ansible variables required to connect to the VM depends by the `ansible_connection` plugin we chose to use.
 If we chose `ssh` plugin, then they are the following:
@@ -181,7 +182,7 @@ Note: If you use the user network interface on the VM then you should set:
 - The hypervisor's IP/hostname as `ansible_host`
 - The hypervisor's forwarded port as `ansible_port` ( `8022` in this example and the default one used by this collection if not overrided ) specified in the the `hostfwd` qemu's option.
 
-Lets define these connection info inside the host inventory, by adding it for platform and target. It should looks like this:
+Let's define these connection info inside the host inventory, by adding it for platform and target. It should looks like this:
 
 ```
 all:
@@ -205,9 +206,7 @@ all:
 
 ```
 
-Hint: Since `parse_vms_definitions` is usually used to generate multiple VM, some platform depentant's info like the `ansible_user` may be usefull to define them per platform group instead per host. This behavior may be achieved on runtime by the `init_vm_connection` role.
-
-It will add each VM as inventory host entry by using the `VM definition` object such that:
+Hint: Since `parse_vms_definitions` is usually used to generate multiple VM, some platform dependent's info like the `ansible_user` may be useful to define them per platform group instead per host. This behavior may be achieved on runtime by the `init_vm_connection` role. It will add each VM as inventory host entry by using the `VM definition` object such that:
 
 - The VM host entry will be a member of the following groups:
   - `vms` group ( general group containing all virtual machine entries )
@@ -220,7 +219,7 @@ It will add each VM as inventory host entry by using the `VM definition` object 
 
 Note: The `ansible_connection` and `ansible_port` values aren't set by any role of this collection and ansible will use its default ones if they are not overwritten ( they are usually `ssh` and `22` respectively ).
 
-## Define the playbook: VM provisioning
+###  Define the playbook: VM provisioning
 
 Now let's redefine the playbook as following:
 
@@ -279,4 +278,4 @@ Now let's redefine the playbook as following:
 
 ```
 
-Warning: In the playbook "VMs provisioning" the `gather_facts` must be set to `no`/`false` because the VMs may be not powered on yet, otherwise ansible will try to connect to them and run the [setup module](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/setup_module.html) on the VM, causing it to fail because unreachable. This behavior is handled by the `guest_provision` role.
+Warning: In the playbook "VMs provisioning" the `gather_facts` must be set to `no`/`false` because the VMs may not be turned on yet and ansible will try to connect to them and run the [setup module](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/setup_module.html), but failing if VMs are unreachable. The VM turn on/off and wait for connection behavior is handled by the `guest_provision` role.
