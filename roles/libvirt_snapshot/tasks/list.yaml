@@ -17,9 +17,11 @@
     register: snapshot_list_result
     # skip header, split words by whitespaces, and collect values in "Name" column
   - name: List snapshot names
+    vars:
+      line_pattern: "(\\s+)(?P<name>\\S+)(\\s+)(.+)"
     set_fact:
       snapshot_list: "{{ [] if (snapshot_list_result.stdout_lines | length <= 2)
-                            else (snapshot_list_result.stdout_lines[2:] | map( 'split' ) | map( 'first' ) | list) }}"    
+                            else (snapshot_list_result.stdout_lines[2:] | map( 'regex_search', line_pattern, '\\g<name>' ) | map( 'first' ) | list) }}"    
   rescue:
     - set_fact:
         snapshot_list: []
