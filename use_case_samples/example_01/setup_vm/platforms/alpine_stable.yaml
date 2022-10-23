@@ -1,7 +1,6 @@
 
-# Fetch urls and base resource name
-# my_root_url : "https://www.cs.unibo.it/~renzo/virtualsquare/daily_brewed/yearly/"
-# my_base_image_name: "debian-sid-v2-{{ target_name }}-daily-20220101-874"
+# this platform will download always the latest version by fetching releases from remote 
+---
 
 - name: defining alpine platform
   vars:
@@ -18,7 +17,7 @@
       
     - name: set latest version
       set_fact:
-        alpine_version: "{{ content.version  }}"
+        alpine_version: "{{ content.version }}"
         sha256: "{{ content.sha256 }}"
       vars:
         content: "{{ version_fetch_result.content | from_yaml | selectattr('flavor', 'equalto', 'alpine-virt') | list | first | to_json | from_json }}"
@@ -37,7 +36,7 @@
         metadata:
           template: virtio
           platform_name: alpine_stable
-          connection: "qemu:///system"
+          connection: "qemu:///session"
           auth: null
           sources:
           - uri: "{{ uri_base }}/{{ image_name }}.iso"
@@ -59,7 +58,5 @@
           devname: "hda"
           src: *image_file_name
         net:
-          type: network
-          source: default-net
-          ip: "10.0.0.5"
+          type: user
           # source: virbr0

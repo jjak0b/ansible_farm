@@ -5,7 +5,7 @@ permutations:
     - "amd64"
   platforms:
     - "debian_vs"
-#   - "debian_vs_new"
+#     - "debian_sid"
 
 list: [] 
 # - platform: "debian_vs.yml"

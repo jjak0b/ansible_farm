@@ -1,45 +1,43 @@
-
+# minimal debian sid platform where sha512 checksum is fetched with remote
+# Note: this platform require a preprocessing since require to run 'ssh-keygen -A'  to allow ssh service to start
 ---
 
-
-# TODO: find a way to evaluate these on jinja bracket while importing into variable 
-# my_root_url: "http://cdimage.debian.org/cdimage/cloud/sid/daily/latest/"
-# my_base_image_name: "debian-11-generic-{{ target }}"
-
-- name: Define platform definition
-  set_fact:
-    vm:
-
-    # metadata properties are used inside a task for installation and setup purposes #
-
-      metadata:
-        name: "{{ vm.metadata.target_name }} - debian sid"
-        platform_name: debian_sid
-        hostname: "{{ vm.metadata.target_name }}.debian_sid.vm"
-      # connection: "qemu:///session"
-        libvirt_pool_dir: "{{ansible_env.HOME}}/.local/share/libvirt/images/"
-        sources:
-      # - uri: "{{ my_root_url }}{{ my_base_image_name }}.qcow2"
-        - uri: "http://cdimage.debian.org/cdimage/cloud/sid/daily/latest/debian-sid-nocloud-{{ vm.metadata.target_name }}-daily.qcow2"
-          resource_name: &image_file_name "debian-sid-nocloud-{{ vm.metadata.target_name }}-daily.qcow2"
-          # checksum_uri: "{{ my_root_url }}{{ my_base_image_name }}.qcow2.sha1sum"
-          checksum_type: null
-          #  fallback checksum value
-          checksum_value: null
-          #  image name unarchived / processed
-          unarchived: *image_file_name
-      
-      #  Others properties are fully custom to templating a custom vm's xml  #
-      
-      net:
-        type: bridge
-        source: virbr0
-      # type: user
-      # source: user
-        mac: "52:54:00:fb:20:be"
-
-      #  Some properties here, if needed, could override specific architecture values for all architectures  #
-      disks:
-      - type: "qcow2"
-        devname: "vda"
-        src: *image_file_name
+- name: Defining platform with usermode networking
+  vars:
+    vm_name: "VM {{ vm.metadata.platform_name }}_{{ vm.metadata.target_name }}"
+    uri_base: "http://cdimage.debian.org/cdimage/cloud/sid/daily/latest"
+    image_name: "debian-sid-nocloud-{{ vm.metadata.target_name }}-daily"
+  block:
+    - name: Fetch sha512 list
+      uri:
+        url: "{{ uri_base }}/SHA512SUMS"
+        return_content: yes
+        body_format: raw
+      register: sha_fetch_result
+      ignore_errors: yes
+    
+    - name: Define platform definition
+      vars:
+        sha_line_pattern: "(?P<sha>[0-9a-fA-F]+)(\\s+){{ image_name }}.qcow2"
+      set_fact:
+        vm:
+          metadata:
+            auth:
+              become_user: "root"
+              become_password: ""
+              become_method: su
+              user: "root"
+              password: ""
+            sources:
+              - uri: "{{ uri_base }}/{{ image_name }}.qcow2"
+                resource_name: "{{ image_name }}.qcow2"
+                checksum_uri: null
+                checksum_type: "sha512"
+                checksum_value: "{{ sha_fetch_result is succeeded | ternary( sha_fetch_result.content | regex_search( sha_line_pattern, '\\g<sha>' ) | first, null ) }}"
+                unarchived: &image_file_name "{{ image_name }}.qcow2"
+          vcpus: 2
+          ram: 2048
+          disks:
+            - type: "qcow2"
+              devname: "hda"
+              src: *image_file_name
