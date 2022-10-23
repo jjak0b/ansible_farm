@@ -7,7 +7,7 @@
       # metadata properties are used inside a task for installation and setup purposes
       metadata:
         name: "{{ vm_name }}"
-        hostname: "vm.{{ vm.metadata.target_name }}.{{ vm.metadata.platform_name }}.local"
+        hostname: "vm.{{ vm.metadata.target_name }}.{{ vm.metadata.platform_name }}"
         connection: "{{ ansible_libvirt_uri | default('qemu:///session', true) }}"
         libvirt_pool_dir: "{{ ansible_env.HOME }}/.local/share/libvirt/images/"
         sources: [] 
