@@ -1,0 +1,21 @@
+
+---
+
+- name: Including callback
+  vars:
+    params:
+      files:
+        - "{{ callback_task_file }}"
+      paths:
+        - "{{ ( hypervisor_lookup_dir_path ) | path_join }}"
+        - tasks
+      skip: True
+  loop: "{{ lookup('first_found', params, errors='ignore', wantlist=True) }}"
+
+  include_tasks:
+    file: "{{ callback_filepath }}"
+
+  loop_control:
+    loop_var: callback_filepath 
+  
+  

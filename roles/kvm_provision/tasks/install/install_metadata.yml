@@ -15,7 +15,7 @@
     group: "{{ hypervisor_group }}"
     mode: u+rwx,g+rwx,o+rx
 #   become: True
-  
+
 - name: Fetch and install required resources
 
   loop: "{{ vm.metadata.sources }}"
@@ -23,4 +23,5 @@
   include_tasks: install_resource.yml
   
   loop_control:
+    index_var: source_index
     loop_var: source

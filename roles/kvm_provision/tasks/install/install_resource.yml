@@ -1,77 +1,26 @@
 
-- name: Check local resource
-  stat:
-    path: &resource_install_path "{{ vm.metadata.libvirt_pool_dir }}{{ source.resource_name }}"
-    get_checksum: false
-  register: cloudres_local_stat
-
-- name: Check local img
-  stat:
-    path: &img_install_path "{{ vm.metadata.libvirt_pool_dir }}{{ source.unarchived }}"
-    get_checksum: false
-  register: img_local_stat
-
-- name: check uri type
+- name: Init resource vars
   set_fact:
-    isValidURL: "{{ source.uri is defined and source.uri is match( '((http|https|ftp):\/\/).*' ) }}"
-    shouldUpdateImg: "{{ not img_local_stat.stat.exists }}"
+    resource_callbacks_before: >
+      {{ vm.metadata.callbacks is defined and vm.metadata.callbacks.sources is defined and ( vm.metadata.callbacks.sources | length > source_index )
+      | ternary( vm.metadata.callbacks.sources[ source_index ].before_provision, [] ) | default( [], true ) | list }}
 
-- name: Fetch URI
-  block:
-  - name: Check image uri
-    uri:
-      url: "{{ source.uri }}"
-      method: HEAD
-    register: cloudimg_http_stat
-    check_mode: false
-    when: source.uri is defined and isValidURL
-  
-  - name: check should update if local img doesn't exists or resource doesn't exists or cached resource and remote mismatch
-    set_fact:
-      shouldUpdateImg: "{{ shouldUpdateImg or not cloudres_local_stat.stat.exists or 
-                        ( cloudimg_http_stat is succeeded and cloudres_local_stat.stat.size != cloudimg_http_stat.content_length )
-                      }}"
-    
-  - name: "Update image {{ source.resource_name }}"
-    get_url:
-      url: "{{ source.uri }}"
-      dest: *resource_install_path
-      timeout: 20
-    when: source.uri is defined and isValidURL and shouldUpdateImg
-    register: cloudimg_local_updated
+  # The included callback can access to the following documented facts:
+  # - vm: the vm definition
+  # - source : the resource item  of vm.metadata.sources list
+  # - source_index : the resource item's index  
+- name: Run callback before provision
+  loop: "{{ resource_callbacks_before }}"
 
-  - name: check should update if resource has been fetched or image is missing and cache exists or should force to use cache
-    set_fact: 
-      shouldUpdateImg: "{{ (cloudimg_local_updated is succeeded and cloudimg_local_updated.changed)
-                        or (not img_local_stat.stat.exists and cloudres_local_stat.stat.exists )
-                        or ( (force is defined and force) and cloudres_local_stat.stat.exists ) }}"
+  include_tasks: run_callbacks.yaml
 
-- name: "Unarchive if resource is an archive and should update img"
-  include_tasks: unarchive.yml
-  when: source.resource_name != source.unarchived and shouldUpdateImg
+  loop_control:
+    loop_var: callback_task_file
 
-#- name: Convert image into type format
-#  shell:
-#    chdir: "{{ vm.metadata.libvirt_pool_dir }}"
-#    cmd: "qemu-img convert -f {{ source.type }}{{ source.resource_name }}"
-#    creates: "{{ vm.metadata.libvirt_pool_dir }}{{ source.unarchived }}"
-#  when: cloudimg_local_updated.changed|bool
-
-- name: Ensure image is accessible by libvirt-qemu group
+- name: "Ensure image is at install path and accessible by <hypervisor_group>"
   file:
-    path: "{{ vm.metadata.libvirt_pool_dir }}{{ source.unarchived }}" 
+    path: "{{ (vm.metadata.libvirt_pool_dir, source.unarchived ) | path_join }}" 
     owner: "{{ ansible_env.USER }}"
     group: "{{ hypervisor_group }}"
     mode: u+rwx,g+rwx,o+rx
 #   become: True
-
-# TODO: give error errorno 2: file or direcotry not found
-# - name: Configure the image
-#  command: |
-#    virt-customize -a {{ vm.metadata.libvirt_pool_dir }}{{ source.unarchived }} \
-#    --hostname {{ vm.metadata.hostname }} \
-#    --root-password password:{{ vm.metadata.auth.become_password }} \
-#    --ssh-inject root:file:{{ vm.metadata.import.ssh_key }} \
-# doesn't work even if using become
-#  become: yes 
-  # when: TODO: this should be done iff this is rootfs
