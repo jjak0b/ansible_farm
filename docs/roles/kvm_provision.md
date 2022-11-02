@@ -17,9 +17,17 @@ You can instanciate each [ VM definition ](objects/vm_definition.md) by using th
 ### Definition use details
 -  **Properties defined in `vm.metadata` are required and needs their respective API names because are also used internally by the roles of its collection**
 - properties of `vm.metada.auth` may be declared instead as host/group variables adding the "ansible_" prefix to the property' names (for example ansible_user) and they depends by the connection method used to allow ansible to connect and login to the virtualized hosts.
-- Each uri entry of `vm.metadata.sources` :
-  - is fetched using [ansible.builtin.get_url](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/get_url_module.html) module which supports HTTP, HTTPS, or FTP URLs
-  - is extracted if the `.unarchived` 's filename is different than the `.uri`'s filename
+- Each uri entry of `vm.metadata.sources` is preprocessed by all callback-tasks specified from each entry of `vm.metadata.callbacks.sources`
+  - The supported callback types are:
+    - `before_provision` : Any pre-processing tasks on i-th resource. Before this callback type ends, the image must be stored in `libvirt_pool_dir`
+      - Some provided callbacks are:
+        - `callbacks/sources/fetch.yaml`
+          - use [ansible.builtin.get_url](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/get_url_module.html) module which supports HTTP, HTTPS, or FTP URLs
+        - `callbacks/sources/unarchive.yml`
+        - `callbacks/sources/fetch_and_unarchive.yaml`
+          - extract if the `.asset_name` 's filename is different than the `.uri`'s filename
+      - Other callbacks may be stored into _tasks_ or `hypervisor_lookup_dir_path` directories
+
 -  Other properties in the `vm` root, except for `vm.metadata`, can be customized or renamed if you are using a custom XML template for VM definitions.
    - For instance `vcpus` is a property that is used by the default template but the variable name can be changed if you are using a custom XML template and use the new reference name inside of it.
    - About the custom variables the important thing is that they must be defined in final `VM definition` but **it doesn't matter where the custom variable is defined** since both definitions are merged together and so they can be defined into the target or platform definitions.
@@ -140,7 +148,11 @@ Example Playbook
               checksum_uri: "myURI/myImage-armvirt64.qcow2.tar.gz.sha1sum"
               checksum_type: "sha1"
               checksum_value: "onlyThisIsSupportedForNow"
-              unarchived: &image_file_name "myImage.qcow2"
+              asset_name: &image_file_name "myImage.qcow2"
+            callbacks:
+              sources:
+              - before_provision:
+                - callbacks/sources/fetch_and_unarchive.yaml
             cleanup_tmp: no
             template: "virtio"
           arch: "aarch64"

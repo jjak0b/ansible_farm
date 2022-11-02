@@ -11,6 +11,8 @@
         connection: "{{ ansible_libvirt_uri | default('qemu:///session', true) }}"
         libvirt_pool_dir: "{{ ansible_env.HOME }}/.local/share/libvirt/images/"
         sources: [] 
+        callbacks:
+          sources: []
         cleanup_tmp: no
       # Others properties are fully custom to templating a custom vm's xml
 

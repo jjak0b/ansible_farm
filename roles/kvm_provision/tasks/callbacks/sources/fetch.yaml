@@ -6,7 +6,7 @@
 
 - name: Check local img
   stat:
-    path: &img_install_path "{{ vm.metadata.libvirt_pool_dir }}{{ source.unarchived }}"
+    path: &img_install_path "{{ vm.metadata.libvirt_pool_dir }}{{ source.asset_name }}"
     get_checksum: false
   register: img_local_stat
 

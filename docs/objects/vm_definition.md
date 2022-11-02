@@ -47,7 +47,10 @@ vm:
       checksum_type: Checksum algorithm alias name (like 'sha1') used for the checksum of the uri's resource
       checksum_uri: Any URI relative to any file that contains the value of the checksum associated to the uri's filename
       checksum_value: The checksum string value of the resource used as fallack if checksum_uri is not defined
-      unarchived: The relative path to the working directory of the resource that should be installed into the 'libvirt_pool_dir'. If it's different than the uri's filename then it's considered as the extracted resource from the uri's file
+      asset_name: The relative path to the working directory of the resource that should be installed into the 'libvirt_pool_dir'. If it's different than the uri's filename then it's considered as the extracted resource from the uri's file
+    callbacks: Categories of supported callbacks 
+      sources: List of callbacks object which will be applied on each resource item. Each callback object has its own callbacks alias types related with their tasks
+      - before_provision: List of tasks file. These will run in sequence to perform a preprocessing of the resource like: download, unarchive, customize/convert image, etc ...
     cleanup_tmp: boolean indicating if the uri's resource should be deleted
 
   net:
@@ -69,9 +72,9 @@ vm:
   disks: List of disk entries
   - type: type of the image used for this disk like "raw", "qcow2", etc ...
     devname: device name, for example "hda"
-    src: relative path to the installation path of the image, should be equals to any resource.unarchive's value
+    src: relative path to the installation path of the image, should be equals to any resource.asset_name's value
   kernel:
-    src: relative path to the installation path of the image, should be equals to any resource.unarchive's value
+    src: relative path to the installation path of the image, should be equals to any resource.asset_name's value
     params: the kernel' string of parameter
 ```
 
@@ -87,7 +90,7 @@ The `VM definition` object is used as variable parameter of the following roles 
 - `kvm_provision` role :
   - Each uri entry of `vm.metadata.sources` :
     - is fetched using [ansible.builtin.get_url](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/get_url_module.html) module which supports HTTP, HTTPS, or FTP URLs
-    - is extracted if the `.unarchived` 's filename is different than the `.uri`'s filename
+    - is extracted if the `.asset_name` 's filename is different than the `.uri`'s filename
   -  will render the template defined by the `vm.metadata.template` file (otherwise the default one) by using the `VM definition` object accessible on its scope.
 
 - `init_vm_connection` role :

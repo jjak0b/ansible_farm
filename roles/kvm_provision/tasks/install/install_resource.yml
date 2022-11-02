@@ -19,7 +19,7 @@
 
 - name: "Ensure image is at install path and accessible by <hypervisor_group>"
   file:
-    path: "{{ (vm.metadata.libvirt_pool_dir, source.unarchived ) | path_join }}" 
+    path: "{{ (vm.metadata.libvirt_pool_dir, source.asset_name ) | path_join }}" 
     owner: "{{ ansible_env.USER }}"
     group: "{{ hypervisor_group }}"
     mode: u+rwx,g+rwx,o+rx
