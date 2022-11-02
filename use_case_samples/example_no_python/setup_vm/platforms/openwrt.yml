@@ -42,18 +42,24 @@
               user: root
               become_user: root
             cleanup_tmp: yes
+            callbacks:
+              sources:
+                - before_provision:
+                  - callbacks/sources/fetch_and_unarchive.yaml
+                - before_provision:
+                  - callbacks/sources/fetch_and_unarchive.yaml
             sources:
             - uri: "{{ base_url }}/{{ resource_names[ 0 ] }}"
               resource_name: "{{ resource_names[ 0 ] }}"
               checksum_type: null
               checksum_value: null
-              unarchived: &kernel_file_name "{{ image_names[ 0 ] }}"
+              asset_name: &kernel_file_name "{{ image_names[ 0 ] }}"
 
             - uri: "{{ base_url }}/{{ resource_names[ 1 ] }}"
               resource_name: "{{ resource_names[ 1 ] }}"
               checksum_type: null
               checksum_value: null
-              unarchived: &rootfs_file_name "{{ image_names[ 1 ] }}"
+              asset_name: &rootfs_file_name "{{ image_names[ 1 ] }}"
           
           #  Others properties are fully custom to templating a custom vm's xml  #
           

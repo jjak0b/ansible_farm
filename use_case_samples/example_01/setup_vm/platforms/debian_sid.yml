@@ -28,13 +28,17 @@
               become_method: su
               user: "root"
               password: ""
+            callbacks:
+              sources:
+                - before_provision:
+                  - callbacks/sources/fetch_and_unarchive.yaml
             sources:
               - uri: "{{ uri_base }}/{{ image_name }}.qcow2"
                 resource_name: "{{ image_name }}.qcow2"
                 checksum_uri: null
                 checksum_type: "sha512"
                 checksum_value: "{{ sha_fetch_result is succeeded | ternary( sha_fetch_result.content | regex_search( sha_line_pattern, '\\g<sha>' ) | first, null ) }}"
-                unarchived: &image_file_name "{{ image_name }}.qcow2"
+                asset_name: &image_file_name "{{ image_name }}.qcow2"
           vcpus: 2
           ram: 2048
           disks:

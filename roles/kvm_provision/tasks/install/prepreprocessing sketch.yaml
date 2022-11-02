@@ -1,0 +1,15 @@
+- name: Convert image into type format
+  shell:
+    chdir: "{{ vm.metadata.libvirt_pool_dir }}"
+    cmd: "qemu-img convert -f {{ source.type }}{{ source.resource_name }}"
+    creates: "{{ vm.metadata.libvirt_pool_dir }}{{ source.asset_name }}"
+  when: cloudimg_local_updated.changed|bool
+
+
+- name: Configure the image, doesn't work if kernel's host isn't accessible by user
+  command: |
+    virt-customize -a {{ vm.metadata.libvirt_pool_dir }}{{ source.asset_name }} \
+    --hostname {{ vm.metadata.hostname }} \
+    --root-password password:{{ vm.metadata.auth.become_password }} \
+    --ssh-inject root:file:{{ vm.metadata.import.ssh_key }} \
+ # when: TODO: this should be done iff this is rootfs

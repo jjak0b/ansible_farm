@@ -17,6 +17,10 @@
           become_password: &root_pass "virtualsquare"
           user: "user"
           password: *root_pass
+        callbacks:
+          sources:
+            - before_provision:
+              - callbacks/sources/fetch_and_unarchive.yaml
         sources:
         - uri: "https://www.cs.unibo.it/~renzo/virtualsquare/daily_brewed/monthly/debian-sid-v2-{{ vm.metadata.target_name }}-daily-20221001-1155.qcow2.bz2"
           resource_name: "debian-sid-v2-{{ vm.metadata.target_name }}-daily-20221001-1155.qcow2.bz2"
@@ -24,8 +28,8 @@
           checksum_type: "sha1"
           # fallback checksum value
           checksum_value: "5dfbb9ac0a0ba50214d0eee8b42ea2010e09be33"
-          # image name unarchived / processed
-          unarchived: &image_file_name "debian-sid-v2-{{ vm.metadata.target_name }}-daily-20221001-1155.qcow2"
+          # image name asset_name / processed
+          asset_name: &image_file_name "debian-sid-v2-{{ vm.metadata.target_name }}-daily-20221001-1155.qcow2"
 
       # Others properties are fully custom to templating a custom vm's xml
 

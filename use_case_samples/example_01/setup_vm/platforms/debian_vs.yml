@@ -22,6 +22,10 @@
               become_method: su
               user: "user"
               password: *root_pass
+            callbacks:
+              sources:
+                - before_provision:
+                  - callbacks/sources/fetch_and_unarchive.yaml
             sources:
             - uri: "{{ uri_base }}/{{ image_name }}.bz2"
               resource_name: "{{ image_name }}.bz2"
@@ -29,9 +33,8 @@
               checksum_type: "sha1"
               # fallback checksum value
               checksum_value: "53cc5c9645121f20018fb8934e1e16178e2ae373"
-              # image name unarchived / processed
-              unarchived: &image_file_name "{{ image_name }}"
-
+              # image name asset_name / processed
+              asset_name: &image_file_name "{{ image_name }}"
           # Others properties are fully custom to templating a custom vm's xml
 
           # Some properties here, if needed, could override specific architecture values for all architectures

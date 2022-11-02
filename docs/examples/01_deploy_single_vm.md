@@ -80,8 +80,8 @@ Let's define the platform **debian_vs** which will use the image provided by [Vi
                 checksum_type: "sha1"
                 # fallback checksum value
                 checksum_value: "53cc5c9645121f20018fb8934e1e16178e2ae373"
-                # image name unarchived / processed
-                unarchived: &image_file_name "{{ image_name }}"
+                # image name asset_name / processed
+                asset_name: &image_file_name "{{ image_name }}"
           vcpus: 2
           ram: 2048
           disks:

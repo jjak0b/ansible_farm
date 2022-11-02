@@ -38,6 +38,10 @@
           platform_name: alpine_stable
           connection: "qemu:///session"
           auth: null
+          callbacks:
+            sources:
+              - before_provision:
+                - callbacks/sources/fetch_and_unarchive.yaml
           sources:
           - uri: "{{ uri_base }}/{{ image_name }}.iso"
             resource_name: "{{ image_name }}.iso"
@@ -45,8 +49,8 @@
             checksum_type: "sha256"
             # fallback checksum value
             checksum_value: "{{ sha256 }}"
-            # image name unarchived / processed
-            unarchived: &image_file_name "{{ image_name }}.iso"
+            # image name asset_name / processed
+            asset_name: &image_file_name "{{ image_name }}.iso"
 
         # Others properties are fully custom to templating a custom vm's xml
 
