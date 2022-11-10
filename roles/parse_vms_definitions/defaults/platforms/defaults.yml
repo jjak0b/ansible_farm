@@ -10,6 +10,7 @@
         hostname: "vm.{{ vm.metadata.target_name }}.{{ vm.metadata.platform_name }}"
         connection: "{{ ansible_libvirt_uri | default('qemu:///session', true) }}"
         libvirt_pool_dir: "{{ ansible_env.HOME }}/.local/share/libvirt/images/"
+        tmp_dir: "{{ ansible_env.HOME }}/tmp/"
         sources: [] 
         callbacks:
           sources: []
