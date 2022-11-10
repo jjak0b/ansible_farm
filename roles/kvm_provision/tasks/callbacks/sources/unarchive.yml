@@ -1,39 +1,55 @@
 # unarchive task
 
 - name: prepraring unarchive
-  set_fact:
-    hasBeenUnarchived: false
-    unarchive_result: null 
+  vars:
+    src_path: "{{ (vm.metadata.tmp_dir, source.resource_name) | path_join }}"
+    dest_path: "{{ vm.metadata.tmp_dir }}"
+  block:
 
-- name: unarchive with gzip
-  shell: "gzip -dkf {{vm.metadata.libvirt_pool_dir}}{{ source.resource_name }}"
-  when: not hasBeenUnarchived and source.resource_name is search('.gz') and not(source.resource_name is search('.tar.gz'))
-  register: unarchive_result
+    - name: init unarchive
+      set_fact:
+        hasBeenUnarchived: false
+        unarchive_result: null 
+    
+    - name: unarchive resource
+      vars:
+        unarchive_cases: 
+          # .gz and .tar.gz
+          - name: gzip
+            pattern: "(\\.tar)?\\.gz$"
+            cmd: "gzip -dkf {{ src_path }}"
+          # .bz2 and not .tar.bz2
+          - name: bunzip2
+            pattern: "(?!\\.tar)\\.bz2$"
+            cmd: "bunzip2 -kf {{ src_path }}"
+      block:
+        - name: "Un-archive with '{{ case.name }}'"
+          loop: "{{ unarchive_cases }}"
 
-- name: ""
-  set_fact:
-    hasBeenUnarchived: "{{ hasBeenUnarchived or (unarchive_result is succeeded and not (unarchive_result is skipped)) }}"
-    unarchive_result: null
+          shell: "{{ case.cmd }}"
+          when: 
+            - source.resource_name is regex( case.pattern )
+          register: unarchive_result
 
+          loop_control:
+            loop_var: case
 
-- name: unarchive with bunzip2
-  shell: "bunzip2 -kf {{vm.metadata.libvirt_pool_dir}}{{ source.resource_name }}"
-  register: unarchive_result 
-  when: not hasBeenUnarchived and source.resource_name is search('.bz2') and not(source.resource_name is search('.tar.bz2'))
+        - name: result cases
+          debug:
+            var: unarchive_result
 
-- name: ""
-  set_fact:
-    hasBeenUnarchived: "{{ hasBeenUnarchived or (unarchive_result is succeeded and not (unarchive_result is skipped)) }}"
-    unarchive_result: null
+        - name: Un-archive with generic unarchive
+          unarchive: 
+            src: "{{ src_path }}"
+            dest: "{{ dest_path }}"
+          register: unarchive_result
+          when: unarchive_result is skipped
 
-- name: Un-archive with generic unarchive
-  unarchive: 
-    src: "{{vm.metadata.libvirt_pool_dir}}{{ source.resource_name }}"
-    dest: "{{vm.metadata.libvirt_pool_dir}}"
-  register: unarchive_result
-  when: not hasBeenUnarchived
-
-- name: ""
-  set_fact:
-    hasBeenUnarchived:  "{{ hasBeenUnarchived or (unarchive_result is succeeded and not (unarchive_result is skipped)) }}"
-    unarchive_result: null
+        - name: result default
+          debug:
+            var: unarchive_result
+        
+        - name: set unarchive results
+          set_fact:
+            hasBeenUnarchived: "{{ unarchive_result is succeeded and not (unarchive_result is skipped) }}"
+            unarchive_result: null
