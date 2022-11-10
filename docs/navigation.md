@@ -21,7 +21,7 @@
 
 [Examples]()
 
-  * [Deploy a single VM](examples/01_deploy_single_vm.md)
+  * [Deploy a single VM](examples/example_01/index.md)
   * [Deploy VMs using default template](examples/02_deploy_multiple_vms_default.md)
   * [Deploy VMs using custom network and templates](examples/03_deploy_multiple_vms_custom.md)
   * [Guest/VM provisionig](examples/04_guest_provisioning.md)
