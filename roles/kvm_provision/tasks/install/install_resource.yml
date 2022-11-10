@@ -17,10 +17,6 @@
   loop_control:
     loop_var: callback_task_file
 
-- name: "Ensure image is at install path and accessible by <hypervisor_group>"
-  file:
-    path: "{{ (vm.metadata.libvirt_pool_dir, source.asset_name ) | path_join }}" 
-    owner: "{{ ansible_env.USER }}"
-    group: "{{ hypervisor_group }}"
-    mode: u+rwx,g+rwx,o+rx
-#   become: True
+- name: Install resource in libvirt
+  import_tasks: callbacks/sources/install_to_libvirt.yaml
+

@@ -24,10 +24,3 @@
     xml: "{{ lookup('template', vm_xml ) }}"
     uri: "{{ vm.metadata.connection | default(omit, true) }}"
 
-- name: Ensure temporary files are deleted
-  file:
-    path: "{{ vm.metadata.libvirt_pool_dir }}{{ item.source.resource_name }}"
-    state: absent
-  with_items: 
-   - "{{ vm.metadata.sources }}"
-  when: vm.metadata.cleanup_tmp | bool
