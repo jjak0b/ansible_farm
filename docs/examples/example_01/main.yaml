@@ -1,0 +1,6 @@
+---
+
+- import_playbook: playbook_deploy.yaml
+
+- import_playbook: playbook_connect.yaml
+

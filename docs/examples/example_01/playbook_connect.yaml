@@ -1,0 +1,31 @@
+# Define connection to VM and start VM provisioning
+---
+
+- name: Fill ansible inventory with VMs
+  hosts: hypervisors
+  gather_facts: yes
+  tasks:  
+    - name: Init VM connections using the provided VM definition
+      loop: "{{ virtual_machines }}"
+
+      include_role: 
+        name: init_vm_connection
+      vars:
+        vm: "{{ a_vm_definition }}"
+
+      loop_control:
+        loop_var: a_vm_definition
+
+- name: VMs provisioning
+  hosts: vms
+  gather_facts: no
+  serial: 1
+  vars:
+    project_id: example_01
+    project_revision: 0
+  tasks:
+
+    # Note: 
+    - name: "Handle the VM power on/off by delegating it to '{{ kvm_host }}' and start provisioning of '{{ vm.metadata.name }}' "
+      include_role: 
+        name: guest_provision

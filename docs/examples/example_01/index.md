@@ -6,12 +6,20 @@ Intro
 
 In this example we are going to show how to deploy a single VM on a hypervisor host using the default VM template and connect to it using SSH through the user network.
 
+- [Full code](//github.com/jjak0b/test_farm/tree/master/docs/examples/example_01/)
+
+Prerequisite
+-----------------------
+
+- [kvm_provision](../../roles/kvm_provision.md#Requirements ) role requirements
+
+
 Hypervisor provisioning
 -----------------------
 
 ### Define the inventory: Add The hypervisor hosts
 
-Define the hypervior host as localhost and using the local connection plugin inside the hosts.yaml file:
+Define the hypervior host as localhost and using the local connection plugin inside the [hosts.yaml](hosts.yaml) file:
 
 ```
 all:
@@ -30,7 +38,7 @@ The `kvm_provision` role will deploy the VM, but it requires a `vm` variable ass
 
 ### Define a target
 
-Let's define the **amd64** target definition which describe the architecture and the machine we are using, and store this as `setup_vm/targets/amd64.yaml`
+Let's define the [amd64](setup_vm/targets/amd64.yaml)  target definition which describe the architecture and the machine we are using, and store this as `setup_vm/targets/amd64.yaml`
 
 ```
 - name: Define target definition
@@ -47,7 +55,7 @@ Let's define the **amd64** target definition which describe the architecture and
 
 ### Define a platform
 
-Let's define the platform **debian_vs** which will use the image provided by [VirtualSquare](http://wiki.virtualsquare.org/#!/daily_brewed.md). Let's build the `VM definition` by defining it in to the `vm` fact and re-using some properties defined by the target in the `vm` fact, and store the following code as `setup_vm/platforms/debian_vs.yaml`:
+Let's define the platform [ debian_vs ](setup_vm/platforms/debian_vs.yaml)  which will use the image provided by [VirtualSquare](http://wiki.virtualsquare.org/#!/daily_brewed.md). Let's build the `VM definition` by defining it in to the `vm` fact and re-using some properties defined by the target in the `vm` fact, and store the following code as `setup_vm/platforms/debian_vs.yaml`:
 
 ```
 - name: Defining platform with usermode networking
@@ -105,11 +113,12 @@ if you want to apply some common properties to all VM definitions you can define
 
 Note: The `vm.metadata.callbacks.sources` entries are associated respectively to the `vm.metadata.sources` items. The `fetch_and_unarchive.yaml` is an utility callback to preprocess ( download, and unarchive if required ) the relative resource on install time.
 
-### Define the playbook: Deploy the VM into hypervisor
+### Define a playbook: Deploy the VM into hypervisor
 
 Let's define an ansible playbook which will deploy a VM on the hypervisor host.
 
 ```
+# Deploy only VM 
 ---
 
 - name: Deploy a single VM on hypervisor
@@ -118,25 +127,24 @@ Let's define an ansible playbook which will deploy a VM on the hypervisor host.
   vars:
     my_vms_config:
       list:
-        - platform: "my_debian_platform"
-          target "amd64"
-  
-  tasks:  
+        - platform: "debian_vs"
+          target: "amd64"
+
+  tasks:
 
     - name: Generate the VM definitions objects using my my_vms_config var as parameters
       import_role:
         name: parse_vms_definitions
       vars:
         config: "{{ my_vms_config }}"
-    
+
     - name: Deploy a VM for each item in the 'virtual_machines' list
       loop: "{{ virtual_machines }}"
-
-        - name: "start Hypervisor Provisioning using the provided VM definition"
-          include_role: 
-            name: kvm_provision
-          vars:
-            vm: "{{ a_vm_definition }}"
+      
+      include_role: 
+        name: kvm_provision
+      vars:
+        vm: "{{ a_vm_definition }}"
 
       loop_control:
         loop_var: a_vm_definition
@@ -187,7 +195,7 @@ Note: If you use the user network interface on the VM then you should set:
 - The hypervisor's IP/hostname as `ansible_host`
 - The hypervisor's forwarded port as `ansible_port` ( `8022` in this example and the default one used by this collection if not overrided ) specified in the the `hostfwd` qemu's option.
 
-Let's define these connection info inside the host inventory, by adding it for platform and target. It should looks like this:
+Let's define these connection info inside the [hosts.yaml](hosts.yaml) inventory, by adding it for platform and target. It should looks like this:
 
 ```
 all:
@@ -199,7 +207,7 @@ all:
           ansible_host: localhost
     debian_vs:
       hosts:
-        my_vm_amd64:
+        VM debian_vs_amd64:
       vars:
         ansible_connection: ssh
         ansible_host: localhost
@@ -224,41 +232,19 @@ Hint: Since `parse_vms_definitions` is usually used to generate multiple VM, som
 
 Note: The `ansible_connection` and `ansible_port` values aren't set by any role of this collection and ansible will use its default ones if they are not overwritten ( they are usually `ssh` and `22` respectively ).
 
-###  Define the playbook: VM provisioning
+###  Define a playbook: VM provisioning
 
-Now let's redefine the playbook as following:
+Now let's define the [playbook](playbook_connect.yaml) that will connect and manage the VMs as following:
 
 
 ```
+# Define connection to VM and start VM provisioning
+---
 
-- name: Deploy a single VM on hypervisor
+- name: Fill ansible inventory with VMs
   hosts: hypervisors
   gather_facts: yes
-  vars:
-    my_vms_config:
-      list:
-        - platform: "my_debian_platform"
-          target "amd64"
-  
   tasks:  
-
-    - name: Generate the VM definitions objects using my my_vms_config var as parameters
-      import_role:
-        name: parse_vms_definitions
-      vars:
-        config: "{{ my_vms_config }}"
-    
-    - name: Deploy a VM using the provided VM definition
-      loop: "{{ virtual_machines }}"
-
-      include_role: 
-        name: kvm_provision
-      vars:
-        vm: "{{ a_vm_definition }}"
-
-      loop_control:
-        loop_var: a_vm_definition
-    
     - name: Init VM connections using the provided VM definition
       loop: "{{ virtual_machines }}"
 
@@ -275,8 +261,8 @@ Now let's redefine the playbook as following:
   gather_facts: no
   serial: 1
   tasks:
-  
-    # Note: 
+
+    # Note: this is not covered by this example
     - name: "Handle the VM power on/off by delegating it to '{{ kvm_host }}' and start provisioning of '{{ vm.metadata.name }}' "
       include_role: 
         name: guest_provision
@@ -284,3 +270,45 @@ Now let's redefine the playbook as following:
 ```
 
 Warning: In the playbook "VMs provisioning" the `gather_facts` must be set to `no`/`false` because the VMs may not be turned on yet and ansible will try to connect to them and run the [setup module](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/setup_module.html), but failing if VMs are unreachable. The VM turn on/off and wait for connection behavior is handled by the `guest_provision` role.
+
+Final steps
+-----------
+### Define a main playbook
+
+Now we can just re-use the written playbook and import them in a single [main.yaml](main.yaml) playbook to run both the deploy and connect playbooks: 
+
+```
+---
+
+- import_playbook: playbook_deploy.yaml
+
+- import_playbook: playbook_connect.yaml
+
+```
+
+Note: **playbook_deploy** defines the `virtual_machines` fact which is accessible also by **playbook_connect**.
+
+### Add ansible configuration
+
+Now let's specify to ansible where to find roles, inventory, python and other parameters, by adding the following code to a [ansible.cfg](ansible.cfg) :
+
+```
+[defaults]
+inventory = hosts.yaml
+roles_path = ../../../roles/ 
+interpreter_python = /usr/bin/python3
+
+# Disable key checking for all hosts, but we usually want this only on VMs
+host_key_checking = False
+```
+
+### Run
+
+Now in the terminal change the current directory to the main playbook's directory and run into the terminal: 
+
+
+
+```
+ansible-playbook main.yaml
+
+```

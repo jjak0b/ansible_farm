@@ -1,0 +1,18 @@
+all:
+  children:
+    hypervisors:
+      hosts:
+        local_hypervisor:
+          ansible_connection: local
+          ansible_host: localhost
+    debian_vs:
+      hosts:
+        my_vm_amd64:
+      vars:
+        ansible_connection: ssh
+        ansible_host: localhost
+        ansible_port: 8022
+        ansible_user: user
+        ansible_password: virtualsquare
+        ansible_become_user: root
+        ansible_become_password: virtualsquare

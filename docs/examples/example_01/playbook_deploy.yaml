@@ -1,0 +1,30 @@
+# Deploy only VM 
+---
+
+- name: Deploy a single VM on hypervisor
+  hosts: hypervisors
+  gather_facts: yes
+  vars:
+    my_vms_config:
+      list:
+        - platform: "debian_vs"
+          target: "amd64"
+
+  tasks:
+
+    - name: Generate the VM definitions objects using my my_vms_config var as parameters
+      import_role:
+        name: parse_vms_definitions
+      vars:
+        config: "{{ my_vms_config }}"
+
+    - name: Deploy a VM for each item in the 'virtual_machines' list
+      loop: "{{ virtual_machines }}"
+      
+      include_role: 
+        name: kvm_provision
+      vars:
+        vm: "{{ a_vm_definition }}"
+
+      loop_control:
+        loop_var: a_vm_definition
