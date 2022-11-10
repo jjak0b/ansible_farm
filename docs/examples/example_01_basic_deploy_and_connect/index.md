@@ -115,7 +115,7 @@ Note: The `vm.metadata.callbacks.sources` entries are associated respectively to
 
 ### Define a playbook: Deploy the VM into hypervisor
 
-Let's define an ansible playbook which will deploy a VM on the hypervisor host.
+Let's define a [playbook_deploy.yaml](playbook_deploy.yaml) which will deploy a VM on the hypervisor host.
 
 ```
 # Deploy only VM 
@@ -234,7 +234,7 @@ Note: The `ansible_connection` and `ansible_port` values aren't set by any role 
 
 ###  Define a playbook: VM provisioning
 
-Now let's define the [playbook](playbook_connect.yaml) that will connect and manage the VMs as following:
+Now let's define the [playbook_connect.yaml](playbook_connect.yaml) that will connect and manage the VMs as following:
 
 
 ```
@@ -301,6 +301,8 @@ interpreter_python = /usr/bin/python3
 # Disable key checking for all hosts, but we usually want this only on VMs
 host_key_checking = False
 ```
+
+Warning: The `host_key_checking = False` setting is equivalent to the `ansible_ssh_extra_args: '-o StrictHostKeyChecking=no'` variable. This ssh parameter is required to avoid that ansible pauses execution and prompts user to add the host to known_hosts. Oterwise this would happen every time ansible will attempt to connect to every new generated VM.
 
 ### Run
 

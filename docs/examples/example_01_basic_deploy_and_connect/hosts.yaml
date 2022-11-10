@@ -7,7 +7,7 @@ all:
           ansible_host: localhost
     debian_vs:
       hosts:
-        my_vm_amd64:
+        VM debian_vs_amd64:
       vars:
         ansible_connection: ssh
         ansible_host: localhost
