@@ -34,10 +34,6 @@
           loop_control:
             loop_var: case
 
-        - name: result cases
-          debug:
-            var: unarchive_result
-
         - name: Un-archive with generic unarchive
           unarchive: 
             src: "{{ src_path }}"
@@ -45,10 +41,6 @@
           register: unarchive_result
           when: unarchive_result is skipped
 
-        - name: result default
-          debug:
-            var: unarchive_result
-        
         - name: set unarchive results
           set_fact:
             hasBeenUnarchived: "{{ unarchive_result is succeeded and not (unarchive_result is skipped) }}"
