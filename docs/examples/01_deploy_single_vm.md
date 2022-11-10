@@ -82,6 +82,10 @@ Let's define the platform **debian_vs** which will use the image provided by [Vi
                 checksum_value: "53cc5c9645121f20018fb8934e1e16178e2ae373"
                 # image name asset_name / processed
                 asset_name: &image_file_name "{{ image_name }}"
+            callbacks:
+              sources:
+                - before_provision:
+                  - callbacks/sources/fetch_and_unarchive.yaml
           vcpus: 2
           ram: 2048
           disks:
@@ -97,8 +101,9 @@ Let's define the platform **debian_vs** which will use the image provided by [Vi
 
 ```
 
-if you want to apply some common properties to all VM definitions you can define a (incomplete) `vm` fact into `defaults/platforms/defaults.yaml`: this will run just before each platform definition. If you aren0t going to define it, the `parse_vms_definitions` role will use the one defined in its defaults.
+if you want to apply some common properties to all VM definitions you can define a (incomplete) `vm` fact into `defaults/platforms/defaults.yaml`: this will run just before each platform definition. If you aren't going to define it, the `parse_vms_definitions` role will use the one defined in its defaults.
 
+Note: The `vm.metadata.callbacks.sources` entries are associated respectively to the `vm.metadata.sources` items. The `fetch_and_unarchive.yaml` is an utility callback to preprocess ( download, and unarchive if required ) the relative resource on install time.
 
 ### Define the playbook: Deploy the VM into hypervisor
 
