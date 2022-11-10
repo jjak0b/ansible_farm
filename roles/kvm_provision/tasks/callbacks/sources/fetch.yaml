@@ -1,12 +1,12 @@
 - name: Check local resource
   stat:
-    path: &resource_install_path "{{ vm.metadata.libvirt_pool_dir }}{{ source.resource_name }}"
+    path: &resource_install_path "{{ (vm.metadata.tmp_dir, source.resource_name) | path_join }}"
     get_checksum: false
   register: cloudres_local_stat
 
 - name: Check local img
   stat:
-    path: &img_install_path "{{ vm.metadata.libvirt_pool_dir }}{{ source.asset_name }}"
+    path: &img_install_path "{{ (vm.metadata.libvirt_pool_dir, source.asset_name) | path_join }}"
     get_checksum: false
   register: img_local_stat
 
