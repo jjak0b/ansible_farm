@@ -19,15 +19,24 @@ You can instanciate each [ VM definition ](objects/vm_definition.md) by using th
 - properties of `vm.metada.auth` may be declared instead as host/group variables adding the "ansible_" prefix to the property' names (for example ansible_user) and they depends by the connection method used to allow ansible to connect and login to the virtualized hosts.
 - Each uri entry of `vm.metadata.sources` is preprocessed by all callback-tasks specified from each entry of `vm.metadata.callbacks.sources`
   - The supported callback types are:
-    - `before_provision` : Any pre-processing tasks on i-th resource. Before this callback type ends, the image must be stored in `libvirt_pool_dir`
-      - Some provided callbacks are:
+    - `before_provision` : Any pre-processing tasks on i-th resource. Before this callback type ends, the image specified into `.asset_name` property  must be stored in `vm.metadata.tmp_dir`
+      - Each callback-tasks can assume that in its scope can access to the following facts:
+        - `source` and `source_index`: mapped to `vm.metadata.sources` 's items on declared order
+        - `vm`
+      - Some built-in provided callbacks are:
         - `callbacks/sources/fetch.yaml`
           - use [ansible.builtin.get_url](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/get_url_module.html) module which supports HTTP, HTTPS, or FTP URLs
         - `callbacks/sources/unarchive.yml`
+          - extract the `.resource_name` file by using:
+            - `gzip` command on `.gz` or `.tar.gz` files
+            - `bunzip2` command on `.bz2` files
+            - [ansible.builtin.unarchive](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/unarchive_module.html) module otherwise.
         - `callbacks/sources/fetch_and_unarchive.yaml`
-          - extract if the `.asset_name` 's filename is different than the `.uri`'s filename
+          - call the unarchive callback if the `.asset_name` 's filename is different than the `.uri`'s filename
       - Other callbacks may be stored into _tasks_ or `hypervisor_lookup_dir_path` directories
-
+        - You can override the built-in callbacks as you want
+      - When all callbacks has been completed on a resource, then the implicit `callbacks/sources/install_to_libvirt.yaml` callback is going to be called and it assumes that the `source.asset_name` is ready inside the `vm.metadata.tmp_dir` and it will proced to install that asset into libvirt.
+    
 -  Other properties in the `vm` root, except for `vm.metadata`, can be customized or renamed if you are using a custom XML template for VM definitions.
    - For instance `vcpus` is a property that is used by the default template but the variable name can be changed if you are using a custom XML template and use the new reference name inside of it.
    - About the custom variables the important thing is that they must be defined in final `VM definition` but **it doesn't matter where the custom variable is defined** since both definitions are merged together and so they can be defined into the target or platform definitions.
