@@ -4,28 +4,38 @@ guest_provision
 This role provision VMs with custom VM lifecycle phases organized in phases. This role offer a revion-based cache for an **init** phase which may helpful to avoid long setup time.
 
 ### The VM Guest lifecycle
-The lifecycle of the provisioned VM runs the following phases:
+The lifecycle of the provisioned VM follows the following control flow:
 
-0. **Init** use case phase
-   1. Restore to '**init**' snapshot (if exists)
-   2. otherwise restore or create the '**clean**' snapshot
-      1. **dependencies** phase
-         - Run dependencies tasks (`{{ import_path }}/dependencies.yaml`)
-      2. use case phase: 
-         - Run init tasks `{{ import_path }}/init.yaml`
-         - Create 'init' snapshot
-1. **Main** use case phase: 
-   - Run main tasks `{{ import_path }}/main.yaml`
-2. **Terminate** use case phase: 
-   - Run end tasks `{{ import_path }}/terminate.yaml`
+- **Startup** phase
+  1. Start the VM on its hypervisor;
+  2. Wait until either timeout or VM is ready and reachable by using the specified connection method.
+- **Init** and **dependencies** phases: Cache control
+  1. if the "_init_" snapshot is available then restore it first;
+  2. otherwise if the "_clean_" snapshot is available then restore it;
+  3. otherwise create the "_clean_" snapshot.
+  4. if the "_init_" snapshot hasn't been restored, then:
+     1. Run **dependencies** use case tasks `{{ import_path }}/dependencies.yaml`
+     2. Run **init** use case tasks `{{ import_path }}/init.yaml`
+     3. Create "_init_" snapshot
+- **Main** phase:
+  1. Run **Main** use case tasks `{{ import_path }}/main.yaml`
+- **Terminate** phase: Always execute even if any of the previous phases failed or succeeded
+  1. Run **Terminate** use case tasks `{{ import_path }}/terminate.yaml`
+- **Shutdown** phase
+  - Try to shutdown VM gracefully or poweroff forcefully.
 
-Where `import_path` is a subpath that match with the most detailited phase file location, according to the target and platform type of the VM.
-The `import_path` is the one in the following priority list path which contains a phase file:
-- `"{{ ( phases_lookup_dir_path, vm.metadata.platform_name, vm.metadata.target_name| path_join }}"`
-- `"{{ ( phases_lookup_dir_path, vm.metadata.platform_name ) | path_join }}"`
-- `"{{ phases_lookup_dir_path }}"`
+Where:
 
-A use case may needs specific tasks/vars for a target on platform or only platform; for instance:
+- The real "_init_" snapshot name is `{{ project_id }}.{{ project_revision }}.init` 
+- `import_path` is a subpath that match with the most detailed phase file location, according to the target and platform type of the VM and that match with one of the following list path on this priority order which contains a phase file:
+
+    1. `"{{ ( phases_lookup_dir_path, vm.metadata.platform_name, vm.metadata.target_name| path_join }}"`
+    2. `"{{ ( phases_lookup_dir_path, vm.metadata.platform_name ) | path_join }}"`
+    3. `"{{ phases_lookup_dir_path }}"`
+
+Hint: The `import_path` is useful when some dependencies have different alias in some platform's packets manager, or user needs "ad hoc" tasks/vars for some others use cases.
+
+A use case of `import_path` may needs specific tasks/vars for a target on platform or only platform; for instance you can use the following directory tree:
 
 - *debian_11* folder (`vm.metadata.platform_name` value in `platforms/debian_sid.yml`)
   - *amd64* folder (`vm.metadata.target_namevalue )
@@ -38,7 +48,9 @@ A use case may needs specific tasks/vars for a target on platform or only platfo
     - tasks or vars files, ... specific *fedora_36* platforms but any target
 - tasks or vars files, ... generic for any platform and target which file does not exists with a specific `import_path` sub path
 
-The `import_path` is useful when some dependencies have different alias in some platform's packets manager, or user needs "ad hoc" tasks/vars for some others use cases.
+Note: All use case phase file like `dependencies.yaml`, `init.yaml`, `main.yaml` and `terminate.yaml` are optional, however a generic use case file as fallback is recommended.
+
+Warning: You should manually change the `project_revision` variable value every time you want to use a different init or dependencies phase file because otherwise their tasks won't execute since the init phase would always be restored.
 
 Requirements
 ------------
@@ -54,7 +66,7 @@ Requirements
     - optional but required to use password on ssh on vm connections
     - otherwise use [ansible vault](https://docs.ansible.com/ansible/2.8/user_guide/vault.html)
   - `libvirt-clients`
-    - required by `guest_provision` role to handle snapshots using virsh
+    - required by `guest_provision` role to handle snapshots using `virsh`
 
 Role Variables
 --------------
@@ -90,14 +102,14 @@ Role Variables
 - `allowed_phases`: ( defaults: all sub-phases ):
   - A list of (sub) phases of the lifecycle that are allowed to run, the unspecified phases are skipped. The values must be any subset of the following (unordered) list:
     - `startup`: will start the VM
-    - `restore init`: will restore the init snapshot if possibile
-    - `create init`: will creare the init snapshot if possibile
-    - `restore clean`: will restore the clean snapshot if possibile
-    - `create clean`: will create the clean snapshot if possibile
-    - `dependencies`: will run the **dependencies** phase if possibile
-    - `init`: will run the **init** phase if possibile
-    - `main`: will run the **main** phase if possibile
-    - `terminate`: will run the **terminate** phase if possibile
+    - `restore init`: will restore the init snapshot if possible
+    - `create init`: will creare the init snapshot if possible
+    - `restore clean`: will restore the clean snapshot if possible
+    - `create clean`: will create the clean snapshot if possible
+    - `dependencies`: will run the **dependencies** phase if possible
+    - `init`: will run the **init** phase if possible
+    - `main`: will run the **main** phase if possible
+    - `terminate`: will run the **terminate** phase if possible
     - `shutdown` will shutdown the VM
 
 Dependencies
