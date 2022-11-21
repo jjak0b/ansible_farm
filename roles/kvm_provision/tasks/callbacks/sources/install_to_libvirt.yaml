@@ -26,7 +26,7 @@
       register: installed_asset_stat_result
 
     - name: Moving asset
-      when: not( installed_asset_stat_result.stat.exists )
+      when: local_asset_stat_result.stat.exists or not( installed_asset_stat_result.stat.exists )
       block:
 
         - assert:
