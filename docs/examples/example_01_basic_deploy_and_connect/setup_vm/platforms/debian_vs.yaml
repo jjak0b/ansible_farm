@@ -42,7 +42,7 @@
               src: *image_file_name
           net:
             type: user
-            source: "hostfwd=tcp:127.0.0.1:8022-:22"
+            source: "hostfwd=tcp:127.0.0.1:2201-:22"
             mac: "{{ '52:54:00' | random_mac( seed = vm_name ) }}"
             # note: user networking is associated to hypervisor's ip
             ip: "{{ ansible_host }}"

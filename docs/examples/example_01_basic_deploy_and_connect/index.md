@@ -102,7 +102,7 @@ Let's define the platform [ debian_vs ](setup_vm/platforms/debian_vs.yaml)  whic
               src: *image_file_name
           net:
             type: user
-            source: "hostfwd=tcp:127.0.0.1:8022-:22"
+            source: "hostfwd=tcp:127.0.0.1:2201-:22"
             mac: "{{ '52:54:00' | random_mac( seed = vm_name ) }}"
             # note: user networking is associated to hypervisor's ip
             ip: "{{ ansible_host }}"
@@ -157,12 +157,12 @@ Note: Since we haven't defined a `vm.metadata.template`, then the `defaults/temp
 Connect to VM and VM provisioning
 ---------------------------------
 
-The VM is using the user network and we defined a way to connect to it by using the `hostfwd` qemu's interface option. The property `vm.net.source: "hostfwd=tcp:127.0.0.1:8022-:22"` specify that the port 8022 port of the hypervisor's localhost is forwarded to the port 22 of the VM.
+The VM is using the user network and we defined a way to connect to it by using the `hostfwd` qemu's interface option. The property `vm.net.source: "hostfwd=tcp:127.0.0.1:2201-:22"` specify that the port 2201 port of the hypervisor's localhost is forwarded to the port 22 of the VM.
 
 If we turn on the VM by using a frontend like `virt-manager` or `virsh` then we are able to reach the VM through SSH with: 
 
 ```
-ssh user@localhost -p 8022 
+ssh user@localhost -p 2201 
 ```
 
 But in ansible we need to define the connection info required by ssh to connect to the VM, and we are going to do this by defining them as ansible inventory host variables.
@@ -176,7 +176,7 @@ If we chose `ssh` plugin, then they are the following:
 ```
 ansible_connection: ssh
 ansible_host: localhost
-ansible_port: 8022
+ansible_port: 2201
 ansible_user: ...
 ansible_password: ...
 ansible_become_user: ...
@@ -193,7 +193,7 @@ And when the playbook will attempt to connect and perform some tasks on the VM t
 
 Note: If you use the user network interface on the VM then you should set:
 - The hypervisor's IP/hostname as `ansible_host`
-- The hypervisor's forwarded port as `ansible_port` ( `8022` in this example and the default one used by this collection if not overrided ) specified in the the `hostfwd` qemu's option.
+- The hypervisor's forwarded port as `ansible_port` ( `2201` in this example and the default one used by this collection if not overrided ) specified in the the `hostfwd` qemu's option.
 
 Let's define these connection info inside the [hosts.yaml](hosts.yaml) inventory, by adding it for platform and target. It should looks like this:
 
@@ -211,7 +211,7 @@ all:
       vars:
         ansible_connection: ssh
         ansible_host: localhost
-        ansible_port: 8022
+        ansible_port: 2201
         ansible_user: user
         ansible_password: virtualsquare
         ansible_become_user: root
