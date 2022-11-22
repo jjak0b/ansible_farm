@@ -1,0 +1,46 @@
+---
+
+- name: Defining platform with usermode networking
+  vars:
+    type: basic
+    version: "20221115.102717"
+    vm_name: "VM {{ vm.metadata.platform_name }}_{{ vm.metadata.target_name }}"
+  block:
+    - name: Define platform definition
+      vars:
+        uri_base: "https://geo.mirror.pkgbuild.com/images/v{{ version }}"
+        image_name: "Arch-Linux-{{ vm.arch }}-{{ type }}.qcow2"
+      set_fact:
+        vm:
+          # metadata properties are used inside a task for installation and setup purposes
+          metadata:
+            hostname: archlinux
+            auth:
+              become_method: sudo
+              user: arch
+              password: arch
+            callbacks:
+              sources:
+                - before_provision:
+                  - callbacks/sources/fetch_if_cache_miss.yaml
+                  - callbacks/sources/ensure_asset_backup.yaml
+                  # - callbacks/sources/setup_sshd.yaml
+            sources:
+            - uri: "{{ uri_base }}/{{ image_name }}"
+              resource_name: "{{ image_name }}"
+              checksum_uri: "{{ uri_base }}/{{ image_name }}.SHA256"
+              checksum_type: "sha256"
+              checksum_value: "fe4c1ca0d8b0a782f96e535c270e4fa14524161f53b122017549df6b3f49d623"
+              asset_name: &image_file_name "{{ image_name }}"
+
+          vcpus: 2
+          ram: 2048
+          disks:
+          - type: "qcow2"
+            devname: "hda"
+            src: *image_file_name
+          net:
+            type: user
+            source: "hostfwd=tcp:127.0.0.1:2202-:22"
+            mac: "{{ '52:54:00' | random_mac( seed = vm_name ) }}"
+

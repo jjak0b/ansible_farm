@@ -1,0 +1,7 @@
+all:
+  children:
+    hypervisors:
+      hosts:
+        local_hypervisor:
+          ansible_connection: local
+          ansible_host: localhost

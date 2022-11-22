@@ -1,0 +1,3 @@
+- name: A main phase task
+  debug:
+    msg:  "Run something"

@@ -1,0 +1,26 @@
+---
+
+- import_tasks: ../common-tasks/gather_sysinfo.yaml
+
+- block:
+
+    - include_tasks: ../common-tasks/sync-clock.yaml
+
+    - name: Make sure the system is up to date.
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+        state: latest
+        upgrade: yes
+
+    - include_vars:
+        file: dependencies_list.yml
+      
+    - name: Install dependencies.
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+        name: "{{ dependencies }}"
+        state: present
+
+  become: yes

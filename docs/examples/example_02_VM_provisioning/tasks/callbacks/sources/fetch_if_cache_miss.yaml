@@ -1,0 +1,37 @@
+- name: Check cache resource
+  stat:
+    path: "{{ (vm.metadata.tmp_dir, source.resource_name) | path_join }}"
+    get_checksum: false
+  register: resource_cache_stat
+
+- name: Check installed img
+  stat:
+    path: "{{ (vm.metadata.libvirt_pool_dir, source.asset_name) | path_join }}"
+    get_checksum: false
+  register: resource_asset_stat
+
+- name: Checking if should fetch
+  vars:
+    isValidURL: "{{ source.uri is defined and source.uri is match( '((http|https|ftp):\/\/).*' ) }}"
+    shouldUpdateImg: "{{ not ( resource_asset_stat.stat.exists ) and
+      ( (force is defined and force) or not ( resource_cache_stat.stat.exists ) ) }}"
+  block:
+  
+    - name: Fetch URI
+      when: shouldUpdateImg
+      block:
+      - name: Check image uri
+        uri:
+          url: "{{ source.uri }}"
+          method: HEAD
+        register: resource_http_stat
+        check_mode: false
+        when: isValidURL
+        
+      - name: "Update image {{ source.resource_name }}"
+        get_url:
+          url: "{{ source.uri }}"
+          dest: "{{ (vm.metadata.tmp_dir, source.resource_name) | path_join }}"
+          timeout: 20
+        when: isValidURL
+        register: fetch_resource_result
