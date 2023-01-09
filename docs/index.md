@@ -129,3 +129,4 @@ Dependencies
 ------------
 
 - [community.libvirt](https://galaxy.ansible.com/community/libvirt)
+- [ansible.utils](https://galaxy.ansible.com/ansible/utils)

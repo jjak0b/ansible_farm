@@ -36,6 +36,7 @@ Dependencies
 
 - `libvirt_network` role
   - used to define networks and add DHCP entries
+- [ansible.utils](https://galaxy.ansible.com/ansible/utils)
 
 Example Playbook
 ----------------

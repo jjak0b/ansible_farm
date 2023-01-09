@@ -69,7 +69,7 @@ Note: See `defaults/main` default values for all optional vars
 Dependencies
 ------------
 
-None
+- [ansible.utils](https://galaxy.ansible.com/ansible/utils)
 
 Example Playbook
 ----------------
