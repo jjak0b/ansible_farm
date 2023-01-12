@@ -1,12 +1,53 @@
 # params:
 # - vm: VM definition object 
-# - force: boolean if true will force to override the vm resources, otherwise will use cached resources if available. xml is updated on both cases
+# - should_replace_vm: boolean if true will force to override the vm resources, otherwise will use cached resources if available. xml is updated on both cases
 ---
+
+- name: Init vars
+  set_fact:
+    should_replace_vm: "{{ should_replace_vm | default( false, true ) }}"
 
 - name: "VM Main lifecycle: {{ vm.metadata.name }}"
   debug:
     var: vm
 
+- assert:
+    fail_msg: VM definition has not been provided
+    that:
+      - vm is defined
+    quiet: true
+
+- assert:
+    fail_msg: Bad format - Some required properties are missing in VM definition
+    that:
+      - vm.metadata is defined
+      - vm.metadata.name is defined
+      - vm.metadata.connection is defined
+      - vm.metadata.sources is defined and vm.metadata.sources | length > 0
+    quiet: true
+
+- assert:
+    fail_msg: Bad format - You need to provide both the temp working directory used also as cache and the installation directory
+    that:
+      - vm.metadata.tmp_dir is defined
+      - vm.metadata.libvirt_pool_dir is defined
+    quiet: true
+
+- name: Verify existing vms
+  community.libvirt.virt:
+    command: list_vms
+    uri: "{{ vm.metadata.connection }}"
+  register: all_vms
+
+- name: Remove existing vm
+  when: should_replace_vm and vm.metadata.name in all_vms.list_vms
+  community.libvirt.virt:
+    command: undefine
+    name: "{{ vm.metadata.name }}"
+    uri: "{{ vm.metadata.connection }}"
+
 - name: Install VM
   include_tasks: install/install_vm.yml
+  when: should_replace_vm or ( (not should_replace_vm) and not( vm.metadata.name in all_vms.list_vms ) )
+
   

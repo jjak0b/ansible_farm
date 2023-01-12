@@ -1,8 +1,10 @@
+# task.src: source file to unarchive
+---
 # unarchive task
 
 - name: prepraring unarchive
   vars:
-    src_path: "{{ (vm.metadata.tmp_dir, source.resource_name) | path_join }}"
+    src_path: "{{ (vm.metadata.tmp_dir, task.src) | path_join }}"
     dest_path: "{{ vm.metadata.tmp_dir }}"
   block:
 
@@ -10,7 +12,7 @@
       set_fact:
         hasBeenUnarchived: false
         unarchive_result: null 
-    
+
     - name: unarchive resource
       vars:
         unarchive_cases: 
@@ -23,12 +25,13 @@
             pattern: "(?!\\.tar)\\.bz2$"
             cmd: "bunzip2 -kf {{ src_path }}"
       block:
-        - name: "Un-archive with '{{ case.name }}'"
+
+        - name: Un-archive with supported option
           loop: "{{ unarchive_cases }}"
 
           shell: "{{ case.cmd }}"
           when: 
-            - source.resource_name is regex( case.pattern )
+            - task.src is regex( case.pattern )
           register: unarchive_result
 
           loop_control:

@@ -31,7 +31,7 @@ vm:
     name: The VM name domain identifier 
     hostname: The VM guest hostname
     connection: The libvirt uri like "qemu:///system" or"qemu:///session"  
-    libvirt_pool_dir: path to the directory where to store VM images
+    libvirt_pool_dir: path to the directory where to store VM images (a libvirt pool)
     # auth credentials to auth as user or become_user (root/admin) into this platform
     auth:
       user: "user name"
@@ -40,18 +40,18 @@ vm:
       become_password: The root / admin password
       # see https://docs.ansible.com/ansible/latest/user_guide/become.html 
       become_method: command used to perform the privilage escalation like "su" 
-      
+    tmp_dir: path to the directory where you want to cache assets and process them before installation
     # assets to be downloaded and processed, required for VM install 
-    sources: List of resources
-    - uri: Any URI relative to any file like images, archives, etc ... that need to be fetched
-      checksum_type: Checksum algorithm alias name (like 'sha1') used for the checksum of the uri's resource
-      checksum_uri: Any URI relative to any file that contains the value of the checksum associated to the uri's filename
-      checksum_value: The checksum string value of the resource used as fallack if checksum_uri is not defined
-      asset_name: The relative path to the working directory of the resource that should be installed into the 'libvirt_pool_dir'. If it's different than the uri's filename then it's considered as the extracted resource from the uri's file
-    callbacks: Categories of supported callbacks 
-      sources: List of callbacks object which will be applied on each resource item. Each callback object has its own callbacks alias types related with their tasks
-      - before_provision: List of tasks file. These will run in sequence to perform a preprocessing of the resource like: download, unarchive, customize/convert image, etc ...
-    cleanup_tmp: boolean indicating if the uri's resource should be deleted
+    sources: List of resources to be processed and installed
+    - before_provision: List of callback-task. These will run in sequence to perform a preprocessing of the resource like: download, unarchive, customize/convert image, 
+      - callback: a callback to use to process a resource
+        callback arguments ...
+      - ...
+      on_provision:
+        callback: (optional) The callback to use to install a resource
+        src: source filename where to get the resource
+        dest: final reource filename
+    ...
 
   net:
     type: libvirt network type ('user' or 'network' or 'bridge' or 'vde')
@@ -89,8 +89,8 @@ The `VM definition` object is used as variable parameter of the following roles 
 
 - `kvm_provision` role :
   - Each i-th item of `vm.metadata.sources` :
-    - is processed by the specified callback types of the i-th entry of `vm.metadata.callbacks.sources`
-    - is processed by the `callbacks/sources/install_to_libvirt.yaml` to setup the resource to allow libvirt to access it.
+    - is processed before in sequence by all available `callback-tasks` specified in the `vm.metadata.sources[ i ].before_provision` list.
+    - is processed after by the `callback-task` specified in `vm.metadata.sources[ i ].on_provision` to install the resource.
   -  will render the template defined by the `vm.metadata.template` file (otherwise the default one) by using the `VM definition` object accessible on its scope.
   -  will define the VM into the specified libvirt session from the rendered template.
 

@@ -1,22 +1,3 @@
 
-- name: Init resource vars
-  set_fact:
-    resource_callbacks_before: >
-      {{ vm.metadata.callbacks is defined and vm.metadata.callbacks.sources is defined and ( vm.metadata.callbacks.sources | length > source_index )
-      | ternary( vm.metadata.callbacks.sources[ source_index ].before_provision, [] ) | default( [], true ) | list }}
-
-  # The included callback can access to the following documented facts:
-  # - vm: the vm definition
-  # - source : the resource item  of vm.metadata.sources list
-  # - source_index : the resource item's index  
-- name: Run callback before provision
-  loop: "{{ resource_callbacks_before }}"
-
-  include_tasks: run_callbacks.yaml
-
-  loop_control:
-    loop_var: callback_task_file
-
 - name: Install resource in libvirt
   import_tasks: callbacks/sources/install_to_libvirt.yaml
-

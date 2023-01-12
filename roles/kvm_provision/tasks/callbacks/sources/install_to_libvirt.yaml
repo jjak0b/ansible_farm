@@ -1,8 +1,7 @@
 - name: Moving asset to libvirt pool
   vars:
-    resource_path: "{{ (vm.metadata.tmp_dir, source.resource_name) | path_join }}"
-    src_path: "{{ (vm.metadata.tmp_dir, source.asset_name) | path_join }}"
-    dest_path: "{{ (vm.metadata.libvirt_pool_dir, source.asset_name) | path_join }}"
+    src_path: "{{ (vm.metadata.tmp_dir, task.src) | path_join }}"
+    dest_path: "{{ (vm.metadata.libvirt_pool_dir, task.dest) | path_join }}"
   block:
 
     - name: Ensure libvirt pool directory exists and own to <hypervisor_group> / libvirt-qemu
@@ -35,7 +34,7 @@
             msg: "Required Asset resource '{{ src_path | basename }}' doesn't exist in {{ src_path | dirname }}"
             quiet: true
 
-        - name: "Move {{ source.asset_name }} to libvirt pool directory"
+        - name: "Move {{ src_path | basename }} to libvirt pool directory"
           shell: "mv {{ src_path | quote }} {{ dest_path | quote }}"
 
     - name: "Ensure image is at install path and accessible by <hypervisor_group>"
@@ -44,10 +43,5 @@
         owner: "{{ ansible_env.USER }}"
         group: "{{ hypervisor_group }}"
         mode: u+rwx,g+rwx,o+rx
-    
-    - name: Ensure temporary files are deleted
-      file:
-        path: "{{ resource_path }}"
-        state: absent
-      when: vm.metadata.cleanup_tmp | bool
+
 #   become: True
