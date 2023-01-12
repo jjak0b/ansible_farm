@@ -82,18 +82,17 @@ Let's define the platform [ debian_vs ](setup_vm/platforms/debian_vs.yaml)  whic
               user: "user"
               password: *root_pass
             sources:
-              - uri: "{{ uri_base }}/{{ image_name }}.bz2"
-                resource_name: "{{ image_name }}.bz2"
-                checksum_uri: "{{ uri_base }}/{{ image_name }}.sha1sum"
-                checksum_type: "sha1"
-                # fallback checksum value
-                checksum_value: "53cc5c9645121f20018fb8934e1e16178e2ae373"
-                # image name asset_name / processed
-                asset_name: &image_file_name "{{ image_name }}"
-            callbacks:
-              sources:
-                - before_provision:
-                  - callbacks/sources/fetch_and_unarchive.yaml
+              - before_provision:
+                  - callback: callbacks/sources/fetch.yaml
+                    src: "{{ uri_base }}/{{ image_name }}.bz2"
+                    dest: &archive "{{ image_name }}.bz2"
+                  - callback: callbacks/sources/unarchive.yml
+                    src: *archive
+                    dest: "./"
+                on_provision:
+                  callback: callbacks/sources/install_to_libvirt.yaml
+                  src: "{{ image_name }}"
+                  dest: &image_file_name "{{ vm.metadata.platform_name }}_{{ image_name }}"
           vcpus: 2
           ram: 2048
           disks:
@@ -111,7 +110,7 @@ Let's define the platform [ debian_vs ](setup_vm/platforms/debian_vs.yaml)  whic
 
 if you want to apply some common properties to all VM definitions you can define a (incomplete) `vm` fact into `defaults/platforms/defaults.yaml`: this will run just before each platform definition. If you aren't going to define it, the `parse_vms_definitions` role will use the one defined in its defaults.
 
-Note: The `vm.metadata.callbacks.sources` entries are associated respectively to the `vm.metadata.sources` items. The `fetch_and_unarchive.yaml` is an utility callback to preprocess ( download, and unarchive if required ) the relative resource on install time.
+Note: The `... fetch.yaml` and `... unarchive.yml` are utility callback-tasks to preprocess ( download, and unarchive ) the relative resource before install into the libvirt pool directory.
 
 ### Define a playbook: Deploy the VM into hypervisor
 

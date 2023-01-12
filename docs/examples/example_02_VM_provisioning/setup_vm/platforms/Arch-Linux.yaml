@@ -19,19 +19,19 @@
               become_method: sudo
               user: arch
               password: arch
-            callbacks:
-              sources:
-                - before_provision:
-                  - callbacks/sources/fetch_if_cache_miss.yaml
-                  - callbacks/sources/ensure_asset_backup.yaml
-                  # - callbacks/sources/setup_sshd.yaml
             sources:
-            - uri: "{{ uri_base }}/{{ image_name }}"
-              resource_name: "{{ image_name }}"
-              checksum_uri: "{{ uri_base }}/{{ image_name }}.SHA256"
-              checksum_type: "sha256"
-              checksum_value: "fe4c1ca0d8b0a782f96e535c270e4fa14524161f53b122017549df6b3f49d623"
-              asset_name: &image_file_name "{{ image_name }}"
+              - before_provision:
+                  - callback: callbacks/sources/fetch.yaml
+                    src: "{{ uri_base }}/{{ image_name }}"
+                    dest: &image_file_name "{{ image_name }}"
+                  - callback: callbacks/sources/copy.yaml
+                    src: *image_file_name
+                    dest: &working_img "tmp-{{ image_name }}"
+                  - callbacks: callbacks/sources/setup_sshd.yaml
+                    src: *working_img
+                on_provision:
+                  src: *working_img
+                  dest: *image_file_name
 
           vcpus: 2
           ram: 2048

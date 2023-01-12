@@ -41,7 +41,6 @@
             auth:
               user: root
               become_user: root
-            cleanup_tmp: yes
             callbacks:
               sources:
                 - before_provision:
