@@ -1,0 +1,6 @@
+- name: A terminate phase task
+  debug:
+    msg:  "terminate something carefully"
+
+# TODO: Terminate all active VMs
+

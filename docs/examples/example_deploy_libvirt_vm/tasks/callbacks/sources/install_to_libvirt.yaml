@@ -1,0 +1,41 @@
+
+- name: Copying asset to libvirt pool
+  vars:
+    src_path: "{{ (vm.metadata.tmp_dir, task.src) | path_join }}"
+    dest_path: "{{ (vm.metadata.libvirt_pool_dir, task.dest) | path_join }}"
+  block:
+
+    - name: "Setup storage location"
+      vars:
+        libvirt_host_pools:
+          - name: default
+            type: dir
+            capacity: 5368709120
+            path: "{{ vm.metadata.libvirt_pool_dir }}"
+            mode: 755
+            owner: "{{ ansible_user }}"
+            group: "{{ ansible_user }}"
+        libvirt_host_uri: "{{ vm.metadata.connection }}"
+      import_role: 
+        name: stackhpc.libvirt-host
+        tasks_from: pools
+
+    - name: Check current asset location
+      stat:
+        path: "{{ src_path }}"
+        get_checksum: false
+      register: local_asset_stat_result
+    
+    - assert:
+        that:
+          - local_asset_stat_result.stat.exists
+        fail_msg: "Required Asset resource '{{ src_path | basename }}' doesn't exist in {{ src_path | dirname }}"
+        quiet: true
+
+    - name: "Copy {{ source.asset_name }} to libvirt pool directory"
+      copy:
+        remote_src: yes
+        src: "{{ src_path }}"
+        dest: "{{ dest_path }}"
+    
+#   become: True

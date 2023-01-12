@@ -1,0 +1,14 @@
+dependencies:
+- python3
+- python3-libvirt
+- python3-lxml
+- zstd
+- unzip
+# optional
+- gzip 
+# optional
+- bzip2 
+- libvirt-daemon-system
+- libvirt-clients 
+# "{{ vm.emulator | basename }}"
+- qemu-system  
