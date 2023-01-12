@@ -12,4 +12,16 @@ all:
               - "amd64"
             platforms:
               - "vm-as-hypervisor"
+    vm-as-hypervisor:
+      hosts:
+        VM vm-as-hypervisor_amd64:
+      vars:
+        config:
+          permutations:
+            targets:
+              - "amd64"
+            platforms:
+              - "debian_vs"
+    
+
 

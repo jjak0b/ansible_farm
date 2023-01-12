@@ -28,10 +28,7 @@
           setup:
             gather_subset: 
             - '!all, user'
-          
-        - debug:
-            msg: "After: {{ ansible_user }}, {{ ansible_password }}, {{ ansible_become_user }}, {{ ansible_become_password }}"
-        
+
         - name: "start KVM Provision role for '{{ vm.metadata.name }}'"
           include_role: 
             name: kvm_provision

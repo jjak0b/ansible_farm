@@ -1,0 +1,7 @@
+
+# Note: This require to setup first a connection method like a ssh host jump to comunicato to the VM created by this host
+- name: Add this host as hypervisor
+  add_host:
+    groups:
+      - hypervisors
+
