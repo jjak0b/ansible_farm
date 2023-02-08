@@ -1,0 +1,18 @@
+# This playbook can use all variables from parse_vms_definitions and init_vm_connection roles defined on each hypervisor's specific inventory
+---
+
+- name: Init VM on Hypervisor
+  hosts: hypervisors
+  gather_facts: yes
+  roles:
+    - parse_vms_definitions
+  tasks:  
+
+    - name: init VM connection
+      loop: "{{ virtual_machines }}"
+
+      include_role:
+        name: init_vm_connection
+      
+      loop_control:
+        loop_var: vm
