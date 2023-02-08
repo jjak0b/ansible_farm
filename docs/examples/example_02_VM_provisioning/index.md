@@ -16,9 +16,44 @@ Prerequisite
 - [kvm_provision](../../roles/kvm_provision.md#Requirements ) role requirements
 - [guest_provision](../../roles/guest_provision.md#Requirements ) role requirements
 
+Define the inventory
+--------------------
+
+Let's define the ansible inventory by declaring a [VM configuration](../../objects/vm_configuration.md) that each hypervisor must manage with the VMs we need.
+
+```
+all:
+  children:
+    hypervisors:
+      hosts:
+        local_hypervisor:
+          ansible_connection: local
+          ansible_host: localhost
+        vars:
+          config:
+            permutations:
+              targets:
+                - "amd64"
+              platforms:
+                - "debian_vs"
+                - "Arch-Linux"
+    vms:
+      vars:
+        allowed_phases:
+          - startup
+          - restore init
+          - create init
+          - restore clean
+          - create clean
+          - dependencies
+          - init
+          - main
+          - terminate
+          - shutdown
+```
+
 Define the main playbook
 ------------------------
-
 
 Let's define the playbook [main.yaml](main.yaml) in different way than the [example_01](../example_01_basic_deploy_and_connect/index.md) such that if a VM host fail on any of hypervisor or guest provisioning phases, then it won't affects the provisioning of others VMs.
 
@@ -30,15 +65,6 @@ The following code allow to parse, generate the VM definitions and setup their c
 - name: Init VM on Hypervisor
   hosts: hypervisors
   gather_facts: yes
-  vars:
-    config:
-      permutations:
-        targets:
-          - "amd64"
-        platforms:
-          - "debian_vs"
-          - "Arch-Linux"
-
   roles:
     - parse_vms_definitions
   
@@ -177,6 +203,15 @@ Now Let's suppose we want to define the **init**, **main**, and **terminate** ph
 
 Hint: If a phase task file for a specific platform doesn't exists we could provide a default `provisioning_phases/dependencies.yaml` as fallback since will be considered the most specific phase task file. However we won't use it in this example.
 
+### Allow specific provisioning phases on VM
+
+When we started this example we defined the `allowed_phases` variable in to inventory. That variable specify to the `guest_provision` role which (sub-)phases of the set should run. The order is not important since is considered as an unordered list. (Read `guest_provision` docs more details)
+
+Hint: in this example we specified all the available phases but in some use cases ( for example testing while programming "on the fly"  ) may be very useful specify only a subset to save time.
+
+Warning: Think to which possible consequences may happen (like missing snapshot restores) when you specify only a subset of them.
+
+
 What happens ?
 -----------------
 
@@ -187,8 +222,10 @@ If we run the `main.yaml` playbook, then for each VM definition:
 
 Note: Since the playbook has the `serial: 1` parameter set, then each VM will be processed on serial. If you want to process them on parallel then you need to remove that parameter.
 
+Hint: The playbook of this example is almost identical to the `playbooks/main.yaml` of this collection so you can directly replace the `main.yaml` playbook content of this example with ``` - import_playbook: jjak0b.deploy_farm.main ``` if you installed the collection or use a symbolic link.
+
 Let's focus on the provisioning lifecycle: all phases will execute in sequence.
-The init phase should include all tasks of dependencies and init tasks that will install anything on the guest system and since the downloads and setup of dependencies may require a lot of time and resources, then it's often helful if it may cache that content and skip directly to the init phase. For such reason the `guest_provision` role will restore the image to the safest available snapshot:
+The init phase should include all tasks of dependencies and init tasks that will install anything on the guest system and since the downloads and setup of dependencies may require a lot of time and resources, then it's often helful if it may cache that content and skip directly to the init phase. For such reason the `guest_provision` role will restore the image to the safest available snapshot 
 
 1. if an "init" snapshot is available then will restore it first;
 2. otherwise if a "clean" snapshot is available then will restore it;
