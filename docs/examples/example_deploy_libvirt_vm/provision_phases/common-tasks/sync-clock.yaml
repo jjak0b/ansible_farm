@@ -1,6 +1,0 @@
-- name: >
-    Make sure system clock is in sync with hardware clock
-    to prevent time mismmatch caused by snapshot restores
-
-  shell:
-    cmd: /usr/sbin/hwclock --hctosys
