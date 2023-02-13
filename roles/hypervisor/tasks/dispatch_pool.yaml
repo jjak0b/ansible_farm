@@ -1,0 +1,33 @@
+# parameters:
+# - primary_domain: The libvirt domain/virtualization type that the hypervisors mush have support of
+# - fallback_domain: The libvirt domain/virtualization type that the hypervisors mush have support of if other isn't defined
+---
+- name: "Query a list of hypervisor' names that support {{ primary_domain }} on {{ arch }}"
+  set_fact: 
+    next_turn: 0
+    queue_turn: 0
+    can_manage_candidates: []
+    queue: "{{ hypervisors_virttypes | dict2items | json_query( query ) }}" 
+  vars:
+    hypervisors_virttypes: "{{ dict( groups[ 'hypervisors' ] | zip( groups[ 'hypervisors' ] | map('extract', hostvars ) | map( attribute='libvirt_supported_virtualization_types', default={ arch: [] } ) ) ) }}"
+    query: "[?value.{{ arch }}[?contains(@, '{{ primary_domain }}' )] ].key"
+  
+  # if it's an host turn then add the item on its candidates, otherwise keep same list
+- name: "Distribute configurations over hypervisors"
+  loop: "{{ pool }}"
+  loop_control:
+    label: "{{ item }} {{ is_my_turn | ternary('assigned', 'not assigned on turn ' + (queue_turn | string ) ) }}"  
+  vars:
+    queue_turn: "{{ next_turn }}"
+    is_my_turn: "{{ queue[ next_turn | int ] == inventory_hostname }}"
+  set_fact:
+    can_manage_candidates: "{{ is_my_turn | ternary( can_manage_candidates + [ item ], can_manage_candidates ) }}"
+    next_turn: "{{ (queue_turn | int + 1) % ( queue | length ) }}"
+  when: is_my_turn
+
+- name: Assign candidates to hypervisors's VM configuration
+  set_fact:
+    config: "{{ (config | default( { 'list': [] } )) | combine( { 'list': can_manage_candidates }, list_merge='append' ) }}"
+
+- debug: 
+    var: config

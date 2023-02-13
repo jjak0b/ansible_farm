@@ -1,0 +1,15 @@
+- name: Init portion of VM definition
+  set_fact:
+    default_vm_vars:
+      metadata:
+        target_name: "{{ target }}"
+
+- name: "Load the portion of VM definition of the target '{{ target }}'"
+  include_role:
+    name: parse_vms_definitions
+    tasks_from: init/load_target
+
+- name: "Add configuration item to architecture's pool"
+  set_fact:
+    configurations_pools: "{{ (configurations_pools | default({})) | combine( { vm.arch: [ configuration ] }, list_merge='append') }}"
+
