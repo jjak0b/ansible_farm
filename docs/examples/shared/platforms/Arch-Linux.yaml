@@ -3,7 +3,7 @@
 - name: Defining platform with usermode networking
   vars:
     type: basic
-    version: "20221115.102717"
+    version: "20230301.130409"
     vm_name: "VM {{ vm.metadata.platform_name }}_{{ vm.metadata.target_name }}"
   block:
     - name: Define platform definition
