@@ -17,7 +17,8 @@
 
 - name: Merge VM definition with defaults
   set_fact:
-    platform_vars: "{{ target_vars | combine (vm, recursive=True) }}"
+    platform_vars: &pvars "{{ target_vars | combine (vm, recursive=True) }}"
+    vm: *pvars
 
 - name: "include platform tasks of '{{ platform }}'"
   loop: "{{ lookup('first_found', params, errors='ignore', wantlist=True) }}"
@@ -36,7 +37,6 @@
       - "{{ ( parse_lookup_dir_path, 'platforms' ) | path_join }}"
       - defaults/platforms
       skip: True
-    vm: "{{ platform_vars }}"    
 
 - name: Merge VM configuration for target and platform
   set_fact:
