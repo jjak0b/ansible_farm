@@ -1,0 +1,36 @@
+
+# ip addr add 10.0.0.21/24 dev eth0
+# ip link set eth0 up
+
+- name: preparing Image
+  vars:
+    src_path: "{{ (vm.metadata.tmp_dir, task.src) | path_join }}"
+    dest_path: "{{ vm.metadata.tmp_dir }}"
+    net_config_location: "{{ (vm.metadata.tmp_dir, ) | path_join }}"
+    gateway: "10.0.0.254"
+  block:
+
+    - name: Setup Image interface
+      shell:
+        cmd: >
+          virt-sysprep -a '{{ src_path }}'
+          --hostname '{{ vm.metadata.hostname | quote }}'
+          --root-password password:{{ vm.metadata.auth.become_password }}
+          --run-command "mkdir -p /etc/network/interfaces.d/"
+          --run-command "echo {{ default_content | quote }} >> /etc/network/interfaces"
+          --run-command "chmod +x /etc/network/interfaces"
+          --run-command "echo {{ new_content | quote }} >> /etc/network/interfaces.d/eth0"
+          --run-command "chmod +x /etc/network/interfaces.d/eth0"
+      # reason for this: https://bugs.launchpad.net/ubuntu/+source/linux/+bug/759725
+      become: "{{ ansible_distribution == 'Ubuntu' }}"
+      vars:
+        new_content: "{{ lookup('template', ( 'network_setup', vm.metadata.platform_name, 'eth0.j2' ) | path_join ) }}"
+        default_content: |
+          source /etc/network/interfaces.d/*
+          # The loopback network interface
+          auto lo
+          iface lo inet loopback
+
+
+
+

@@ -1,0 +1,17 @@
+all:
+  children:
+    hypervisors:
+      hosts:
+        local_hypervisor:
+          ansible_connection: local
+          ansible_host: localhost
+      vars:
+        config:
+          permutations:
+            targets:
+              - "amd64"
+            platforms:
+              - "debian_vs_vde"
+  vars:
+    vde_network: vxvde://234.0.0.1
+

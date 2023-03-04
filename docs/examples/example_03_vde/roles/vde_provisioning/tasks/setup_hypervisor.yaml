@@ -1,0 +1,9 @@
+- name: Change network to VDE
+  vars:
+    vm_changed_net:
+      net:
+        type: vde
+        source: "vxvde://234.0.0.1"
+        ip: "{{ ansible_host }}"
+  set_fact:
+    vm: "{{ vm | combine( vm_changed_net, recursive=true ) }}"

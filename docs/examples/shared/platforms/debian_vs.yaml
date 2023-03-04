@@ -22,16 +22,16 @@
               user: "user"
               password: *root_pass
             sources:
-              - before_provision:
-                  - callback: callbacks/sources/fetch.yaml
-                    src: "{{ uri_base }}/{{ image_name }}.bz2"
-                    dest: &archive "{{ image_name }}.bz2"
-                  - callback: callbacks/sources/unarchive.yml
-                    src: *archive
-                    dest: "./"
-                on_provision:
-                  src: "{{ image_name }}"
-                  dest: &image_file_name "{{ vm.metadata.platform_name }}_{{ image_name }}"
+            - before_provision:
+              - callback: callbacks/sources/fetch.yaml
+                src: "{{ uri_base }}/{{ image_name }}.bz2"
+                dest: &archive "{{ image_name }}.bz2"
+              - callback: callbacks/sources/unarchive.yml
+                src: *archive
+                dest: "./"
+              on_provision:
+                src: "{{ image_name }}"
+                dest: &image_file_name "{{ vm.metadata.platform_name }}_{{ image_name }}"
           vcpus: 2
           ram: 2048
           disks:
