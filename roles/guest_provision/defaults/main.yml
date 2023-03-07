@@ -12,6 +12,7 @@ allowed_phases:
   - create clean
   - restore init
   - create init
+  - dependencies
   - init
   - main
   - terminate

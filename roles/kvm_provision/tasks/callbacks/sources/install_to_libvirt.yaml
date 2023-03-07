@@ -4,12 +4,26 @@
     dest_path: "{{ (vm.metadata.libvirt_pool_dir, task.dest) | path_join }}"
   block:
 
-    - name: Ensure libvirt pool directory exists and own to <hypervisor_group> / libvirt-qemu
+    - name: Check libvirt pool directory
+      stat:
+        path: "{{ dest_path | dirname }}" 
+        get_checksum: false
+      register: local_pool_stat_result
+
+    - name: Ensure libvirt pool directory exists
+      file:
+        path: "{{ dest_path | dirname }}" 
+        state: directory
+        mode: u+rwx,g+rwx,o+rx
+    #   become: True
+
+    - name: Ensure libvirt pool directory own to <hypervisor_group> / libvirt-qemu
       file:
         path: "{{ dest_path | dirname }}" 
         state: directory
         group: "{{ hypervisor_group }}"
         mode: u+rwx,g+rwx,o+rx
+      when: local_pool_stat_result.stat.pw_name != ansible_env.USER
     #   become: True
 
     - name: Check current asset location
@@ -37,11 +51,17 @@
         - name: "Move {{ src_path | basename }} to libvirt pool directory"
           shell: "mv {{ src_path | quote }} {{ dest_path | quote }}"
 
-    - name: "Ensure image is at install path and accessible by <hypervisor_group>"
+    - name: "Ensure image is at install path"
+      file:
+        path: "{{ dest_path }}"
+        owner: "{{ ansible_env.USER }}"
+        mode: u+rwx,g+rwx,o+rx
+
+    - name: "Ensure image is accessible by <hypervisor_group>"
       file:
         path: "{{ dest_path }}"
         owner: "{{ ansible_env.USER }}"
         group: "{{ hypervisor_group }}"
         mode: u+rwx,g+rwx,o+rx
-
+      when: local_pool_stat_result.stat.pw_name != ansible_env.USER
 #   become: True

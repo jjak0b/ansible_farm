@@ -6,4 +6,16 @@ project_revision: 0
 # prevent ansible to ask for key check on connection:
 # add ansible_host_key_checking = False to yout ansible.cfg for all hosts
 # add the following to group_vars/vms/main.yaml and apply this only to all hosts of 'vms' group
-ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+# ansible_ssh_extra_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+
+allowed_phases:
+  - startup
+  - restore clean
+  - create clean
+  - restore init
+  - create init
+  - dependencies
+  - init
+  - main
+  - terminate
+#  - shutdown

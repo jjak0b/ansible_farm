@@ -1,0 +1,7 @@
+dependencies:
+  - libvirt-daemon-system
+  - python3-libvirt
+  - python3-lxml
+  - qemu-kvm
+  - libvirt-clients
+  - virt-manager

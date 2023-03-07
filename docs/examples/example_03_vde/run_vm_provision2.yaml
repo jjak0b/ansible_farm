@@ -7,6 +7,15 @@
   serial: 1
   tasks:
 
+    - debug:
+        var: inventory_hostname
+    - debug:
+        var: kvm_host
+
+    - debug:
+        var: myVar
+      vars:
+        myVar: "{{ hostvars[ inventory_hostname ] }}"
     - block:
       
         - name: gather min facts of hypervisor host since some definitions require to use them

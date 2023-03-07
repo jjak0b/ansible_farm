@@ -2,7 +2,7 @@
 ---
 
 - name: Init VM on Hypervisor
-  hosts: hypervisors
+  hosts: "{{ hypervisors_group | default('hypervisors') }}"
   gather_facts: yes
   roles:
     - parse_vms_definitions

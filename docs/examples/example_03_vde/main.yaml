@@ -1,45 +1,15 @@
----
 
-- name: Init VM on Hypervisor
-  hosts: hypervisors
-  gather_facts: yes
+- name: "Assign VM to L0 hypervisors"
+  import_playbook: init_vm_definitions.yaml
+  vars:
+    hypervisors_group: hypervisors
 
-  roles:
-    - vde_provisioning
-    - parse_vms_definitions
-  tasks:  
+- name: Create and provision each VM in serial on its assigned L0 hypervisor
+  import_playbook: run_vm_provision.yaml
+  vars:
+    vms_group: vms
 
-    - name: init VM connection
-      loop: "{{ virtual_machines }}"
-
-      include_role:
-        name: init_vm_connection
-      
-      loop_control:
-        loop_var: vm
-
-- name: VM provisioning on Hypervisor host
-  hosts: vms
-  gather_facts: no
-  serial: 1
-  tasks:
-
-    - block:
-      
-        - name: gather min facts of hypervisor host since some definitions require to use them
-          setup:
-            gather_subset: 
-            - '!all'
-        
-        - name: "start KVM Provision role for '{{ vm.metadata.name }}'"
-          include_role: 
-            name: kvm_provision
-
-      delegate_to: "{{ kvm_host }}"
-      tags:
-        - kvm_provision
-    - block:
-        - name: "Start VM provisioning of '{{ vm.metadata.name }}' "
-          include_role: 
-            name: guest_provision
-
+- name: Create and provision each VM in serial on its assigned L0 hypervisor
+  import_playbook: run_vm_provision2.yaml
+  vars:
+    vms_group: vms:!processed

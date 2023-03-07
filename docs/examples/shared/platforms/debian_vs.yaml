@@ -1,7 +1,7 @@
 - name: Defining platform with usermode networking
   vars:
     period: monthly
-    version: "20230101-1247"
+    version: "20230301-1306"
     vm_name: "VM {{ vm.metadata.platform_name }}_{{ vm.metadata.target_name }}"
   block:
     - name: Define platform definition
@@ -43,4 +43,4 @@
             source: "hostfwd=tcp:127.0.0.1:2201-:22"
             mac: "{{ '52:54:00' | random_mac( seed = vm_name ) }}"
             # note: user networking is associated to hypervisor's ip
-            ip: "{{ ansible_host }}"
+            ip: "localhost"

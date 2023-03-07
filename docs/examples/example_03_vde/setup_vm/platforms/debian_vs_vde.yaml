@@ -6,22 +6,22 @@
     new_task:
       callback: callbacks/sources/setup_connection.yaml
       src: "{{ vm.metadata.sources[0].on_provision.src }}"
-    
   block:
     - name: Override for VDE setup
       set_fact:
         vm: "{{ vm | combine( vm_override, recursive=true) }}"
       vars:
         vm_override:
-          metadata:
-            sources:
-              - before_provision: "{{ vm.metadata.sources[0].before_provision + [ new_task ] }}"
-                on_provision: "{{ vm.metadata.sources[0].on_provision }}"
-          net:
-            type: vde
-            source: "{{ vde_network }}"
-            ip: "10.0.0.21"
-            mask: "24"
+#          metadata:
+#            sources:
+#              - before_provision: "{{ vm.metadata.sources[0].before_provision + [ new_task ] }}"
+#                on_provision: "{{ vm.metadata.sources[0].on_provision }}"
+          ram: 1024
+#          net:
+#            type: vde
+#            source: "{{ vde_network }}"
+#            ip: "10.0.0.21"
+#            mask: "24"
       
 
 
