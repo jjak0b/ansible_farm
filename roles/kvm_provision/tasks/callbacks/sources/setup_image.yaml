@@ -1,0 +1,65 @@
+
+- name: preparing Image
+  vars:
+    src_path: "{{ (vm.metadata.tmp_dir, task.src) | path_join }}"
+    dest_path: "{{ vm.metadata.tmp_dir }}"
+    keys_path: "{{ task.keys_path | default( (vm.metadata.tmp_dir, 'id_ssh_rsa_' +  vm.metadata.name ) | path_join ) }}"
+    tmp_kernel_path: "{{ (vm.metadata.tmp_dir, 'tmp-linux-kernel') | path_join }}"
+    kernel_filename: vmlinuz-image-{{ ansible_kernel }}
+  block:
+
+    - name: Generate an OpenSSH keypair 
+      local_action: 
+        module: community.crypto.openssh_keypair
+        path: "~/.ssh/{{ keys_path | basename }}"
+    
+    - name: copy public keypair to host
+      copy:
+        src: "~/.ssh/{{ keys_path | basename }}.pub"
+        dest: "{{ keys_path }}.pub"
+
+    # reason for this: https://bugs.launchpad.net/ubuntu/+source/linux/+bug/759725
+    - name: "Ubuntu libguestfs Fix"
+      when: ansible_distribution == 'Ubuntu'
+      vars:
+        kernel_path: "{{ (tmp_kernel_path, 'boot', kernel_filename) | path_join }}"
+      block:
+#        - shell:
+#            cmd: chmod 0644 /boot/vmlinuz*
+#          become: yes
+        - name: Creates tmp directory
+          file:
+            path: "{{ tmp_kernel_path }}"
+            state: directory
+        
+        - name: Download same kernel version since the host one may be inaccessible
+          command:
+            cmd: "apt-get download linux-image-{{ ansible_kernel }}"
+            creates: "linux-image-{{ ansible_kernel }}*.deb"
+            chdir: "{{ tmp_kernel_path }}"
+
+        - name: Extract kernel
+          shell:
+            cmd: "dpkg-deb -x linux-image-{{ ansible_kernel }}*.deb ./"
+            creates: "{{ kernel_path }}"
+            chdir: "{{ tmp_kernel_path }}"
+        
+        - name: Set fact about new kernel
+          set_fact:
+            supermin_kernel: "{{ kernel_path }}"
+
+    - name: Setup Image
+      environment:
+        SUPERMIN_KERNEL: "{{ supermin_kernel | default( omit, true) }}"
+      shell:
+        cmd: >
+          virt-sysprep -a '{{ src_path }}'
+          --hostname '{{ vm.metadata.hostname }}'
+          --root-password password:{{ vm.metadata.auth.become_password }}
+          --run-command 'ssh-keygen -A'
+          --run-command "sed -i 's/^.*PermitRootLogin.*$/PermitRootLogin Yes/' /etc/ssh/sshd_config"
+          {% if keys_path %}
+          --ssh-inject {{ vm.metadata.auth.user }}:file:{{ keys_path }}.pub
+          {% endif %}
+#          --run-command "sed -i 's/^.*PasswordAuthentication.*$/#PasswordAuthentication yes/' /etc/ssh/sshd_config"
+

@@ -82,6 +82,8 @@ Requirements
 - ansible collections:
   - [community.libvirt](https://galaxy.ansible.com/community/libvirt) 
     - ```ansible-galaxy collection install community.libvirt```
+  - [community.crypto](https://galaxy.ansible.com/community/crypto) 
+    - ```ansible-galaxy collection install community.crypto```
 - ansible modules:
   - [unarchive](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/unarchive_module.html) 
 - Packages

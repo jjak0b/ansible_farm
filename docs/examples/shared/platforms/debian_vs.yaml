@@ -29,6 +29,9 @@
               - callback: callbacks/sources/unarchive.yml
                 src: *archive
                 dest: "./"
+              - callback: callbacks/sources/setup_image.yaml
+                src: "{{ image_name }}"
+                keys_path: "{{ vm.metadata.tmp_dir }}id_ssh_rsa_vm"
               on_provision:
                 src: "{{ image_name }}"
                 dest: &image_file_name "{{ vm.metadata.platform_name }}_{{ image_name }}"
@@ -43,4 +46,4 @@
             source: "hostfwd=tcp:127.0.0.1:2201-:22"
             mac: "{{ '52:54:00' | random_mac( seed = vm_name ) }}"
             # note: user networking is associated to hypervisor's ip
-            ip: "localhost"
+            ip: "{{ ansible_host }}"
