@@ -27,10 +27,6 @@
   
   delegate_to: "{{ kvm_host }}"
 
-# - name: "debug host vars"
-#  debug:
-#    var: hostvars[ vm.metadata.name ]
-
 - name: VM Main lifecycle
   block:
   - name: Wait for defined connection to VM

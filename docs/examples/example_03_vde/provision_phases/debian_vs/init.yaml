@@ -5,11 +5,8 @@
     - 'all'
 
 - name: Setup groups
-# very strange behavior about become: if we don't use 'ansible_become: true' but use 'become: yes' only,
-# then we get permission denied error when adding user to group which shouldn't happen
-# become: yes 
+  become: yes
   vars:
-    ansible_become: true
     libvirt_groups:
       - kvm
       - libvirt
@@ -30,9 +27,7 @@
         append: yes
         state: present
 
-- name: Setup libvirt pool
-  import_role:
-    name: stackhpc.libvirt-host
+- name: 
   vars:
     ansible_become: false
     libvirt_host_uri: "{{ vm.metadata.connection | default( ansible_libvirt_uri ) | default(omit, true) }}"
@@ -47,3 +42,8 @@
         mode: 755
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
+  block:
+
+    - name: Setup libvirt pool
+      import_role:
+        name: stackhpc.libvirt-host

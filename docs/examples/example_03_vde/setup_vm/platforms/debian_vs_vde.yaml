@@ -17,6 +17,8 @@
 #              - before_provision: "{{ vm.metadata.sources[0].before_provision + [ new_task ] }}"
 #                on_provision: "{{ vm.metadata.sources[0].on_provision }}"
           ram: 1024
+          net:
+            source: "hostfwd=tcp:127.0.0.1:2202-:22"
 #          net:
 #            type: vde
 #            source: "{{ vde_network }}"

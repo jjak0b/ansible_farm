@@ -18,4 +18,4 @@ allowed_phases:
   - init
   - main
   - terminate
-#  - shutdown
+  - shutdown

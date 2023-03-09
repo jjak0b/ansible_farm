@@ -1,20 +1,20 @@
 # Simulate a playbook execution for this VM host
 ---
 
-- name: "TODO: MOVE THIS TO DEPENDENCIES"
-  package:
-    name:
-      - vde2
-      - sshpass
-      - bzip2
-      - gzip
-    state: present
-  become: yes
-
 - name: gather facts of hypervisor host since some definitions require to use them
   setup:
     gather_subset: 
     - 'all'
+
+- block:
+
+    - name: "TODO: MOVE THIS TO DEPENDENCIES"
+      package:
+        name:
+          - vde2
+        state: present
+  
+  become: yes
 
 - import_role: 
     name: parse_vms_definitions
@@ -30,12 +30,6 @@
   loop_control:
     loop_var: L2vm
 
-- debug:
-    var: inventory_hostname
-- debug:
-    var: myvar
-  vars:
-    myvar: "{{ hostvars[ 'VM debian_vs_vde_amd64' ] }}"
 
 # Now VM are assigned to this L1 hypervisor
 # We need to prevent this VM to terminate and cause L2 VMs to be unreachable

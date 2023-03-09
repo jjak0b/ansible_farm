@@ -1,13 +1,11 @@
 all:
   hosts:
     L0-hypervisor:
+      ansible_ssh_private_key_file: ~/.ssh/id_rsa
       ansible_connection: ssh
-      ansible_host: myL0-hypervisor
+      ansible_host: localhost
       ansible_user: user
-      ansible_password: &pL0 mypassword
-      ansible_become: false
-#     ansible_become_method: sudo
-#     ansible_become_password: *pL0
+      ansible_become_method: enable
       hypervisor_group: user
       config:
         permutations:
@@ -16,6 +14,7 @@ all:
           platforms:
             - "debian_vs"
     VM debian_vs_amd64:
+      ansible_ssh_private_key_file: ~/.ssh/id_ssh_rsa_vm
       ansible_host: localhost
       ansible_port: 2201
       ansible_user: user
@@ -23,38 +22,40 @@ all:
       ansible_become_user: root
       ansible_become_password: *pL1
       ansible_become_method: su
-    # both alternative require to add ansible_ssh_args: '-F ./ssh.cfg'
       # https://github.com/ansible/ansible/issues/15402
-      # This on requires sshpass because we need to jump to the L0 hypervisor and then auth to the L1 VM
-      # The L1 VM auth will use the vars defined for L1-hypervisor BUT we can't use password to auth to the first L0-hypervisor (ansible limitation)
-      # So we are using sshpass to force using password with first ProxyJump host (L0-hypervisor) and ansible will apply auth credentials to
+      # use kesy and Jump host to avoid using sshpass and a possibile 'escape of hell' by using nested ProxyCommand
       ansible_ssh_common_args: >
+        -J {{ hostvars[ hostvars[ 'VM debian_vs_amd64' ].kvm_host ].ansible_user }}@{{ hostvars[ hostvars[ 'VM debian_vs_amd64' ].kvm_host ].ansible_host }}{{ ':' + (hostvars[ hostvars[ 'VM debian_vs_amd64' ].kvm_host ].ansible_port | default('22', true) | string) }}
         -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
-        -o ProxyCommand="sshpass -p '{{ hostvars[ hostvars[ 'VM debian_vs_amd64' ].kvm_host ].ansible_password | quote }}' ssh -p {{ hostvars[ hostvars[ 'VM debian_vs_amd64' ].kvm_host ].ansible_port | default(22) }} {{ ansible_ssh_args }} -W %h:%p -q {{ hostvars[ hostvars[ 'VM debian_vs_amd64' ].kvm_host ].ansible_user }}@{{ hostvars[ hostvars[ 'VM debian_vs_amd64' ].kvm_host ].ansible_host }}"
-      # Use this one below insted if you are using keys
-     # ansible_ssh_common_args: '-J nyL0-hypervisor -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
+      kvm_host: L0-hypervisor
       config:
         permutations:
           targets:
             - "amd64"
           platforms: 
             - "debian_vs_vde"
-
+    
     VM debian_vs_vde_amd64:
+      ansible_ssh_private_key_file: ~/.ssh/id_ssh_rsa_vm
       ansible_host: localhost
-      ansible_port: 2201
-      # TODO
+      # Changed port to avoid Ansible jump loop error prevention (it shouldn't happen anyway)
+      ansible_port: 2202
+      ansible_user: user
+      ansible_password: &pL2 virtualsquare
+      ansible_become_user: root
+      ansible_become_password: *pL2
+      ansible_become_method: su
       ansible_ssh_common_args: >
+        -J {{ hostvars[ hostvars[ hostvars[ 'VM debian_vs_vde_amd64' ].kvm_host ].kvm_host ].ansible_user }}@{{ hostvars[ hostvars[ hostvars[ 'VM debian_vs_vde_amd64' ].kvm_host ].kvm_host ].ansible_host }}{{ ':' + (hostvars[ hostvars[ hostvars[ 'VM debian_vs_vde_amd64' ].kvm_host ].kvm_host ].ansible_port | default('22', true) | string) }},{{ hostvars[ hostvars[ 'VM debian_vs_vde_amd64' ].kvm_host ].ansible_user }}@{{ hostvars[ hostvars[ 'VM debian_vs_vde_amd64' ].kvm_host ].ansible_host }}{{ ':' + (hostvars[ hostvars[ 'VM debian_vs_vde_amd64' ].kvm_host ].ansible_port | default('22', true) | string) }}
         -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
-        -o ProxyCommand="sshpass -p '{{ hostvars[ hostvars[ 'VM debian_vs_vde_amd64' ].kvm_host ].ansible_password | quote }}' ssh -p {{ hostvars[ hostvars[ 'VM debian_vs_vde_amd64' ].kvm_host ].ansible_port | default(22) }} {{ ansible_ssh_args }} -W %h:%p -q {{ hostvars[ hostvars[ 'VM debian_vs_vde_amd64' ].kvm_host ].ansible_user }}@{{ hostvars[ hostvars[ 'VM debian_vs_vde_amd64' ].kvm_host ].ansible_host }}
-          {{ hostvars[ hostvars[ 'VM debian_vs_vde_amd64' ].kvm_host ].ansible_ssh_common_args }} "
+      kvm_host: VM debian_vs_amd64
   children:
     hypervisors:
       hosts:
         L0-hypervisor:
   vars:
-  # should_replace_vm: yes
-    ansible_ssh_args: "-F ./ssh.cfg"
+#   should_replace_vm: yes
+#   ansible_ssh_args: "-F ./ssh.cfg"
     vde_network: vxvde://234.0.0.1
     
 

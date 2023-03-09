@@ -10,6 +10,6 @@
     vms_group: vms
 
 - name: Create and provision each VM in serial on its assigned L0 hypervisor
-  import_playbook: run_vm_provision2.yaml
+  import_playbook: run_vm_provision.yaml
   vars:
     vms_group: vms:!processed
