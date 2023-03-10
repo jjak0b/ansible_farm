@@ -3,14 +3,14 @@
 
 - name: "Including callback {{ callback_task_file }}"
   vars:
-    params:
+    _searchCallbackParams:
       files:
         - "{{ callback_task_file }}"
       paths:
         - "{{ ( hypervisor_lookup_dir_path ) | path_join }}"
         - tasks
       skip: true
-  loop: "{{ lookup('first_found', params, errors='ignore', wantlist=True) }}"
+  loop: "{{ query('first_found', _searchCallbackParams, errors='ignore') }}"
 
   include_tasks:
     file: "{{ callback_filepath }}"

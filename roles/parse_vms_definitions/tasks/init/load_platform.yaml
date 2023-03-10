@@ -1,13 +1,13 @@
 ---
 
 - name: include defaults platform tasks
-  loop: "{{ lookup('first_found', params, errors='ignore', wantlist=True) }}"
+  loop: "{{ lookup('first_found', _searchPlatformParams, errors='ignore', wantlist=True) }}"
   include_tasks:
     file: "{{ path }}"
   loop_control:
     loop_var: path 
   vars:
-    params:
+    _searchPlatformParams:
       files:
       - defaults.yaml
       - defaults.yml
@@ -21,13 +21,13 @@
     vm: *pvars
 
 - name: "include platform tasks of '{{ platform }}'"
-  loop: "{{ lookup('first_found', params, errors='ignore', wantlist=True) }}"
+  loop: "{{ lookup('first_found', _searchPlatformParams, errors='ignore', wantlist=True) }}"
   include_tasks:
     file: "{{ path }}"
   loop_control:
     loop_var: path 
   vars:
-    params:
+    _searchPlatformParams:
       files:
       - "{{ platform }}.yaml"
       - "{{ platform }}.yml"
