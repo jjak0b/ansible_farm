@@ -6,15 +6,8 @@
     gather_subset: 
     - 'all'
 
-- block:
-
-    - name: "TODO: MOVE THIS TO DEPENDENCIES"
-      package:
-        name:
-          - vde2
-        state: present
-  
-  become: yes
+- import_role:
+    name: vde_provisioning
 
 - import_role: 
     name: parse_vms_definitions
@@ -25,7 +18,7 @@
   include_role:
     name: init_vm_connection
   vars:
-    vm: "{{ L2vm }} "
+    vm: "{{ L2vm }}"
   
   loop_control:
     loop_var: L2vm

@@ -1,0 +1,4 @@
+auto {{ ifname }}
+iface {{ ifname }} inet static
+address {{ vm.net.ip }}/{{ vm.net.mask }}
+gateway {{ vm.net.gateway }}/{{ vm.net.mask }}

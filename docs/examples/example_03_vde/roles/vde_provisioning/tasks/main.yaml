@@ -16,7 +16,7 @@
 
   - name: Setup tap interface on host
     loop:
-      - "ip tuntap add mode tap name tap0 user jacopo"
+      - "ip tuntap add mode tap name tap0 user {{ ansible_user }}"
       - "ip addr add 10.0.0.254/24 dev tap0"
       - "ip link set tap0 up"
     loop_control:
@@ -27,5 +27,14 @@
     become: yes
 
   - name: plug tap to VDE network
+    vars:
+      pidfile_path: "{{ (vm.metadata.tmp_dir, 'tap0.pid') | path_join }}"
     shell:
-      cmd: "vde_plug tap://tap0 {{ vde_network }} --daemon -p /tmp/tap0-pid" 
+      cmd: >
+        vde_plug tap://tap0 {{ vde_network }} -p {{ pidfile_path }} &
+      creates: "{{ pidfile_path }}"
+    async: 10
+    poll: 0
+
+
+

@@ -12,10 +12,10 @@
         vm: "{{ vm | combine( vm_override, recursive=true) }}"
       vars:
         vm_override:
-#          metadata:
-#            sources:
-#              - before_provision: "{{ vm.metadata.sources[0].before_provision + [ new_task ] }}"
-#                on_provision: "{{ vm.metadata.sources[0].on_provision }}"
+          metadata:
+            sources:
+              - before_provision: "{{ vm.metadata.sources[0].before_provision + [ new_task ] }}"
+                on_provision: "{{ vm.metadata.sources[0].on_provision }}"
           ram: 1024
           net:
             source: "hostfwd=tcp:127.0.0.1:2202-:22"
@@ -24,6 +24,7 @@
 #            source: "{{ vde_network }}"
 #            ip: "10.0.0.21"
 #            mask: "24"
-      
+#            gateway: "10.0.0.254"
+
 
 
