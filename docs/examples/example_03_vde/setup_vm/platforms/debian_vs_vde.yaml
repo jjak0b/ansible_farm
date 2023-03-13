@@ -19,9 +19,8 @@
               # maybe because the "setup image" callback-task uses 'ssh-keygen -A'
               - before_provision: "{{ vm.metadata.sources[0].before_provision[:2] + [ new_task ] + vm.metadata.sources[0].before_provision[2:] }}"
                 on_provision: "{{ vm.metadata.sources[0].on_provision }}"
-          ram: 1024
+          ram: 512
           net:
-#            source: "hostfwd=tcp:127.0.0.1:2202-:22"
             type: vde
             source: "{{ vde_network }}"
             ip: "10.0.0.21"

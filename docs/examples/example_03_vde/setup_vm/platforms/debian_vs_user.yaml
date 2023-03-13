@@ -1,0 +1,17 @@
+- import_tasks:
+    file: debian_vs.yaml
+
+- name: Override platform
+  vars: 
+    new_task:
+      callback: callbacks/sources/setup_connection.yaml
+      src: "{{ vm.metadata.sources[0].on_provision.src }}"
+  block:
+    - name: Override for user network setup
+      set_fact:
+        vm: "{{ vm | combine( vm_override, recursive=true) }}"
+      vars:
+        vm_override:
+          ram: 512
+          net:
+            source: "hostfwd=tcp:127.0.0.1:2202-:22"
