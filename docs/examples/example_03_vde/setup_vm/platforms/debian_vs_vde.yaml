@@ -13,18 +13,20 @@
       vars:
         vm_override:
           metadata:
+            # reuse the old_before_provision but insert the network preprocessing before the main setup image
             sources:
-              - before_provision: "{{ vm.metadata.sources[0].before_provision + [ new_task ] }}"
+              # Note: For some strange reason if we add the "setup network" as last callback task, the VM won't start ssh service
+              # maybe because the "setup image" callback-task uses 'ssh-keygen -A'
+              - before_provision: "{{ vm.metadata.sources[0].before_provision[:2] + [ new_task ] + vm.metadata.sources[0].before_provision[2:] }}"
                 on_provision: "{{ vm.metadata.sources[0].on_provision }}"
           ram: 1024
           net:
-            source: "hostfwd=tcp:127.0.0.1:2202-:22"
-#          net:
-#            type: vde
-#            source: "{{ vde_network }}"
-#            ip: "10.0.0.21"
-#            mask: "24"
-#            gateway: "10.0.0.254"
+#            source: "hostfwd=tcp:127.0.0.1:2202-:22"
+            type: vde
+            source: "{{ vde_network }}"
+            ip: "10.0.0.21"
+            mask: "24"
+            gateway: "10.0.0.254"
 
 
 
