@@ -186,3 +186,4 @@ cd docs/examples/example_03_nested_VM_provisioning_VDE
 ANSIBLE_CONFIG=ansible.cfg ansible-playbook main.yaml
 ```
 
+Warning: If you are trying to connect to your VM with a VDE network and its hypervisors is Ubuntu 22.04 LTS (and maybe future releases) and you get the [error](https://askubuntu.com/questions/1427364/qemu-vde-network-backend-error) `Parameter 'type' expects a netdev backend type` you have to build QEMU binaries from source and use it in your VM definition to use VDE.
