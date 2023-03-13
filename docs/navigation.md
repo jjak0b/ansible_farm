@@ -23,6 +23,5 @@
 
   * [Deploy a single VM](examples/example_01_basic_deploy_and_connect/index.md)
   * [Deploy different platform and VM provisioning](examples/example_02_VM_provisioning/index.md)
-  * [Deploy a VM as hypervisor](examples/example_deploy_libvirt_vm/index.md)
-  * [Deploy VMs using custom network and templates](examples/03_deploy_multiple_vms_custom.md)
-  * [Guest/VM provisionig](examples/04_guest_provisioning.md)
+  * [Nested VM provisioning with User Networking and VDE](examples/example_03_nested_VM_provisioning_VDE/index.md)
+
