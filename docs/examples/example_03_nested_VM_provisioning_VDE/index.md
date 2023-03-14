@@ -4,10 +4,14 @@ Nested VM provisioning with User Networking and VDE
 Intro
 -----
 
-This example will show how to deploy a VM on a bare metal hypervisor host and use this VM as hypervisor to create 2 others nested VMs: one of these uses user networking and the other one will be connected to its hypervisors through [VDE](http://wiki.virtualsquare.org/#!repos.md#VDE).
+This example will show how to deploy a VM on a bare metal hypervisor host and use this VM as hypervisor to create 2 others nested VMs: one of these uses user networking and the other one will be connected to its hypervisor through [VDE](http://wiki.virtualsquare.org/#!repos.md#VDE).
 
 - [Full code](//github.com/jjak0b/test_farm/tree/master/docs/examples/example_03_nested_VM_provisioning_VDE/)
 
+The following document will use the following terms:
+- **L0** hypervisor is the real bare metal hypervisor host
+- **L1** VM (hypervisor) is a VM, which hypervisor is a L0 hypervisor
+- **L2** VM is a nested VM which hypervisor is a L1 VM
 
 Prerequisite
 -------------
@@ -115,7 +119,7 @@ Let's define an inventory such that:
     - **debian_vs_vde**
     - **debian_vs_user**
 
-Note: L1 hypervisors will auto-generate and setup the required ssh jump hosts ( through `init_vm_connection` role ) by using the `-J` parameter to allow ansible to `ssh` into VMs. In specific  the following variabl will be set: ``` ansible_ssh_common_args: "-J {{ generated_jumphosts | join(',') }} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" ``` where the generated jump hosts are the nested `kvm_host` hypervisors formated as `ansible_user@ansible_host:ansible_port`
+Note: L1 hypervisors will auto-generate and setup the required ssh jump hosts ( through `init_vm_connection` role ) by using the `-J` parameter to allow ansible to `ssh` into VMs. In specific  the following variable will be set as: ``` ansible_ssh_common_args: "-J {{ generated_jumphosts | join(',') }} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" ``` where the generated jump hosts are the nested `kvm_host` hypervisors formated as `ansible_user@ansible_host:ansible_port`
 
 Warning: The `-J` can only use ssh keys to authenticate, so you need to provided at least the `ansible_ssh_private_key_file` for your L0 hypervisors in the inventory. You can set it as `~/.ssh/id_rsa` and generate it with ```ssh-keygen -b 2048 -t rsa```. You should specify also the keys used by the VMs and inject them into the used image but if you use the `callbacks/sources/setup_image.yaml` callback-task, then will do it for you.
 
@@ -168,15 +172,30 @@ all:
 The VMs provisioning
 --
 
-- Let's define the VM provisioning phases for the **debian_vs** platform such that:
+The **1st** `run_vm_provision.yaml` playbook will deploy and run the provisioning of the L1 VM about the **debian_vs** platform which VM provisioning phases will run tasks such that:
   - In **debian_vs**'s init phases:
     - Upgrade preinstalled packages
     - Install [this collection's requirements](../../index.md#Requirements) such as libvirt env and dependencies
     - Install a `default` libvirt pool by using the external [stackhpc.libvirt-host](https://github.com/stackhpc/ansible-role-libvirt-host) utility role
   - In **debian_vs**'s main phase
-    - Init the VM provisioning on the nested VMs, adding it-self as their hypervisor
-
-  - in 2nd `run_vm_provision.yaml` playbook: will Deploy and provisioning of the nested L2 VMs.
+    - Install `vde2`
+    - Import a `vde_provisioning` local utility role, in short:
+      - Create a tap interface to connect through VDE:
+        ```
+        ip tuntap add mode tap name tap0 user {{ ansible_user }}"
+        ip addr add 10.0.0.254/24 dev tap0
+        ip link set tap0 up
+        ```
+      - Plugs the tap interface to the specified `vde_network: vxvde://234.0.0.1` in background
+        ```
+        vde_plug tap://tap0 {{ vde_network }} -p {{ pidfile_path }} &
+        ```
+    - Init the L2 VMs with `parse_vms_definitions` and `init_vm_connection`, adding it-self as their hypervisor
+  - In **debian_vs**'s terminate phase
+    - Remove the `shutdown` phase to allow ansible to run the VM provisioning process on next playbook.
+  
+  The **2nd** `run_vm_provision.yaml` playbook will deploy and run the provisioning of the nested L2 VMs which VM provisioning phases won't run any meaningful phase expect for the `terminate` phase:
+  - The `terminate` will _notify_ the `shutdown_hypervisor` handler (defined in `guest_provision` role) which will trigger externally the `shutdown` phase of the **L1** hypervisor through **L0** if **L1** is an already tracked VM on same ansible instance at the end of the current playbook.
 
 Test it
 --
@@ -185,5 +204,7 @@ Test it
 cd docs/examples/example_03_nested_VM_provisioning_VDE
 ANSIBLE_CONFIG=ansible.cfg ansible-playbook main.yaml
 ```
+
+You shouldn't get any error and both L2 VMs will result reachable by using the ssh jump host feature: the **debian_vs_vde** VM through a VDE network and **debian_vs_user** through the QEMU slirp user networking.
 
 Warning: If you are trying to connect to your VM with a VDE network and its hypervisors is Ubuntu 22.04 LTS (and maybe future releases) and you get the [error](https://askubuntu.com/questions/1427364/qemu-vde-network-backend-error) `Parameter 'type' expects a netdev backend type` you have to build QEMU binaries from source and use it in your VM definition to use VDE.
