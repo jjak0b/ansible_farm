@@ -23,16 +23,3 @@
   loop_control:
     loop_var: L2vm
 
-
-# Now VM are assigned to this L1 hypervisor
-# We need to prevent this VM to terminate and cause L2 VMs to be unreachable
-  
-
-# - name: Wait until all VMs are processed
-#   debug:
-#     msg: "wait until {{ vm_inventory_names }} are processed"
-#   until: vm_inventory_names is subset( query('inventory_hostnames', 'vms:&processed', wantlist=True) )
-#   delay: 10
-#   vars:
-#     vm_inventory_names: "{{ virtual_machines | map( attribute='metadata') | map( attribute='name') }}"
-

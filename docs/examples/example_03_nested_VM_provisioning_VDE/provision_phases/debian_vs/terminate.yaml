@@ -1,0 +1,10 @@
+# Now VM are assigned to this L1 hypervisor
+# We need to prevent this VM to shutdown and cause L2 VMs to be unreachable
+  
+- name: Remove 'shutdown' from phases and handle that in future
+  set_fact:
+    allowed_phases: "{{ allowed_phases | difference(silent_phases) }}"
+  vars:
+    silent_phases:
+      - shutdown
+  when: virtual_machines | length > 0
