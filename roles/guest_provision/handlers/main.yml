@@ -1,2 +1,6 @@
----
 # handlers file for guest_provision
+---
+
+- name: Handle shutdown_hypervisor handler
+  include_tasks: shutdown_hypervisor.yaml
+  listen: shutdown_hypervisor

@@ -112,6 +112,12 @@ Role Variables
     - `terminate`: will run the **terminate** phase if possible
     - `shutdown` will shutdown the VM
 
+Handlers
+--------
+
+- `shutdown_hypervisor`: You can notify this handler to shutdown the current VM's hypervisor if it's a VM.
+  - **Note**: This will work only if the hypervisor is a VM handled by this collection since this may tracks the nested VMs in the current ansible instance, otherwise it does nothing.
+
 Dependencies
 ------------
 

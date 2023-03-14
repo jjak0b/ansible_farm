@@ -34,3 +34,4 @@
   - name: "Initialized VM definition - {{ vm.metadata.name }}"
     set_fact:
       virtual_machines: "{{ virtual_machines + [ vm ] }}"
+      vm: null
