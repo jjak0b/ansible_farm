@@ -6,6 +6,7 @@ connection_timeout: 120
 retry_count: 10
 retry_delay: 5
 wait_until_port_reachable: false
+wait_until_reachable: true
 allowed_phases:
   - startup
   - restore clean

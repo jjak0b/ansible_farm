@@ -124,9 +124,10 @@ Role Variables
 - `vm`
   - required
   - it's a `VM definition` object
-- `should_replace_vm`
-  - optional (default: false)
-  - if true then will replace eventually an already installed VM with same `vm.metadata.name`, otherwise won't try to install the VM unless it doesn't exist
+- `create_vm`: (default: true)
+  - if true wil create VM if not exists, otherwise won't install any VM
+- `delete_vm`: (default: false)
+  - if true will stop and delete VM (without resource cleanup)
 - `parse_lookup_dir_path`
   - optional (default: see defaults/main )
   - It's the lookup path for searching VM templates

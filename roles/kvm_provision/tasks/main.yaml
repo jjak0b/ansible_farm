@@ -1,11 +1,8 @@
 # params:
-# - vm: VM definition object 
-# - should_replace_vm: boolean if true will force to override the vm resources, otherwise will use cached resources if available. xml is updated on both cases
+# - vm: VM definition object to operate
+# - create_vm: (default: true) if true wil create VM if not exists
+# - delete_vm: (default: false) if true will stop and delete VM (without resource cleanup)
 ---
-
-- name: Init vars
-  set_fact:
-    should_replace_vm: "{{ should_replace_vm | default( false, true ) }}"
 
 - name: "VM Main lifecycle: {{ vm.metadata.name }}"
   debug:
@@ -39,15 +36,19 @@
     uri: "{{ vm.metadata.connection }}"
   register: all_vms
 
-- name: Remove existing vm
-  when: should_replace_vm and vm.metadata.name in all_vms.list_vms
-  community.libvirt.virt:
-    command: undefine
-    name: "{{ vm.metadata.name }}"
-    uri: "{{ vm.metadata.connection }}"
+- name: Remove VM
+  include_tasks: remove_vm.yaml
+  when: delete_vm and vm.metadata.name in all_vms.list_vms
 
+- debug:
+    msg: "{{ vm.metadata.name in all_vms.list_vms }}"
+
+- debug:
+    msg: "{{ create_vm }}"
+
+- debug:
+    msg: "{{ ( delete_vm or not( vm.metadata.name in all_vms.list_vms ) ) }}"
+  
 - name: Install VM
   include_tasks: install/install_vm.yml
-  when: should_replace_vm or ( (not should_replace_vm) and not( vm.metadata.name in all_vms.list_vms ) )
-
-  
+  when: create_vm and ( delete_vm or not( vm.metadata.name in all_vms.list_vms ) )

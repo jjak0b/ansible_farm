@@ -82,6 +82,8 @@ Role Variables
   - recommended
   - standard [connection plugins](https://docs.ansible.com/ansible/latest/plugins/connection.html)  are supported
       - `community.libvirt.libvirt_qemu` is supported
+- `wait_until_reachable`: boolean (default: true)
+  - if true will wait until VM becomes rechable in some way (by port or by connection) before run the VM provisioning, otherwise it won't wait.
 - `wait_until_port_reachable`: boolean
   - required **only** if VM's platform doesn't ship with python or the `community.libvirt.libvirt_qemu` connection plugin isn't used
   - if `true` the ansible controller will wait until the VM's host can be reached at the provided `ansible_port` (or default port 22); otherwise python must be installed on the VM and the [wait_for_connection](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/wait_for_connection_module.html) module will be used.
