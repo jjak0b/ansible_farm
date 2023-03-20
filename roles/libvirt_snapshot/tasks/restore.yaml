@@ -4,12 +4,129 @@
 #   uri: "session uri"  example: qemu:///system
 ---
 
-- name: "Restore snapshot '{{ snapshot_name }}' for vm {{ vm_name }}"
-  shell: 
-    cmd: >-
-      virsh
-      --connect {{ uri | quote }}
-      snapshot-revert
-      --domain {{ vm_name | quote }}
-      --snapshotname {{ snapshot_name | quote }}
-  register: snapshot_restore_result
+- name: Restore internal snapshot
+  when: snapshot_type == 'internal'
+  block:
+    - name: "Restore snapshot '{{ snapshot_name }}' for vm {{ vm_name }}"
+      shell: 
+        cmd: >-
+          virsh
+          --connect {{ uri | quote }}
+          snapshot-revert
+          --domain {{ vm_name | quote }}
+          --snapshotname {{ snapshot_name | quote }}
+      register: snapshot_restore_result_internal
+
+# Simulate a snapshot-edit --current and update the VM xml
+- name: Restore external snapshot
+  when: snapshot_type == 'external'
+  block:
+  
+    - name: Dump VM xml at snapshot
+      shell:
+        cmd: >-
+          virsh
+          --connect {{ uri | quote }}
+          snapshot-dumpxml
+          --domain {{ vm_name | quote }}
+          --snapshotname {{ snapshot_name | quote }}
+      register: _snapshot_dumpxml_result
+
+    - name: Create temporary file to define the snapshot
+      ansible.builtin.tempfile:
+        suffix: "{{ snapshot_name }}.snapshot-dumpxml.xml"
+        state: file
+      register: _snapshot_dumpxml_file
+
+    - name: Store dump into temporary file
+      ansible.builtin.copy:
+        dest: "{{ _snapshot_dumpxml_file.path }}"
+        content: "{{ _snapshot_dumpxml_result.stdout }}"
+
+    - name: Check VM state to restore
+      community.libvirt.virt:
+        command: status
+        name: "{{ vm_name }}"
+        uri: &libvirt_uri "{{ uri }}"
+      register: vm_status_to_restore
+      
+    - shell:
+        cmd: "cat {{ _snapshot_dumpxml_file.path | quote }}"
+
+    # Leave the snapshot unchanged but set it as current      
+    - name: Update current active snapshot
+      shell:
+        cmd: >
+          virsh
+          --connect {{ uri | quote }}
+          snapshot-create
+          --domain {{ vm_name | quote }}
+          --xmlfile {{ _snapshot_dumpxml_file.path | quote }}
+          --current
+          --redefine
+
+    - name: Ensure to shutdown VM
+      vars:
+        retry_count: 5
+        retry_delay: 5
+      block:
+        - name: Ensure VM shutdown
+          community.libvirt.virt:
+            command: shutdown
+            name: "{{ vm_name }}"
+            state: shutdown
+            uri: *libvirt_uri
+          register: vm_stop_result
+          retries: &shutdown_retries "{{ retry_count }}"
+          until: &shutdown_until vm_stop_result is success and not(vm_stop_result is changed)
+          delay: &shutdown_delay "{{ retry_delay }}"
+      rescue:
+        - name: Ensure VM is destroyed as fallback
+          community.libvirt.virt:
+            command: destroy
+            name: "{{ vm_name }}"
+            state: destroyed
+            uri: *libvirt_uri
+          register: vm_stop_result
+          retries: *shutdown_retries
+          until: *shutdown_until
+          delay: *shutdown_delay
+
+    - name: Redefine VM using the xml domain defined in the snapshot
+      vars:
+        myParsedXMLSnapshot: "{{ _snapshot_dumpxml_result.stdout | ansible.utils.from_xml }}"
+      community.libvirt.virt:
+        command: define
+        xml: "{{ myParsedXMLSnapshot.domainsnapshot | dict2items | selectattr('key', 'equalto', 'domain') | items2dict | ansible.utils.to_xml }}"
+        uri: "{{ uri }}"
+    
+    - name: Restore VM back to previous status
+      vars:
+        retry_count: 5
+        retry_delay: 5
+        command_cases:
+          destroyed: destroy
+          running: start
+          shutdown: shutdown
+          paused: pause
+      community.libvirt.virt:
+        command: "{{ command_cases[ vm_status_to_restore.status ] | default(omit, true)  }}"
+        name: "{{ vm_name }}"
+        state: "{{ vm_status_to_restore.status }}"
+        uri: *libvirt_uri
+      register: vm_restore_result
+      until: vm_restore_result is success and not(vm_restore_result is changed)
+      retries: *shutdown_retries
+      until: *shutdown_until
+      delay: *shutdown_delay
+
+    - name: Remove temporary file
+      ansible.builtin.file:
+        path: "{{ _snapshot_dumpxml_file.path }}"
+        state: absent
+      when: _snapshot_dumpxml_file.path is defined
+
+
+- name: Set snapshot operation result
+  set_fact:
+    snapshot_restore_result: "{{ snapshot_type == 'internal' | ternary( snapshot_restore_result_internal, snapshot_restore_result_external ) }}"
