@@ -17,9 +17,13 @@
       register: restore_clean_result
       # is skipped when rc != 0 
       when: &on_success 
+        - snapshot_restore_result is defined
         - not( snapshot_restore_result is skipped )
         - snapshot_restore_result.rc == 0
       # is changed when rc == 0
       changed_when: *on_success
   
   delegate_to: "{{ kvm_host }}"
+
+- import_tasks: wait_until_reachable.yaml
+  when: snapshot_type == 'external'

@@ -1,3 +1,7 @@
+
+- name: Ensure FS sync
+  import_tasks: syncfs.yaml
+
 - block:
 
     - name: Request Clean Snapshot

@@ -1,0 +1,11 @@
+# This tasks runs the 'sync'-equivalent command in supported "{{ ansible_system }}" types
+# if ansible_system is 'Windows' will use the https://learn.microsoft.com/sysinternals/downloads/sync tool (and will use become)
+# Otherwise we assume is at least POSIX compatible to run the /usr/bin/sync command
+---
+
+- include_tasks: syncfs/Windows.yaml
+  when: ansible_system == 'Windows' 
+
+- include_tasks: syncfs/default.yaml
+  when: ansible_system != 'Windows' 
+

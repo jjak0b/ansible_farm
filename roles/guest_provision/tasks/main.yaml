@@ -20,25 +20,8 @@
 
 - name: VM Main lifecycle
   block:
-  - name: Wait for defined connection to VM
-    wait_for_connection:
-      timeout: "{{ connection_timeout | default(120) }}"
-    when:
-      - wait_until_reachable | bool
-      - ansible_connection is defined
-      - not( wait_until_port_reachable )
-    register: connection_wait_result
-  
-  - name: Wait until VM becomes reachable
-    local_action:
-      module: wait_for
-      host: "{{ ansible_host }}"
-      port: "{{ ansible_port | default( 22 ) }}"
-      timeout: "{{ connection_timeout | default(120) }}"
-    when:
-      - wait_until_reachable | bool
-      - connection_wait_result is skipped
-    register: connection_wait_result
+
+  - import_tasks: wait_until_reachable.yaml
 
   - import_tasks: guest_main.yaml
     register: delegate_result

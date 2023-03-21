@@ -1,0 +1,30 @@
+
+- name: Wait until VM becomes reachable by connection method
+  wait_for_connection:
+    timeout: "{{ connection_timeout | default(120) }}"
+  when:
+    - wait_until_reachable | bool
+    - ansible_connection is defined
+    - not( wait_until_port_reachable )
+  register: wait_result_connection
+  ignore_errors: true
+
+- name: Wait until VM becomes reachable by port
+  local_action:
+    module: wait_for
+    host: "{{ ansible_host }}"
+    port: "{{ ansible_port | default( 22 ) }}"
+    timeout: "{{ connection_timeout | default(120) }}"
+  when:
+    - wait_until_reachable | bool
+    - wait_result_connection is skipped
+  register: wait_result_port
+
+- name: set wait result
+  local_action:
+    module: ping
+  register: connection_wait_result
+  when: 
+    - wait_result_connection is not skipped or wait_result_port is not skipped
+  failed_when:
+    - wait_result_connection is failed or wait_result_port is failed

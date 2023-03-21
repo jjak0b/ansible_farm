@@ -12,5 +12,8 @@
       snapshot-create-as
       --domain {{ vm_name | quote }}
       --name {{ snapshot_name | quote }}
+      {% if snapshot_type == 'external' %}
+      --disk-only
+      {% endif %}
   register: snapshot_create_result
 

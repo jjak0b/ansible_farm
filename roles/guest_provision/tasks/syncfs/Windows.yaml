@@ -1,0 +1,9 @@
+- name: Download FS Sync tool
+  ansible.windows.win_get_url:
+    url: https://live.sysinternals.com/Sync.exe
+    dest: &exe_path '%TEMP%\Sync.exe'
+
+- name: Sync FS
+  ansible.windows.win_command:
+    cmd: *exe_path
+  become: true

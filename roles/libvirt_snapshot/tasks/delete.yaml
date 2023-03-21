@@ -2,14 +2,21 @@
 #   vm_name: "Vm name"
 #   snapshot_name: "snapshot name"
 #   uri: "session uri"  example: qemu:///system
+#   children: (default: false) if true will delete also children snapshots
 ---
 
-- name: "Delete snapshot '{{ snapshot_name }}' for vm {{ vm_name }}"
-  shell: 
-    cmd: >-
-      virsh
-      --connect {{ uri | quote }}
-      snapshot-delete
-      --domain {{ vm_name | quote }}
-      --snapshotname {{ snapshot_name | quote }}
-  register: snapshot_delete_result
+- name: Delete internal snapshot
+#  when: snapshot_type == 'internal'
+  block:
+    - name: "Delete snapshot '{{ snapshot_name }}' for vm {{ vm_name }}"
+      shell: 
+        cmd: >-
+          virsh
+          --connect {{ uri | quote }}
+          snapshot-delete
+          --domain {{ vm_name | quote }}
+          --snapshotname {{ snapshot_name | quote }}
+          {% if children is defined and children %}
+          --children
+          {% endif %}
+      register: snapshot_delete_result

@@ -1,0 +1,114 @@
+- name: Dump VM xml at snapshot
+  shell:
+    cmd: >-
+      virsh
+      --connect {{ uri | quote }}
+      snapshot-dumpxml
+      --domain {{ vm_name | quote }}
+      --snapshotname {{ snapshot_name | quote }}
+  register: _snapshot_dumpxml_result
+
+- name: Create temporary file to define the snapshot
+  ansible.builtin.tempfile:
+    suffix: "{{ snapshot_name }}.snapshot-dumpxml.xml"
+    state: file
+  register: _snapshot_dumpxml_file
+
+- name: Store dump into temporary file
+  ansible.builtin.copy:
+    dest: "{{ _snapshot_dumpxml_file.path }}"
+    content: "{{ _snapshot_dumpxml_result.stdout }}"
+
+- name: Check VM state to restore
+  community.libvirt.virt:
+    command: status
+    name: "{{ vm_name }}"
+    uri: &libvirt_uri "{{ uri }}"
+  register: vm_status_to_restore
+
+# Leave the snapshot unchanged but set it as current      
+#- name: Update current active snapshot
+#  shell:
+#    cmd: >
+#      virsh
+#      --connect {{ uri | quote }}
+#      snapshot-create
+#      --domain {{ vm_name | quote }}
+#      --xmlfile {{ _snapshot_dumpxml_file.path | quote }}
+#      --current
+#      --redefine
+#  register: snapshot_restore_set_active_result
+
+- name: Ensure to shutdown VM
+  vars:
+    retry_count: 5
+    retry_delay: 5
+  block:
+    - name: Ensure VM shutdown
+      community.libvirt.virt:
+        command: shutdown
+        name: "{{ vm_name }}"
+        state: shutdown
+        uri: *libvirt_uri
+      register: vm_stop_result
+      retries: &shutdown_retries "{{ retry_count }}"
+      until: &shutdown_until vm_stop_result is success and not(vm_stop_result is changed)
+      delay: &shutdown_delay "{{ retry_delay }}"
+  rescue:
+    - name: Ensure VM is destroyed as fallback
+      community.libvirt.virt:
+        command: destroy
+        name: "{{ vm_name }}"
+        state: destroyed
+        uri: *libvirt_uri
+      register: vm_stop_result
+      retries: *shutdown_retries
+      until: *shutdown_until
+      delay: *shutdown_delay
+
+- name: Redefine VM using the xml domain defined in the snapshot
+  # Note: don't use community.general.xml because for some reason it can't get the full xml tag associated to the xpath /domainsnapshot/domain, and output wrong data
+  vars:
+    myParsedXMLSnapshot: "{{ _snapshot_dumpxml_result.stdout | ansible.utils.from_xml }}"
+  community.libvirt.virt:
+    command: define
+    xml: "{{ myParsedXMLSnapshot.domainsnapshot | dict2items | selectattr('key', 'equalto', 'domain') | items2dict | ansible.utils.to_xml }}"
+    uri: "{{ uri }}"
+  register: snapshot_restore_result_external
+
+- name: Restore VM back to previous status
+  vars:
+    retry_count: 5
+    retry_delay: 5
+    command_cases:
+      destroyed: destroy
+      running: start
+      shutdown: shutdown
+      paused: pause
+  community.libvirt.virt:
+    command: "{{ command_cases[ vm_status_to_restore.status ] | default(omit, true)  }}"
+    name: "{{ vm_name }}"
+    state: "{{ vm_status_to_restore.status }}"
+    uri: *libvirt_uri
+  register: _vm_restore_result
+  until: _vm_restore_result is success and not(_vm_restore_result is changed)
+  retries: *shutdown_retries
+  until: *shutdown_until
+  delay: *shutdown_delay
+
+- name: Remove temporary file
+  ansible.builtin.file:
+    path: "{{ _snapshot_dumpxml_file.path }}"
+    state: absent
+  when: _snapshot_dumpxml_file.path is defined
+
+- name: set snapshot result
+  shell: /bin/true
+  register: snapshot_restore_result
+  # is skipped when rc != 0 
+  when: &on_success 
+#    - snapshot_restore_set_active_result is defined
+    - snapshot_restore_result_external is defined
+#    - snapshot_restore_set_active_result is succeeded
+    - snapshot_restore_result_external is succeeded
+#    - snapshot_restore_set_active_result.rc == 0

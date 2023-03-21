@@ -1,0 +1,10 @@
+
+- name: "Restore snapshot '{{ snapshot_name }}' for vm {{ vm_name }}"
+  shell: 
+    cmd: >-
+      virsh
+      --connect {{ uri | quote }}
+      snapshot-revert
+      --domain {{ vm_name | quote }}
+      --snapshotname {{ snapshot_name | quote }}
+  register: snapshot_restore_result

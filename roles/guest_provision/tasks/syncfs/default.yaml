@@ -1,0 +1,5 @@
+
+- name: Sync FS
+  command:
+    cmd: /usr/bin/sync
+  
