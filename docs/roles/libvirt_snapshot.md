@@ -5,13 +5,18 @@ Perform on the specified VM some operations like: lists, restore, create and del
 Requirements
 ------------
 
-- [virsh](https://www.libvirt.org/manpages/virsh.html)
+- [virsh](https://www.libvirt.org/manpages/virsh.html) command
+- `qemu-img` ( `qemu-utils` package ) command
 
 Role Variables
 --------------
 
 - `uri`: libvirt connection uri 
 - `vm_name`: name of target VM
+- `snapshot_type`: (default: `internal`) type of snapshot to operate on.
+  - possible values:
+    - `internal`
+    - `external`
 - `delete`: (optional) snapshot name to delete if any
 - `create`: (optional) snapshot name to create if any
 - `restore`: (optional) snapshot name to restore if any
@@ -28,7 +33,10 @@ Note: if any subset of operations are specified, then the operations are execute
 Dependencies
 ------------
 
-None
+- `community.general`
+- `community.libvirt`
+- `ansible.utils`
+
 
 Example Playbook
 ----------------
