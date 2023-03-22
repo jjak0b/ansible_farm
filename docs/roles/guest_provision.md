@@ -126,6 +126,10 @@ Dependencies
 - Format of `VM definition` in `vm` var required by `roles/kvm_provision` and used in this role phase tasks
 - Format of `VM definition` in `vm` var produced by `roles/parse_vms_provision`'s output and used in this role phase tasks
 
+- `community.libvirt`
+- `ansible.windows`
+  - Only if using **Windows** (VM) targets
+
 Example Playbook
 ----------------
 ```
