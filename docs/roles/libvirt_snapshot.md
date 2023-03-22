@@ -1,6 +1,23 @@
 libvirt_snapshot
 =========
-Perform on the specified VM some operations like: lists, restore, create and delete snapshots
+
+Perform some operations like: lists, restore, create and delete snapshots on a specified VM.
+Both internal and external snapshots are supported. It's your responsibility to specifcy which type use by setting the `snapshot_type` variable.
+- Internal snapshots
+  - use the functionalities supported by `virsh`
+- External snapshots
+  - **create** and **list** operations use the functionalities supported by `virsh`
+  - **restore** and **delete** operaions are "manually" emulated by using other features since they aren't supported by `virsh`
+
+Note about the **restore** operation for _external snapshots_:
+The feature try to emulate the same behavior of the restore operation for internal snapshots but **without restoring the memory state** :
+ - shutdown (eventually) the VM 
+ - for each disk in the snapshot's domain: create a new overlay disk and set it as current disk in the VM with the snapshot's disk as its backingStore
+ - edit the snapshot definition to restore by updating the overlay disks in use, and set it as current.
+ - restore the VM to the previous running state before the shutdown. ( note: this is just a poweron if it was running ).
+ 
+ So the active disks will be the new overlay disks, with the backing disks of the restored snapshot.
+
 
 Requirements
 ------------

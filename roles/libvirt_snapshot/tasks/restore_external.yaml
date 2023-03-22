@@ -1,8 +1,8 @@
 # These tasks simulate the behavior an internal snapshot restore:
 # - shutdown (eventually) the VM 
-# - for each disk in the snpashot's domain: create a new overlay disk and set it as current disk in the VM with the snapshot's disk as it's backingStore
+# - for each disk in the snapshot's domain: create a new overlay disk and set it as current disk in the VM with the snapshot's disk as its backingStore
 # - edit the snapshot to restore by updating the overlay disks in use, and set it as current.
-# - Restore the VM to the running state before the shutdown. (note: this is just a poweron if it was running)
+# - Restore the VM to the previous running state before the shutdown. ( note: this is just a poweron if it was running ).
 # So the active disks will be the new overlay disks
 ---
 
