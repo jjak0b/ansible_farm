@@ -40,15 +40,6 @@
   include_tasks: remove_vm.yaml
   when: delete_vm and vm.metadata.name in all_vms.list_vms
 
-- debug:
-    msg: "{{ vm.metadata.name in all_vms.list_vms }}"
-
-- debug:
-    msg: "{{ create_vm }}"
-
-- debug:
-    msg: "{{ ( delete_vm or not( vm.metadata.name in all_vms.list_vms ) ) }}"
-  
 - name: Install VM
   include_tasks: install/install_vm.yml
   when: create_vm and ( delete_vm or not( vm.metadata.name in all_vms.list_vms ) )
