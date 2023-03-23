@@ -3,3 +3,5 @@
 
 # allowed values: internal, external
 snapshot_type: internal 
+
+should_delete_dandling_overlays: true

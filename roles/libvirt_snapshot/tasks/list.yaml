@@ -3,6 +3,7 @@
 #   vm_name: "Vm name"
 #   snapshot_name: "snapshot name"
 #   uri: "session uri"  example: qemu:///system
+#   snapshot_type: external or internal
 ---
 # - name: Ensure snapshot is hasn't been created
   

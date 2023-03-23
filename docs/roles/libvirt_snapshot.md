@@ -30,16 +30,24 @@ Role Variables
 
 - `uri`: libvirt connection uri 
 - `vm_name`: name of target VM
-- `snapshot_type`: (default: `internal`) type of snapshot to operate on.
-  - possible values:
-    - `internal`
-    - `external`
 - `delete`: (optional) snapshot name to delete if any
 - `create`: (optional) snapshot name to create if any
 - `restore`: (optional) snapshot name to restore if any
 - `list`: (optional) true if you want to list all snapshot names of the VM into the snapshot_list fact, nothing otherwise
 
 Each optional operation register the command result into `snapshot_<operation>_result` registered var.
+
+- `snapshot_type`: (default: `internal`) type of snapshot to operate on.
+  - possible values:
+    - `internal`
+    - `external`
+- `should_delete_dandling_overlays`: (default: `true`) affect only if `snapshot_type == 'external'` and the `restore` operation is specified
+  - possible values:
+    - `true` if you want to delete the previous overlay image **IF IT HAS NO DESCENDANTS SNAPSHOTS** (that depends by the specified snapshot), otherwise will keep it anyway.
+    - `false` if you want to keep the dandling overlay image.
+      Note that:
+      - The overlay reference on the provided snapshot to restore will be lost anyway, since a new overlay image will be created.
+      - This option should be only used if you want to manually re-use the dandling disk later for some reason.
 
 Note: if any subset of operations are specified, then the operations are executed in the following order:
 1. `delete`

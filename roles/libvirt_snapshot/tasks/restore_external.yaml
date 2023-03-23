@@ -1,9 +1,15 @@
-# These tasks simulate the behavior an internal snapshot restore:
+# These tasks simulate the behavior an internal snapshot restore but we need a VM restart to apply changes:
 # - shutdown (eventually) the VM 
 # - for each disk in the snapshot's domain: create a new overlay disk and set it as current disk in the VM with the snapshot's disk as its backingStore
 # - edit the snapshot to restore by updating the overlay disks in use, and set it as current.
 # - Restore the VM to the previous running state before the shutdown. ( note: this is just a poweron if it was running ).
 # So the active disks will be the new overlay disks
+# vars:
+#   should_delete_dandling_overlays: (default: true)
+#    - true if you want to delete the previous overlay image IF IT HAS NO DESCENDANTS SNAPSHOTS (that depends by the specified snapshot), otherwise will keep it anyway.
+#    - false if you want to keep the dandling overlay image. Note that:
+#      - the overlay reference on the provided snapshot to restore will be lost anyway, since a new overlay image will be created.
+#      - this option should be only used if you want to manually re-use the dandling disk later for some reason.
 ---
 
 - name: Check VM running state to restore
@@ -23,13 +29,25 @@
       --snapshotname {{ snapshot_name | quote }}
   register: _snapshot_dumpxml_result
 
+- name: Check descendants dependency
+  shell:
+    cmd: >
+      virsh
+      --connect {{ uri | quote }}
+      snapshot-list
+      --domain {{ vm_name | quote }}
+      --from {{ snapshot_name | quote }}
+      --descendants --name
+  register: _snapshot_descendants_result
+  changed_when: false
+
 - name: Create temporary file to define the snapshot
   ansible.builtin.tempfile:
     suffix: "{{ snapshot_name }}.snapshot-dumpxml.xml"
     state: file
   register: _snapshot_dumpxml_file
 
-- name: Setup snapshot
+- name: Restore Snapshot
   vars:
     # Note: don't use community.general.xml because for some reason it can't get the full xml tag associated to the xpath /domainsnapshot/domain, and output wrong data
     myParsedXMLSnapshot: "{{ ( _snapshot_dumpxml_result.stdout | ansible.utils.from_xml ) }}"
@@ -39,22 +57,21 @@
       set_fact:
         domain_disks: []
         snapshot_disks: []
-    
-    - name: Setup new branch
-      vars:
         new_overlay:
           name: "{{ vm_name }}.from_{{ myParsedXMLSnapshot.domainsnapshot.name }}_branch_{{ lookup('community.general.random_string', special=false ) }}"
           format: qcow2
+
+    - name: Setup new branch
+      vars:
         active_domain:
           disks: "{{ myParsedXMLSnapshot.domainsnapshot.domain.devices.disk is mapping | ternary( [ myParsedXMLSnapshot.domainsnapshot.domain.devices.disk ], myParsedXMLSnapshot.domainsnapshot.domain.devices.disk, [] ) }}"
-        inactive_domain:
-          disks: "{{ myParsedXMLSnapshot.domainsnapshot.inactiveDomain.devices.disk is mapping | ternary( [ myParsedXMLSnapshot.domainsnapshot.inactiveDomain.devices.disk ], myParsedXMLSnapshot.domainsnapshot.inactiveDomain.devices.disk, [] ) }}"
       block:
 
         - name: "Foreach new disk source: Set new disk overlay and wrap the snapshot disk as its backingStore"
           loop: "{{ active_domain.disks }}"
           loop_control: 
             loop_var: disk
+            label: "{{ updated_disk.backingStore.source[ '@file' ] }} -> {{ updated_disk.source[ '@file' ] }}"
           set_fact: 
             # These are the disks that will be defined in the new VM domain
             domain_disks: "{{ domain_disks + [ disk | combine(updated_disk, recursive=true) ]  }}"
@@ -85,6 +102,7 @@
           loop: "{{ domain_disks }}"
           loop_control:
             loop_var: disk
+            label: "{{ disk.backingStore.source[ '@file' ] }} -> {{ disk.source[ '@file' ] }}"
           shell:
             cmd: >
               qemu-img create
@@ -120,69 +138,85 @@
           set_fact:
             domain_disks: null
             snapshot_disks: null
+            new_overlay: null
 
-- name: Ensure to make VM domain changes effective
-  vars:
-    retry_count: 5
-    retry_delay: 5
-  block:
-    - name: Ensure VM shutdown
-      community.libvirt.virt:
-        command: shutdown
-        name: "{{ vm_name }}"
-        state: shutdown
-        uri: *libvirt_uri
-      register: vm_stop_result
-      retries: &shutdown_retries "{{ retry_count }}"
-      until: &shutdown_until vm_stop_result is success and not(vm_stop_result is changed)
-      delay: &shutdown_delay "{{ retry_delay }}"
-  rescue:
-    - name: Ensure VM is destroyed as fallback
-      community.libvirt.virt:
-        command: destroy
-        name: "{{ vm_name }}"
-        state: destroyed
-        uri: *libvirt_uri
-      register: vm_stop_result
-      retries: *shutdown_retries
-      until: *shutdown_until
-      delay: *shutdown_delay
-  always:
-    - name: Update the new snapshot and set it as current
-      shell:
-        cmd: >
-          virsh
-          --connect {{ uri | quote }}
-          snapshot-create
-          --domain {{ vm_name | quote }}
-          --xmlfile {{ _snapshot_dumpxml_file.path | quote }}
-          --current
-          --redefine
-      register: snapshot_restore_set_active_result
-  
-    - name: Restore VM back to previous status
+    - name: Ensure to make VM domain changes effective
       vars:
-        command_cases:
-          destroyed: destroy
-          running: start
-          shutdown: shutdown
-          paused: pause
-      community.libvirt.virt:
-        command: "{{ command_cases[ vm_status_to_restore.status ] | default(omit, true)  }}"
-        name: "{{ vm_name }}"
-        state: "{{ vm_status_to_restore.status }}"
-        uri: *libvirt_uri
-      register: _vm_restore_result
-      until: _vm_restore_result is success and not(_vm_restore_result is changed)
-      retries: *shutdown_retries
-      until: *shutdown_until
-      delay: *shutdown_delay
+        retry_count: 5
+        retry_delay: 5
+      block:
+        - name: Ensure VM shutdown
+          community.libvirt.virt:
+            command: shutdown
+            name: "{{ vm_name }}"
+            state: shutdown
+            uri: *libvirt_uri
+          register: vm_stop_result
+          retries: &shutdown_retries "{{ retry_count }}"
+          until: &shutdown_until vm_stop_result is success and not(vm_stop_result is changed)
+          delay: &shutdown_delay "{{ retry_delay }}"
+      rescue:
+        - name: Ensure VM is destroyed as fallback
+          community.libvirt.virt:
+            command: destroy
+            name: "{{ vm_name }}"
+            state: destroyed
+            uri: *libvirt_uri
+          register: vm_stop_result
+          retries: *shutdown_retries
+          until: *shutdown_until
+          delay: *shutdown_delay
+      always:
+        - name: Update the new snapshot and set it as current
+          shell:
+            cmd: >
+              virsh
+              --connect {{ uri | quote }}
+              snapshot-create
+              --domain {{ vm_name | quote }}
+              --xmlfile {{ _snapshot_dumpxml_file.path | quote }}
+              --current
+              --redefine
+          register: snapshot_restore_set_active_result
+      
+        - name: Restore VM back to previous status
+          vars:
+            command_cases:
+              destroyed: destroy
+              running: start
+              shutdown: shutdown
+              paused: pause
+          community.libvirt.virt:
+            command: "{{ command_cases[ vm_status_to_restore.status ] | default(omit, true)  }}"
+            name: "{{ vm_name }}"
+            state: "{{ vm_status_to_restore.status }}"
+            uri: *libvirt_uri
+          register: _vm_restore_result
+          until: _vm_restore_result is success and not(_vm_restore_result is changed)
+          retries: *shutdown_retries
+          until: *shutdown_until
+          delay: *shutdown_delay
+
+    - name: Remove dandling overlays
+      loop: "{{ myParsedXMLSnapshot.domainsnapshot.disks.disk is mapping | ternary( [ myParsedXMLSnapshot.domainsnapshot.disks.disk ], myParsedXMLSnapshot.domainsnapshot.disks.disk, [] ) }}"
+      loop_control:
+        loop_var: dandling_disk
+        label: "{{ dandling_disk.source[ '@file' ] }}"
+      ansible.builtin.file:
+        path: "{{ dandling_disk.source[ '@file' ] }}"
+        state: absent
+      when:
+        - should_delete_dandling_overlays
+        - not( _snapshot_descendants_result.stdout_lines | length > 0 )
+        - dandling_disk.source[ '@file' ] is defined
+#     become: yes
 
 - name: Remove temporary file
   ansible.builtin.file:
     path: "{{ _snapshot_dumpxml_file.path }}"
     state: absent
   when: _snapshot_dumpxml_file.path is defined
+
 
 - name: set snapshot result
   shell: /bin/true
