@@ -36,7 +36,9 @@
       var: delegate_result
     when: delegate_result is failed
   always:
-    - import_tasks: shutdown.yaml
-      when: ( "shutdown" in allowed_phases )
-
+    - block:
+        - import_tasks: shutdown.yaml
+          when: ( "shutdown" in allowed_phases )
+      delegate_to: "{{ kvm_host }}"
+      
   

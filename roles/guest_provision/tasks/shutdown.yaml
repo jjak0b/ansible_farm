@@ -1,7 +1,6 @@
 - name: Ensure to shutdown VM
   block:
     - name: Ensure VM shutdown
-      delegate_to: "{{ kvm_host }}"
       community.libvirt.virt:
         command: shutdown
         name: "{{ vm.metadata.name }}"
