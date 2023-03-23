@@ -1,8 +1,30 @@
+
 - name: Stop VM
   import_role:
     name: guest_provision
     tasks_from: shutdown.yaml
 
+- name: Remove Snapshots
+  vars:
+    vm_name: "{{ vm.metadata.name }}"
+    uri: "{{ vm.metadata.connection }}"
+  block: 
+    - block:
+        - import_role:
+            name: libvirt_snapshot
+      vars:
+        list: true    
+      
+    - name: Removing all VM snapshots
+      loop: "{{ snapshot_list }}"
+      loop_control:
+        loop_var: snapshot_to_remove
+      include_role:
+        name: libvirt_snapshot
+      vars:
+        delete: "{{ snapshot_to_remove }}"
+        children: true
+  
 - block:
     - name: Remove existing vm
       community.libvirt.virt:
@@ -21,4 +43,5 @@
           undefine
           --domain {{ vm.metadata.name | quote }}
           --nvram
+          --snapshots-metadata
 
