@@ -1,0 +1,14 @@
+
+- stat:
+    path: &path_init ~/init.txt
+  register: stat_result_init
+
+- name: "Ensure init file doesn't exists"
+  assert:
+    fail_msg: "init file shouldn't exists"
+    that: not( stat_result_init.stat.exists )
+  
+- name: Create 'init' file
+  file:
+    path: *path_init
+    state: touch

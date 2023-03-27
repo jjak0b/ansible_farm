@@ -1,0 +1,22 @@
+all:
+  children:
+    hypervisors:
+      hosts:
+        localhost_hypervisor:
+          ansible_host: localhost
+          ansible_user: user
+          ansible_connection: ssh
+      vars:
+        config:
+          permutations:
+            targets:
+              - "amd64"
+            platforms:
+              - "debian"
+    vms:
+      vars:
+        ansible_connection: ssh
+        ansible_host: localhost
+        ansible_port: 2201
+  vars:
+    snapshot_type: external

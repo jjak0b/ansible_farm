@@ -1,5 +1,165 @@
 ---
-- hosts: localhost
-  remote_user: root
+
+- name: Init VM on Hypervisor
+  hosts: hypervisors
+  gather_facts: yes
   roles:
-    - libvirt_snapshot
+    - parse_vms_definitions
+  tasks:  
+
+    - name: init VM connection
+      loop: "{{ virtual_machines }}"
+
+      include_role:
+        name: init_vm_connection
+      
+      loop_control:
+        loop_var: vm
+
+- name: VM provisioning on Hypervisor host
+  hosts: vms
+  gather_facts: no
+  vars:
+    delete_vm: true
+    create_vm: true
+  tasks:
+
+    - block:      
+        - name: gather min facts of hypervisor host since some definitions require to use them
+          setup:
+            gather_subset: 
+            - '!all'
+        
+        - name: "start KVM Provision role for '{{ vm.metadata.name }}'"
+          include_role: 
+            name: kvm_provision
+      
+      delegate_to: "{{ kvm_host }}"
+
+    - block:
+        - include_role:
+            name: guest_provision
+            tasks_from: startup.yaml
+      delegate_to: "{{ kvm_host }}"
+      
+    - import_role:
+        name: guest_provision
+        tasks_from: wait_until_reachable.yaml
+
+- hosts: vms
+  gather_facts: yes
+  tasks:
+
+    - name: test
+      vars:
+        uri: "{{ vm.metadata.connection }}"
+        vm_name: "{{ vm.metadata.name }}"
+      block:
+
+        - name: Ensure FS sync
+          import_role:
+            name: guest_provision
+            tasks_from: syncfs.yaml
+          
+        - block:
+            - name: Create clean root snapshot
+              import_role:
+                name: libvirt_snapshot
+          vars:
+            create: 'test.clean'
+          delegate_to: "{{ kvm_host }}"
+
+        - name: Fill 'clean' overlay
+          include_tasks: phases/init.yaml
+
+        - name: Ensure FS sync
+          import_role:
+            name: guest_provision
+            tasks_from: syncfs.yaml
+
+        - block:
+            - name: Create post init snapshot
+              import_role:
+                name: libvirt_snapshot
+          vars:
+            create: 'test.init'
+          delegate_to: "{{ kvm_host }}"
+
+        - name: Fill a 'init' overlay
+          include_tasks: phases/main.yaml
+          vars:
+            test_snapshot_name: 'test.init'
+
+        - name: Ensure FS sync
+          import_role:
+            name: guest_provision
+            tasks_from: syncfs.yaml
+
+        - block:
+            - name: Create post main snapshot
+              import_role:
+                name: libvirt_snapshot
+          vars:
+            create: 'test.main1'
+            list: true
+          delegate_to: "{{ kvm_host }}"        
+
+        - name: Fill another 'init' overlay
+          include_tasks: phases/main.yaml
+          vars:
+            test_snapshot_name: 'test.init'
+
+        - name: Ensure FS sync
+          import_role:
+            name: guest_provision
+            tasks_from: syncfs.yaml
+
+        - block:
+            - name: Create post main snapshot
+              import_role:
+                name: libvirt_snapshot
+          vars:
+            create: 'test.main2'
+            list: true
+          delegate_to: "{{ kvm_host }}"        
+
+        - assert:
+            that:
+              - snapshot_tests is subset( snapshot_list )
+              - snapshot_list | length == snapshot_tests | length
+          vars:
+            snapshot_tests:
+              - 'test.clean'
+              - 'test.init'
+              - 'test.main1'
+              - 'test.main2'
+
+        - name: get snapshot tree
+          shell:
+            cmd: >-
+              virsh
+              --connect {{ uri | quote }}
+              snapshot-list
+              --domain {{ vm_name | quote }}
+              --tree
+          register: tree_result
+          changed_when: false
+          delegate_to: "{{ kvm_host }}"
+
+        - debug:
+            var: tree_result.stdout_lines
+
+- hosts: hypervisors
+  gather_facts: yes
+  vars:
+    create_vm: false
+    delete_vm: true
+  tasks:
+
+    - name: Destroy VM
+      loop: "{{ virtual_machines }}"
+      loop_control:
+        loop_var: vm
+      include_role: 
+        name: kvm_provision
+
