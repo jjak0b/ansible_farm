@@ -10,6 +10,9 @@
 #    - false if you want to keep the dandling overlay image. Note that:
 #      - the overlay reference on the provided snapshot to restore will be lost anyway, since a new overlay image will be created.
 #      - this option should be only used if you want to manually re-use the dandling disk later for some reason.
+#   should_restore_with_new_branch: (default: true)
+#    - true if you want to restore to the snapshot and create an overlay branch and setting it as current snapshot overlay and use new overlay disks.
+#    - false if you want to restore to the snapshot's domain (backing store domain), so after reboot the VM will use the backingStore disks as current disks.
 ---
 
 - name: Check VM running state to restore
@@ -61,7 +64,23 @@
           name: "{{ vm_name }}.from_{{ myParsedXMLSnapshot.domainsnapshot.name }}_branch_{{ lookup('community.general.random_string', special=false ) }}"
           format: qcow2
 
+    - name: Restore to backing store domain
+      when:
+        - not should_restore_with_new_branch
+      block:
+
+        - name: Select backing snapshot domain to restore
+          set_fact:
+            new_vm_domain_xml: "{{ myParsedXMLSnapshot.domainsnapshot | dict2items | selectattr('key', 'equalto', 'domain') | items2dict | ansible.utils.to_xml  }}"
+
+        - name: Save unchanged snapshot domain into temporary file
+          ansible.builtin.copy:
+            dest: "{{ _snapshot_dumpxml_file.path }}"
+            content: "{{ _snapshot_dumpxml_result.stdout }}"
+
     - name: Setup new branch
+      when:
+        - should_restore_with_new_branch
       vars:
         active_domain:
           disks: "{{ myParsedXMLSnapshot.domainsnapshot.domain.devices.disk is mapping | ternary( [ myParsedXMLSnapshot.domainsnapshot.domain.devices.disk ], myParsedXMLSnapshot.domainsnapshot.domain.devices.disk, [] ) }}"
@@ -121,17 +140,15 @@
             dest: "{{ _snapshot_dumpxml_file.path }}"
             content: "{{ myParsedXMLSnapshot | combine( snapshotChanges, recursive=true ) | ansible.utils.to_xml }}"
 
-        - name: Redefine VM using the xml domain defined in the snapshot
+        - name: Set new VM domain using the xml domain defined in the snapshot
+          set_fact:
+            new_vm_domain_xml: "{{ myParsedXMLSnapshot.domainsnapshot | combine( domainChanges, recursive=true ) | dict2items | selectattr('key', 'equalto', 'domain') | items2dict | ansible.utils.to_xml }}"
           vars:
             domainChanges:
               domain:
                 devices:
                   disk: "{{ domain_disks }}"
-          community.libvirt.virt:
-            command: define
-            xml: "{{ myParsedXMLSnapshot.domainsnapshot | combine( domainChanges, recursive=true ) | dict2items | selectattr('key', 'equalto', 'domain') | items2dict | ansible.utils.to_xml }}"
-            uri: "{{ uri }}"
-          register: snapshot_restore_result_external
+      
       
       always:
         - name: clear facts
@@ -139,7 +156,24 @@
             domain_disks: null
             snapshot_disks: null
             new_overlay: null
+            backing_domain: null
 
+
+      always:
+        - name: clear facts
+          set_fact:
+            domain_disks: null
+            snapshot_disks: null
+            new_overlay: null
+            backing_domain: null
+
+    - name: Redefine VM using the new VM domain
+      community.libvirt.virt:
+        command: define
+        xml: "{{ new_vm_domain_xml }}"
+        uri: "{{ uri }}"
+      register: snapshot_restore_result_external
+    
     - name: Ensure to make VM domain changes effective
       vars:
         retry_count: 5
@@ -194,8 +228,14 @@
           register: _vm_restore_result
           until: _vm_restore_result is success and not(_vm_restore_result is changed)
           retries: *shutdown_retries
-          until: *shutdown_until
           delay: *shutdown_delay
+
+        - name: clear facts
+          set_fact:
+            domain_disks: null
+            snapshot_disks: null
+            new_overlay: null
+            new_vm_domain_xml: null
 
     - name: Remove dandling overlays
       loop: "{{ myParsedXMLSnapshot.domainsnapshot.disks.disk is mapping | ternary( [ myParsedXMLSnapshot.domainsnapshot.disks.disk ], myParsedXMLSnapshot.domainsnapshot.disks.disk, [] ) }}"

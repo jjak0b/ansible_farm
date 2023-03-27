@@ -2,13 +2,20 @@
 #   vm_name: "Vm name"
 #   snapshot_name: "snapshot name"
 #   uri: "session uri"  example: qemu:///system
-#   children: (default: false) if true will delete also children snapshots
 ---
 
+- name: Get virsh version
+  shell: 'virsh --version'
+  changed_when: false
+  register: virsh_version_result
+  
 - name: Delete internal snapshot
 #  when: snapshot_type == 'internal'
+  vars:
+    external_delete_support: "{{ virsh_version_result.stdout is version_compare('9.0.0', '>=' ) }}"
   block:
-    - name: "Delete snapshot '{{ snapshot_name }}' for vm {{ vm_name }}"
+    # Note aboute external snapshots: This is a very recent feature for external snapshots: it's available from 9.0.0, see https://libvirt.org/news.html#v9-0-0-2023-01-16
+    - name: "Delete {{ snapshot_type }} snapshot '{{ snapshot_name }}' for vm {{ vm_name }} if supported"
       shell: 
         cmd: >-
           virsh
@@ -16,7 +23,15 @@
           snapshot-delete
           --domain {{ vm_name | quote }}
           --snapshotname {{ snapshot_name | quote }}
-          {% if children is defined and children %}
           --children
-          {% endif %}
       register: snapshot_delete_result
+    
+  rescue:
+    - name: "Delete {{ snapshot_type }} snapshot '{{ snapshot_name }}' for vm {{ vm_name }} - fallback support"
+      include_tasks: delete_external.yaml
+      when:
+        - snapshot_type == 'external'
+        - not( external_delete_support ) or snapshot_delete_result.stderr is regex( external_unsupported_pattern, ignorecase=true, multiline=true)
+      vars:
+        external_unsupported_pattern: 'unsupported configuration\: deletion of \d* external disk snapshots not supported yet'
+

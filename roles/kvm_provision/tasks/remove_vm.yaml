@@ -9,22 +9,27 @@
     vm_name: "{{ vm.metadata.name }}"
     uri: "{{ vm.metadata.connection }}"
   block: 
-    - block:
-        - import_role:
-            name: libvirt_snapshot
-      vars:
-        list: true    
+
+    - name: get snapshot tree
+      shell:
+        cmd: >-
+          virsh
+          --connect {{ uri | quote }}
+          snapshot-list
+          --domain {{ vm_name | quote }}
+          --roots
+          --name
+      register: roots_snapshot_list_result
       
     - name: Removing all VM snapshots
-      loop: "{{ snapshot_list }}"
+      loop: "{{ roots_snapshot_list_result.stdout_lines }}"
       loop_control:
         loop_var: snapshot_to_remove
       include_role:
         name: libvirt_snapshot
       vars:
         delete: "{{ snapshot_to_remove }}"
-        children: true
-  
+
 - block:
     - name: Remove existing vm
       community.libvirt.virt:
@@ -43,5 +48,5 @@
           undefine
           --domain {{ vm.metadata.name | quote }}
           --nvram
-          --snapshots-metadata
+          --remove-all-storage
 

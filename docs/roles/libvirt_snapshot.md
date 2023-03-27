@@ -28,27 +28,45 @@ Requirements
 Role Variables
 --------------
 
-- `uri`: libvirt connection uri 
-- `vm_name`: name of target VM
-- `delete`: (optional) snapshot name to delete if any
+These variables specify which operations should be done:
+- `delete`: (optional) snapshot name to delete if any. Will delete also descedendants snapshots
 - `create`: (optional) snapshot name to create if any
-- `restore`: (optional) snapshot name to restore if any
+- `restore`: (optional) snapshot name to restore if any.
 - `list`: (optional) true if you want to list all snapshot names of the VM into the snapshot_list fact, nothing otherwise
 
 Each optional operation register the command result into `snapshot_<operation>_result` registered var.
 
+Other operaion variables are the following:
+
+- `uri`: the libvirt connection uri 
+- `vm_name`: name of target VM / domain name
 - `snapshot_type`: (default: `internal`) type of snapshot to operate on.
   - possible values:
     - `internal`
     - `external`
-- `should_delete_dandling_overlays`: (default: `true`) affect only if `snapshot_type == 'external'` and the `restore` operation is specified
+- `should_restore_with_new_branch`: (default: `false`) affect only if `snapshot_type == 'external'` and the `restore` or `delete` operation is specified
+  - possible values:
+    - `true` if you want to restore to the snapshot and create an overlay branch and setting it as current snapshot overlay and use new overlay disks.
+    - `false` if you want to restore to the snapshot's domain (backing store domain), so after reboot the VM will use the backingStore disks as current disks.
+- `should_delete_dandling_overlays`: (default: `true`) affect only if `snapshot_type == 'external'` and the `restore` or `delete` operation is specified
   - possible values:
     - `true` if you want to delete the previous overlay image **IF IT HAS NO DESCENDANTS SNAPSHOTS** (that depends by the specified snapshot), otherwise will keep it anyway.
     - `false` if you want to keep the dandling overlay image.
       Note that:
       - The overlay reference on the provided snapshot to restore will be lost anyway, since a new overlay image will be created.
       - This option should be only used if you want to manually re-use the dandling disk later for some reason.
-
+  - Note:
+    -  A dandling overlays is an an overlay image that is tracked by a direct descendant, but its parent (snapshot) doesn't point to it by its snapshot.
+      - Graphic example:
+        - before restore:
+          ```
+          parent snapshot <-> snapshot <-> overlay
+          ```
+        - after restore to "snapshot":
+          ```
+          parent snapshot <-> snapshot (current) <- overlay
+                                                 <-> new overlay
+          ```
 Note: if any subset of operations are specified, then the operations are executed in the following order:
 1. `delete`
 2. `create`
