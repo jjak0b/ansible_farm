@@ -2,6 +2,7 @@
 # - vm: VM definition object to operate
 # - create_vm: (default: true) if true wil create VM if not exists
 # - delete_vm: (default: false) if true will stop and delete VM (without resource cleanup)
+# - should_remove_all_vm_storage: if true will add the flag --remove-all-storage to remove all storage assets when delete_vm is true, none otherwise
 ---
 
 - name: "VM Main lifecycle: {{ vm.metadata.name }}"

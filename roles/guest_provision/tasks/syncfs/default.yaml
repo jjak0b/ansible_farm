@@ -1,7 +1,7 @@
 
 - name: Sync FS
   command:
-    cmd: /usr/bin/sync
+    cmd: /bin/sync
   changed_when: false
 
   

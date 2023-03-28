@@ -48,5 +48,6 @@
           undefine
           --domain {{ vm.metadata.name | quote }}
           --nvram
+          {% if should_remove_all_vm_storage is defined and should_remove_all_vm_storage %}
           --remove-all-storage
-
+          {% endif %}

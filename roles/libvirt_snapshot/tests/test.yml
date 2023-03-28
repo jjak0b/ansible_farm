@@ -154,6 +154,7 @@
   vars:
     create_vm: false
     delete_vm: true
+    should_remove_all_vm_storage: true
   tasks:
 
     - name: Destroy VM

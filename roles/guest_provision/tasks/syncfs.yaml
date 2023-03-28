@@ -4,8 +4,10 @@
 ---
 
 - include_tasks: syncfs/Windows.yaml
-  when: ansible_system == 'Windows' 
+  when:
+    - ansible_system == 'Windows' 
 
 - include_tasks: syncfs/default.yaml
-  when: ansible_system != 'Windows' 
+  when:
+    - ansible_system != 'Windows' 
 
