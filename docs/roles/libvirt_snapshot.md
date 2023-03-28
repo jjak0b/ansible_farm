@@ -44,6 +44,9 @@ The **restore** _external_ operation depends by the `should_restore_with_new_bra
 
 The **delete** _external_ operation focus to delete **a snapshot and its descendants** by deleting their metadata and deleting overlay disks from snapshot leaves up to the snapshot target and **behaves in different way than internal one**: it try to emulates the result of `virsh snapshot-delete` for each entry of `virsh snapshot-list --from <snapshot> --descendants --external`. This is a simplification for an easier management.
 
+Warning: if the current VM snapshot should be affected by the deletion, then a `restore` operation will occur before the deletion to restore with the `should_restore_with_new_branch: false` variable parameter.
+
+Note: In this case the use `should_restore_with_new_branch: false` is required as any current snapshot overlay disk will be deleted and in fact we just need to restore to the VM domain saved in the snapshot.
 
 Requirements
 ------------
