@@ -32,8 +32,12 @@
   register: _snapshot_descendants_result
   changed_when: false
 
+- name: Set descendants tree
+  set_fact:
+    _descendants_tree_list: "{{ ( [ snapshot_name ] + _snapshot_descendants_result.stdout_lines ) }}"
+
 - name: Dump VM xml for snapshots
-  loop: &snapshot_list "{{ [ snapshot_name ] + _snapshot_descendants_result.stdout_lines  }}"
+  loop: "{{ _descendants_tree_list }}"
   loop_control:
     loop_var: _snapshot_name_to_delete
   shell:
@@ -61,13 +65,14 @@
     # Note: don't use community.general.xml because for some reason it can't get the full xml tag associated to the xpath /domainsnapshot/domain, and output wrong data
     myParsedXMLSnapshot: "{{ ( dump_result.stdout | ansible.utils.from_xml ) }}"
 
-- name: Restore to the backing Store of this snapshot
+- name: Restore to the backing Store of this snapshot if we are in descendants
   include_tasks: restore_external.yaml
   vars:
     should_restore_with_new_branch: false
+  when: _snapshot_current_before_delete_result.stdout in _descendants_tree_list
 
 - name: "Delete self and descendants snapshot metadata of '{{ snapshot_name }}' from leaves"
-  loop: "{{ ( [ snapshot_name ] + _snapshot_descendants_result.stdout_lines ) | reverse }}"
+  loop: "{{ _descendants_tree_list | reverse }}"
   loop_control:
     loop_var: _snapshot_name_to_delete
   shell: 
@@ -94,6 +99,7 @@
 - name: clear vars
   set_fact:
     overlays_disks: null
+    _descendants_tree_list: null
 
 - name: set snapshot result
   shell: /bin/true
