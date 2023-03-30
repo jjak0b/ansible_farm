@@ -7,7 +7,7 @@
 - name: "Load the portion of VM definition of the target '{{ target }}'"
   include_role:
     name: parse_vms_definitions
-    tasks_from: init/load_target
+    tasks_from: load_target
 
 - name: "Add configuration item to architecture's pool"
   set_fact:
