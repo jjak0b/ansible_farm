@@ -4,4 +4,4 @@
     src: "{{ (vm.metadata.tmp_dir, task.src ) | path_join }}"
     dest: "{{ (vm.metadata.tmp_dir, task.dest ) | path_join }}"
     remote_src: yes
-    force: yes
+    force: "{{ task.force | default( true, true ) }}"
