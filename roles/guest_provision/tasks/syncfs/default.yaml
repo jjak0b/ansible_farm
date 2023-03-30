@@ -1,7 +1,6 @@
 
 - name: Sync FS
-  command:
-    cmd: /bin/sync
+  raw: /bin/sync
   changed_when: false
 
   
