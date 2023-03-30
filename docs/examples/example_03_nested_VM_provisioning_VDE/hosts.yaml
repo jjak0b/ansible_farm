@@ -5,7 +5,6 @@ all:
       ansible_connection: ssh
       ansible_host: localhost
       ansible_user: user
-      ansible_become_method: enable
       config:
         permutations:
           targets:
@@ -13,7 +12,6 @@ all:
           platforms:
             - "debian_vs"
     VM debian_vs_amd64:
-      ansible_port: 2201
       # https://github.com/ansible/ansible/issues/15402
       # use keys and Jump host to avoid using sshpass and a possibile 'escape of hell' by using nested ProxyCommand
 #      ansible_ssh_common_args: >
@@ -28,9 +26,9 @@ all:
             - "debian_vs_vde"
             - "debian_vs_user"
 
-    VM debian_vs_user_amd64:
+    # VM debian_vs_user_amd64:
       # Changed port to avoid Ansible jump loop error prevention (it shouldn't happen anyway)
-      ansible_port: 2202
+      # ansible_port: 2202
   children:
     hypervisors:
       hosts:
@@ -38,7 +36,6 @@ all:
       # This will be added later by the guest provision phases
       # VM debian_vs_amd64
   vars:
-#   should_replace_vm: yes
 #   ansible_ssh_args: "-F ./ssh.cfg"
     vde_network: vxvde://234.0.0.1
     

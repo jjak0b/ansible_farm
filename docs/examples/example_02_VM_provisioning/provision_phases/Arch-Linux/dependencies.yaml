@@ -1,6 +1,6 @@
 ---
 
-- Name: Ensure at least python is installed
+- name: Ensure at least python is installed first
   raw: pacman -S python --needed --noconfirm
   
 - import_tasks: ../common-tasks/gather_sysinfo.yaml

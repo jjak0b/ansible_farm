@@ -231,6 +231,18 @@ Hint: Since `parse_vms_definitions` is usually used to generate multiple VM, som
 
 Note: The `ansible_connection` and `ansible_port` values aren't set by any role of this collection and ansible will use its default ones if they are not overwritten ( they are usually `ssh` and `22` respectively ).
 
+Hint: Alternatively you can assign a random (but repeatable) port that depends by your VM name so you can automatically assign a connection port to your VMs that use the same platform definition. So each VM have its own indipendent port since it depends by the VM's name. You can achieve this by adding the following code in your `setup_vm/<platform_name>.yaml`:
+
+- Set a temp fact or variable: ```your_ssh_forward_port: "{{ 65535 | random( start=2201, seed=vm.metadata.name) }}"```
+- Set your ```vm.net.source: "hostfwd=tcp:127.0.0.1:{{your_ssh_forward_port}}-:22"```
+- add the task:
+  ```
+  - name: Set connection port for VM
+    add_host:
+      name: "{{ vm.metadata.name }}"
+      ansible_port: "{{ ssh_forward_port }}"
+  ```
+
 ###  Define a playbook: VM provisioning
 
 Now let's define the [playbook_connect.yaml](playbook_connect.yaml) that will connect and manage the VMs as following:
@@ -301,15 +313,12 @@ interpreter_python = /usr/bin/python3
 host_key_checking = False
 ```
 
-Warning: The `host_key_checking = False` setting is equivalent to the `ansible_ssh_extra_args: '-o StrictHostKeyChecking=no'` variable. This ssh parameter is required to avoid that ansible pauses execution and prompts user to add the host to known_hosts. Oterwise this would happen every time ansible will attempt to connect to every new generated VM.
+Warning: The `host_key_checking = False` setting is equivalent to the `ansible_ssh_common_args: '-o StrictHostKeyChecking=no'` variable. This ssh parameter is required to avoid that ansible pauses execution and prompts user to add the host to known_hosts. Otherwise this would happen every time ansible will attempt to connect to every new generated VM.
 
 ### Run
 
 Now in the terminal change the current directory to the main playbook's directory and run into the terminal: 
 
-
-
 ```
-ansible-playbook main.yaml
-
+ANSIBLE_CONFIG=ansible.cfg ansible-playbook main.yaml
 ```

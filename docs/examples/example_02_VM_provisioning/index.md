@@ -4,9 +4,9 @@ Deploy multiple VM and provisioning them based on their platform
 Intro
 -----
 
-In this example we are going to deploy two VMs on a hypervisor host using and show how to provion the VMs with different tasks based on their platforms on a guest provision's phase (dependencies)
+In this example we are going to deploy two VMs on a hypervisor host using and show how to provision the VMs with different tasks based on their platforms on a guest provision's phase (dependencies)
 
-Note: The principle can be applied on any phase of the VM provisioning even if this example shows a use case of a single phase.
+Note: The concept can be applied on any phase of the VM provisioning even if this example shows a use case of a single phase.
 
 - [Full code](//github.com/jjak0b/test_farm/tree/master/docs/examples/example_02_VM_provisioning/)
 
@@ -176,6 +176,9 @@ Now Let's suppose we want to define the **init**, **main**, and **terminate** ph
  - `provisioning_phases/Arch-Linux/dependencies.yaml`
   
     ```
+    - name: Ensure at least python is installed first
+      raw: pacman -S python --needed --noconfirm
+    
     - import_tasks: ../common-tasks/gather_sysinfo.yaml
 
     - name: Installing required dependencies
@@ -260,3 +263,10 @@ but on a future runs of `guest_provision` role, assuming that the hypervisor won
   - `provisioning_phases/main.yaml`
   - `provisioning_phases/terminate.yaml`
 
+### Run
+
+Now in the terminal change the current directory to the main playbook's directory and run into the terminal: 
+
+```
+ANSIBLE_CONFIG=ansible.cfg ansible-playbook main.yaml
+```

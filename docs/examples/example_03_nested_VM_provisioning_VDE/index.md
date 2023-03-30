@@ -140,7 +140,6 @@ all:
           platforms:
             - "debian_vs"
     VM debian_vs_amd64:
-      ansible_port: 2201
       # L1 deploy these VMs
       config:
         permutations:
@@ -150,8 +149,6 @@ all:
             - "debian_vs_vde"
             - "debian_vs_user"
 
-    VM debian_vs_user_amd64:
-      ansible_port: 2202
   children:
     hypervisors:
       hosts:
