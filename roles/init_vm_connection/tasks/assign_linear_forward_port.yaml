@@ -1,0 +1,44 @@
+# Assign a forward port from a specified source port pool by provifing the starting port from which should assign the new port.
+# output will be set in assigned_ports_result dictionary which value is the assigned port number
+# variables:
+# - request: dictionary where keys are the source ports mapped to starting forwarded ports associated to respective values
+--- 
+
+- vars:  
+    source_ports: "{{ request | dict2items | map(attribute='key') | map('string') | list }}"
+    starting_ports: "{{ request | dict2items | map(attribute='value') | map('int') | list }}"
+  block:
+    - name: Init vars
+      set_fact:
+        _assigned_ports_list: []
+        _requested_portinfo_list: "{{ source_ports | map( 'extract', global_forward_port_map | default( {}, true) ) | map('default', {} ) }}"
+        global_forward_port_map: "{{ global_forward_port_map | default( {}, true) }}"
+
+    - name: Assign requested ports
+      throttle: 1
+      loop: "{{ _requested_portinfo_list }}"
+      loop_control:
+        loop_var: portinfo
+        index_var: portinfo_index
+        label: "{{ current_portinfo.src_port }} -> {{ current_portinfo.next_value }}"
+      set_fact:
+        # update global for this port
+        global_forward_port_map: "{{ global_forward_port_map | combine( { current_portinfo.src_port : updated_portinfo }, recursive=true ) }}"
+        # update response for this port
+        _assigned_ports_list: "{{ _assigned_ports_list + [ current_portinfo.next_value | int ] }}"
+      vars:
+        current_portinfo:
+          src_port: "{{ portinfo.get('src_port') | default( source_ports[ portinfo_index ], true) | int }}"
+          next_value: "{{ portinfo.get('next_value') | default( starting_ports[ portinfo_index ], true) | int }}"
+        updated_portinfo:
+          next_value: "{{ portinfo.get('next_value') | default( starting_ports[ portinfo_index ], true) | int + 1 }}"
+
+    - name: Set fact result
+      set_fact:
+        assigned_ports_result: "{{ dict( source_ports | zip( _assigned_ports_list ) ) }}"
+
+      
+- name: clear facts
+  set_fact:
+    _assigned_ports_list: null
+    _requested_portinfo_list: null
