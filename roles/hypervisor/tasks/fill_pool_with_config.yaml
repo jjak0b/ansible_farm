@@ -17,7 +17,6 @@
     configurations: "{{ configurations | unique }}"
 
 - name: "Assign configuration's items to an architecture pool"
-
   loop: "{{ configurations }}"
 
   include_tasks: assign_config_from_target_to_pool.yaml
