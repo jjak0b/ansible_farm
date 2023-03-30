@@ -1,4 +1,5 @@
 ansible_port: 2202
+wait_until_port_reachable: true
 # ansible_user: arch
 # ansible_password: arch
 # ansible_become_user: arch

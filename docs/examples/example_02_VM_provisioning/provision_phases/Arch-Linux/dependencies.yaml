@@ -1,5 +1,8 @@
 ---
 
+- Name: Ensure at least python is installed
+  raw: pacman -S python --needed --noconfirm
+  
 - import_tasks: ../common-tasks/gather_sysinfo.yaml
 
 - block:
