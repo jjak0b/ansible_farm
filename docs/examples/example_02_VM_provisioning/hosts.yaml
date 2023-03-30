@@ -1,5 +1,9 @@
 all:
   children:
+    Arch-Linux:
+      vars:
+        # arch image doesn't have python installed, so use ssh port-based waits instead
+        wait_until_port_reachable: true
     hypervisors:
       hosts:
         local_hypervisor:

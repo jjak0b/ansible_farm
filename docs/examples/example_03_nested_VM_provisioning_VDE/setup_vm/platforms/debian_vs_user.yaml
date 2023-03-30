@@ -13,5 +13,4 @@
       vars:
         vm_override:
           ram: 512
-          net:
-            source: "hostfwd=tcp:127.0.0.1:2202-:22"
+

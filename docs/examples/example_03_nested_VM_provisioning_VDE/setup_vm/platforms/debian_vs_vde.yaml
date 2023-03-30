@@ -1,6 +1,11 @@
 - import_tasks:
     file: debian_vs.yaml
 
+- name: Reset connection port for VM
+  add_host:
+    name: "{{ vm.metadata.name }}"
+    ansible_port: 22
+
 - name: Override platform
   vars: 
     new_task:
