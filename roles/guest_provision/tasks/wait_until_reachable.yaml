@@ -10,14 +10,16 @@
   ignore_errors: true
 
 - name: Wait until VM becomes reachable by port
-  local_action:
-    module: wait_for
+  wait_for:
     host: "{{ ansible_host }}"
     port: "{{ ansible_port | default( 22 ) }}"
+    state: started
     timeout: "{{ connection_timeout | default(120) }}"
+    search_regex: 'SSH'
   when:
     - wait_until_reachable | bool
-    - wait_result_connection is skipped
+    - wait_until_port_reachable | bool or wait_result_connection is skipped
+  delegate_to: "{{ kvm_host | default( 'localhost' ) }}"
   register: wait_result_port
 
 - name: set wait result
