@@ -12,6 +12,11 @@
     <cmdline>{{ vm.kernel.params }}</cmdline>
       {% endif %}
     {% endif %}
+
+    {% if vm.firmware is defined %}
+    <loader readonly="yes" type="pflash">{{ vm.firmware }}</loader>
+    {% endif %}
+    
     <boot dev='hd'/>
   </os>
   <memory unit='MiB'>{{ vm.ram }}</memory>
@@ -109,7 +114,7 @@
     and so it may cause a conflict with another device.
   -->
       <qemu:arg value="-device"/>
-      <qemu:arg value="virtio-net-pci,bus=pcie.0,addr=0x03,netdev={{ vm.net.type }}0{{ vm.net.mac is defined | ternary( ',mac=' + vm.net.mac, '' ) }}"/>
+      <qemu:arg value="virtio-net-pci,bus={{ vm.default_bus | default('pcie.0', true) }},addr=0x0f,netdev={{ vm.net.type }}0{{ vm.net.mac is defined | ternary( ',mac=' + vm.net.mac, '' ) }}"/>
     </qemu:commandline>
   {% endif %}
 </domain>
