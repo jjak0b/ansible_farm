@@ -1,0 +1,48 @@
+all:
+  hosts:
+    localhost:
+      ansible_connection: local
+      config:
+        permutations:
+          targets:
+            - 'amd64'
+            - 'arm64'
+            - 'ppc64'
+          platforms:
+            - 'debian_12'
+        list:
+          - platform: 'Arch-Linux'
+            target: 'amd64'
+  children:
+    hypervisors:
+      hosts:
+        notebook_amd64:
+          ansible_host: notebook.local
+          ansible_user: user
+        rpi_4_arm64:
+          ansible_host: raspi4.local
+          ansible_user: pi
+      vars:
+        ansible_libvirt_uri: 'qemu:///session'
+    Arch-Linux:
+      vars:
+        # arch image doesn't have python installed, so use ssh port-based waits instead
+        wait_until_port_reachable: true
+    arm64:
+      vars:
+        # We need to set the firmware but doing so internal snapshots aren't supported
+        # See: https://unix.stackexchange.com/questions/663372/error-creating-snapshot-operation-not-supported-internal-snapshots-of-a-vm-wit
+        snapshot_type: external
+    vms:
+      vars:
+        allowed_phases:
+          - startup
+          - restore init
+          - create init
+          - restore clean
+          - create clean
+          - dependencies
+          - init
+          - main
+          - terminate
+          - shutdown

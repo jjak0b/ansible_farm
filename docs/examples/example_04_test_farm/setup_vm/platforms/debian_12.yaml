@@ -1,0 +1,7 @@
+
+- block:
+    - import_tasks: debian.yaml
+  vars:
+    version_name: bookworm
+    version_major_num: 12
+    version: "20230330-1335"

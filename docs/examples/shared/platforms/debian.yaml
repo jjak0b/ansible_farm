@@ -49,9 +49,6 @@
                   - callback: callbacks/sources/setup_image.yaml
                     src: "tmp-{{ image_name }}"
                     keys_path: "{{ vm.metadata.tmp_dir }}id_ssh_rsa_vm"
-#                  - callback: callbacks/sources/setup_debian.yaml
-#                    src: "tmp-{{ image_name }}"
-#                    keys_path: "{{ vm.metadata.tmp_dir }}id_ssh_rsa_vm"
                   on_provision:
                     src: "tmp-{{ image_name }}"
                     dest: &image_file_name "{{ vm.metadata.platform_name }}_{{ image_name }}"
