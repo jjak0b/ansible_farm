@@ -26,3 +26,9 @@
   loop_control:
     loop_var: configuration
   when: configurations is defined
+
+- name: Clear vars
+  set_fact:
+    permutations: null
+    configurations: null
+    default_vm_vars: null
