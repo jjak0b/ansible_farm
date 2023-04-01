@@ -8,7 +8,7 @@
   when: vm is defined
 
 - name: Init virtual machines definitions
-  include_tasks: init.yaml
+  import_tasks: init.yaml
 
 # So restore it
 - name: Restore backup of VM definition structure 

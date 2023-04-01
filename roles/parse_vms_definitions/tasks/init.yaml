@@ -3,11 +3,14 @@
 - name: Init vms vars list
   set_fact:
     virtual_machines: []
-    permutations: "{{ config.permutations | default(omit, true) }}"
     configurations: "{{ config.list | default([] ) }}"
 
-- name: Init permutations
-  include_tasks: init/init_permutations.yaml
+- name: Serialize Permutation
+  block:
+    - name: Init permutations
+      import_tasks: init/init_permutations.yaml
+  vars:
+    permutations: "{{ config.permutations | default(omit, true) }}"
   when: permutations is defined
 
 - name: Normalize definitions list
