@@ -1,0 +1,25 @@
+#!/bin/sh
+
+ssh-keygen -A
+sed -i 's/^.*PermitRootLogin.*$/PermitRootLogin Yes/' /etc/ssh/sshd_config
+
+{% if vm.metadata.auth.user is defined %}
+# Setup Auth for user
+
+# Setup user and password
+/sbin/adduser --disabled-password --gecos "" {{ vm.metadata.auth.user }}
+echo "{{ vm.metadata.auth.user }}:{{ vm.metadata.auth.password }}" | chpasswd
+
+{% if auth_public_key_path is defined %}
+# Setup authorized key
+# su {{ vm.metadata.auth.user }}
+mkdir -p /home/{{ vm.metadata.auth.user }}/.ssh/
+chmod 700 /home/{{ vm.metadata.auth.user }}/.ssh
+cat "{{ auth_public_key_path }}" >> /home/{{ vm.metadata.auth.user }}/.ssh/authorized_keys
+chmod 600 /home/{{ vm.metadata.auth.user }}/.ssh/authorized_keys
+chown {{ vm.metadata.auth.user }}:{{ vm.metadata.auth.user }} -R /home/{{ vm.metadata.auth.user }}/.ssh/
+# exit
+rm -f "{{ auth_public_key_path }}"
+{% endif %}
+
+{% endif %}
