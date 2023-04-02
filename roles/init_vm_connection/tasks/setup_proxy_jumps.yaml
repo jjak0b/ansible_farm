@@ -17,6 +17,10 @@
         loop_var: node_name
       set_fact:
         proxyjumps: "{{ proxyjumps + [ jump ] }}"
+      when: 
+        - hostjumps | length > 0
+        # Special case: we don't need a jump host if hostvars[ hostvars[ vm.metadata.name ].kvm_host ].ansible_connection == 'local'
+        - hostvars[ node_name ].get('ansible_connection') | ternary( hostvars[ node_name ].get('ansible_connection') != 'local', true )
       vars:
         jump: "{{ [ [ hostvars[ node_name ].ansible_user, hostvars[ node_name ].ansible_host ] | join('@'), hostvars[ node_name ].ansible_port | default(22, true) | string ] | join( ':' ) }}"
       
