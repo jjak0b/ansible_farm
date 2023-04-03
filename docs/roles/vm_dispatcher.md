@@ -30,12 +30,14 @@ This role use the following variable parameters:
 This role set the following useful public variables:
 
 - `libvirt_supported_virtualizzation_types`: dictionary of list of domains/virtualization types grouped by libvirt architecture alias
+- `libvirt_capabilities`: Mapped object directly from the XML structure of libvirt capabilities
 - `config`: On each node target assign a different `VM configuration` based on the assignment.
   - **Note** that this will not override the existing `VM configuration` set on the targets, but will append to it as `list`
 
 Dependencies
 ------------
 
+- `ansible.utils.from_xml`
 - `parse_vms_definition`: Used to parse the VM's target to check the `vm.arch` it require to emulate.
 
 Example Playbook

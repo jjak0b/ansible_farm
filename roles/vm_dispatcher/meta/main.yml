@@ -1,6 +1,6 @@
 galaxy_info:
   author: jjak0b
-  description: your role description
+  description: 'Fetch hypervisor capabilities like supported emulator per architectures, and distribute `VM configurations` over hypervisors that are playing this role.'
   company: N/A
 
   # If the issue tracker for your role is not on github, uncomment the

@@ -1,6 +1,5 @@
 # parameters:
-# - primary_domain: The libvirt domain/virtualization type that the hypervisors mush have support of
-# - fallback_domain: The libvirt domain/virtualization type that the hypervisors mush have support of if other isn't defined
+# - priority_domains: The libvirt domain/virtualization types that the hypervisors mush have support of
 ---
 - name: init vars
   set_fact:
