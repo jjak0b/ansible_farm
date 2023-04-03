@@ -1,3 +1,0 @@
-- name: A init phase task
-  debug:
-    msg:  "Inits something that could be cached"

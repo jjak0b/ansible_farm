@@ -14,6 +14,7 @@
   * # Recommended utility roles
   * [init_vm_connection](roles/init_vm_connection.md)
   * [parse_vms_definitions](roles/parse_vms_definitions.md)
+  * [vm_dispatcher](roles/vm_dispatcher.md)
   - - - -
   * # Others utility roles
   * [libvirt_network](roles/libvirt_network.md)
@@ -24,4 +25,5 @@
   * [Deploy a single VM](examples/example_01_basic_deploy_and_connect/index.md)
   * [Deploy different platform and VM provisioning](examples/example_02_VM_provisioning/index.md)
   * [Nested VM provisioning with User Networking and VDE](examples/example_03_nested_VM_provisioning_VDE/index.md)
+  * [Create a test farm](examples/example_04_test_farm/index.md)
 
