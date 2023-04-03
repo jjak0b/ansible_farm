@@ -25,11 +25,12 @@ This role use the following variable parameters:
   - **Note**: This is very important since the `localhost` node is used as unique and intermediary node to store the `VM configuration` that shouldn't overlap with the `VM configurations` statically assigned on the hypervisors nodes.
 - `ansible_libvirt_uri`: (optional) The libvirt URI used by `virsh` to fetch the libvirt capabilities
   - if provided it may provide more infos, otherwise `virsh` will use the default one (see `virsh` docs for this)
-- `priority_domains`: ( default: `[ kvm, qemu ]` )  List of virtualization domain type supported by libvirt
+- `priority_domains`: ( default: `[ kvm, qemu ]` )  List of virtualization domain type supported by libvirt.
+
 This role set the following useful public variables:
 
 - `libvirt_supported_virtualizzation_types`: dictionary of list of domains/virtualization types grouped by libvirt architecture alias
-- `config`: On each target assign a VM configuration based on the assignment.
+- `config`: On each node target assign a different `VM configuration` based on the assignment.
   - **Note** that this will not override the existing `VM configuration` set on the targets, but will append to it as `list`
 
 Dependencies
