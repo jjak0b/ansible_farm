@@ -97,6 +97,8 @@ Requirements
     - required **if** using unsupported archive format by the unarchive module
   - `bzip2` to handle .bz2 files (optional)
     - required **if** using unsupported archive format by the unarchive module
+  - `libvirt-clients`
+    - required to use the `virsh` command
 - System running hypervisor:
   - Supported platform:
     - Theoretically any GNU/Linux distribution

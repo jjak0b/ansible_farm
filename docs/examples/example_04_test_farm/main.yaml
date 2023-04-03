@@ -9,7 +9,7 @@
   gather_facts: yes
 
   roles:
-    - hypervisor
+    - vm_dispatcher
     - parse_vms_definitions
 
   tasks:  
