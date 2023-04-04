@@ -50,7 +50,7 @@ A use case of `import_path` may needs specific tasks/vars for a target on platfo
 
 Note: All use case phase file like `dependencies.yaml`, `init.yaml`, `main.yaml` and `terminate.yaml` are optional, however a generic use case file as fallback is recommended.
 
-Warning: You should manually change the `project_revision` variable value every time you want to use a different init or dependencies phase file because otherwise their tasks won't execute since the init phase would always be restored.
+Warning: You should manually change the `project_revision` variable value every time you want to use a different init or dependencies phase file because otherwise their tasks won't execute since the init phase would always be restored to the previous cached phase result.
 
 Requirements
 ------------

@@ -144,6 +144,7 @@ Role Variables
   - optional (default: *libvirt-qemu*)
 
 template scope:
+
 - `vm` definition object is accessibile into XML.j2 templates 
 
 Dependencies

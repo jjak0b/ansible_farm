@@ -4,6 +4,7 @@ vm_dispatcher
 Fetch hypervisor capabilities like supported emulator per architectures, and distribute `VM configurations` over hypervisors that are playing this role.
 A VM would be assigned to a compatible hypervisor that support its architecture.
 the assignment takes place with the following criteria:
+
 - The variable `priority_domains` specify which virtualization type should have the priority (kvm, qemu, etc ...)
   - The first domain type which a hypervisor has support with for a specific architecture will be chosen as candidate for the assignment.
 - If multiple hypervisors supports the same architecture, then the assignment will take place with a fair queue

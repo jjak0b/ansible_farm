@@ -177,7 +177,8 @@ Now Let's suppose we want to define the **init**, **main**, and **terminate** ph
   
     ```
     - name: Ensure at least python is installed first
-      raw: pacman -S python --needed --noconfirm
+      raw: pacman -Syy python --needed --noconfirm
+      become: yes
     
     - import_tasks: ../common-tasks/gather_sysinfo.yaml
 
