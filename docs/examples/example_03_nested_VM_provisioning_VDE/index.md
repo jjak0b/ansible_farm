@@ -1,35 +1,31 @@
-Nested VM provisioning with User Networking and VDE
-========================================================
+# Nested VM provisioning with User Networking and VDE
 
-Intro
------
+## Intro
 
 This example will show how to deploy a VM on a bare metal hypervisor host and use this VM as hypervisor to create 2 others nested VMs: one of these uses user networking and the other one will be connected to its hypervisor through [VDE](http://wiki.virtualsquare.org/#!repos.md#VDE).
 
 - [Full code](//github.com/jjak0b/test_farm/tree/master/docs/examples/example_03_nested_VM_provisioning_VDE/)
 
 The following document will use the following terms:
+
 - **L0** hypervisor is the real bare metal hypervisor host
 - **L1** VM (hypervisor) is a VM, which hypervisor is a L0 hypervisor
 - **L2** VM is a nested VM which hypervisor is a L1 VM
 
-Prerequisite
--------------
+## Prerequisite
 
 - [kvm_provision](../../roles/kvm_provision.md#Requirements ) role requirements
 - [guest_provision](../../roles/guest_provision.md#Requirements ) role requirements
 - ``` ansible-galaxy install -r ./requirements.yml ``` 
 - Recommended: Enable [Nested KVM](https://www.linux-kvm.org/page/Nested_Guests) on your bare metal host
 
-Define the main playbook
-------------------------
+## Define the main playbook
 
 Let's define the playbook [main.yaml](main.yaml) in same way of the [example_02](../example_02_VM_provisioning/index.md) but lets divide it in 3 playbooks:
 
 - `init_vm_definitions.yaml`
   ```
     # This playbook can use all variables from parse_vms_definitions and init_vm_connection roles defined on each hypervisor's specific inventory
-    ---
 
     - name: Init VM on Hypervisor
     hosts: "{{ hypervisors_group | default('hypervisors') }}"
@@ -51,7 +47,6 @@ Let's define the playbook [main.yaml](main.yaml) in same way of the [example_02]
 - `run_vm_provision.yaml`
   ```
   # This playbook can use all variables from kvm_provision and guest_provision roles
-  ---
 
   - name: VM provisioning on Hypervisor host
   hosts: "{{ vms_group | default('vms') }}"
@@ -110,14 +105,15 @@ Let's define the playbook [main.yaml](main.yaml) in same way of the [example_02]
 
 Note:  `run_vm_provision.yaml` is repeated twice since the changes to the L1 hypervisor's inventory are made on runtime such that at the end of all L1 VM provisioning, then it will start the L2 VM provisioning by running the 2nd `run_vm_provision.yaml` playbook.
 
-Define the inventory
-----
+## Define the inventory
 
 Let's define an inventory such that:
+
 - The L0 (bare metal) hypervisor will deploy an L1 VM of platform **debian_vs**
 - The L1 (VM) hypervisor will deploy these L2 VMs of platforms:
-    - **debian_vs_vde**
-    - **debian_vs_user**
+
+  - **debian_vs_vde**
+  - **debian_vs_user**
 
 Note: L1 hypervisors will auto-generate and setup the required ssh jump hosts ( through `init_vm_connection` role ) by using the `-J` parameter to allow ansible to `ssh` into VMs. In specific  the following variable will be set as: ``` ansible_ssh_common_args: "-J {{ generated_jumphosts | join(',') }} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" ``` where the generated jump hosts are the nested `kvm_host` hypervisors formated as `ansible_user@ansible_host:ansible_port`
 
@@ -166,17 +162,21 @@ all:
     
 ```
 
-The VMs provisioning
---
+## The VMs provisioning
 
 The **1st** `run_vm_provision.yaml` playbook will deploy and run the provisioning of the L1 VM about the **debian_vs** platform which VM provisioning phases will run tasks such that:
+
   - In **debian_vs**'s init phases:
+
     - Upgrade preinstalled packages
     - Install [this collection's requirements](../../index.md#Requirements) such as libvirt env and dependencies
     - Install a `default` libvirt pool by using the external [stackhpc.libvirt-host](https://github.com/stackhpc/ansible-role-libvirt-host) utility role
+  
   - In **debian_vs**'s main phase
+
     - Install `vde2`
     - Import a `vde_provisioning` local utility role, in short:
+
       - Create a tap interface to connect through VDE:
         ```
         ip tuntap add mode tap name tap0 user {{ ansible_user }}"
@@ -187,18 +187,18 @@ The **1st** `run_vm_provision.yaml` playbook will deploy and run the provisionin
         ```
         vde_plug tap://tap0 {{ vde_network }} -p {{ pidfile_path }} &
         ```
+    
     - Init the L2 VMs with `parse_vms_definitions` and `init_vm_connection`, adding it-self as their hypervisor
+
   - In **debian_vs**'s terminate phase
     - Remove the `shutdown` phase to allow ansible to run the VM provisioning process on next playbook.
   
   The **2nd** `run_vm_provision.yaml` playbook will deploy and run the provisioning of the nested L2 VMs which VM provisioning phases won't run any meaningful phase expect for the `terminate` phase:
   - The `terminate` will _notify_ the `shutdown_hypervisor` handler (defined in `guest_provision` role) which will trigger externally the `shutdown` phase of the **L1** hypervisor through **L0** if **L1** is an already tracked VM on same ansible instance at the end of the current playbook.
 
-Test it
---
+## Run
 
 ```
-cd docs/examples/example_03_nested_VM_provisioning_VDE
 ANSIBLE_CONFIG=ansible.cfg ansible-playbook main.yaml
 ```
 
