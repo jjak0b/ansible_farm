@@ -4,8 +4,19 @@
     path: "{{ vm.metadata.tmp_dir }}" 
     state: directory
 
-- name: Fetch and install required resources
+- name: Run before provision callbacks
 
+  loop: "{{ vm.metadata.sources }}"
+
+  include_tasks: run_before_provision_callbacks.yaml
+  
+  loop_control:
+    index_var: source_index
+    loop_var: source
+
+- name: Run on provision callback
+  vars:
+    task: "{{ source.on_provision }}"
   loop: "{{ vm.metadata.sources }}"
 
   include_tasks: install_resource.yml

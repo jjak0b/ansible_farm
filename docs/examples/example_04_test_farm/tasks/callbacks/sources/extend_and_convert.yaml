@@ -1,0 +1,44 @@
+- name: preparing Image
+  vars:
+    src_path: "{{ (vm.metadata.tmp_dir, task.src) | path_join }}"
+    dest_path: "{{  (vm.metadata.tmp_dir, task.dest) | path_join}}"
+    src_path_raw:  "{{ (vm.metadata.tmp_dir, task.src) | path_join }}.img"
+    from_format: "{{ task.from_format | default( 'raw', true ) }}"
+    to_format: "{{ task.to_format | default( 'qcow2', true ) }}"
+    partition_number: "{{ task.partition_number | default( 1, true ) | string }}"
+    size: "{{ task.size }}"
+  block:
+
+    - name: convert to raw
+      shell:
+        cmd: >-
+          qemu-img convert
+          -f {{ from_format }} -O raw
+          {{ src_path | quote }} {{ src_path_raw | quote }}
+
+    - name: enlarge the disk image file
+      shell:
+        cmd: >-
+          truncate --size={{ size }} {{ src_path_raw | quote }}
+    
+    - name: trick to update the GPT header
+      shell:
+        cmd: >-
+          printf "fix\n" | /sbin/parted ---pretend-input-tty {{ src_path_raw | quote }} print
+    
+    - name: resize the root partition
+      shell:
+        cmd: >-
+          /sbin/parted -s {{ src_path_raw | quote }} resizepart 1 100%
+
+    - name: convert to chosen format
+      shell:
+        cmd: >-
+          qemu-img convert
+          -f raw -O {{ to_format }}
+          {{ src_path_raw | quote }} {{ dest_path | quote }}
+
+    - name: remove temp raw image
+      file:
+        path: "{{ src_path_raw }}"
+        state: absent

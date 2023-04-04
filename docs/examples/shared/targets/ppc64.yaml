@@ -1,0 +1,14 @@
+- name: Define target definition
+  set_fact:
+    vm:
+      metadata:
+        target_name: ppc64
+      virt_domain: "{{ (ansible_architecture != 'ppc64le') | ternary('qemu', 'kvm') }}"
+      arch: "ppc64le"
+      emulator: "/usr/bin/qemu-system-ppc64le"
+      cpu: POWER9
+      machine: pseries
+      vcpus: 1
+      default_bus: pci.0
+
+  

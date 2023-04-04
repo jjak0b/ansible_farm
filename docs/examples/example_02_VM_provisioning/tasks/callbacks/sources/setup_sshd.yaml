@@ -18,9 +18,9 @@
 
 - name: Setup SSH on image
   shell:
-    chdir: "{{ (vm.metadata.tmp_dir, source.asset_name | dirname ) | path_join }}"
+    chdir: "{{ (vm.metadata.tmp_dir, task.src | dirname ) | path_join }}"
     cmd: >
-      virt-customize -a {{ source.asset_name + '_tmp' }}
+      virt-customize -a {{ task.dest | default( task.src, true ) }}
       --firstboot-command 'systemctl stop sshd.service'
       --firstboot-command 'systemctl enable sshd.service'
       --firstboot-command 'systemctl start sshd.service'

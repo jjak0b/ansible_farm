@@ -1,3 +1,0 @@
-- name: "main"
-  debug:
-    msg: "Hello World"

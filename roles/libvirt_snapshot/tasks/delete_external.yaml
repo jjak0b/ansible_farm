@@ -1,0 +1,109 @@
+
+- name: Check VM running state to restore
+  community.libvirt.virt:
+    command: status
+    name: "{{ vm_name }}"
+    uri: &libvirt_uri "{{ uri }}"
+  register: vm_status_to_restore
+
+- name: Get current snapshot
+  shell:
+    cmd: >-
+      virsh
+      --connect {{ uri | quote }}
+      snapshot-current
+      --domain {{ vm_name | quote }}
+      --name
+  register: _snapshot_current_before_delete_result
+  changed_when: false
+
+- name: Get descendents snapshots names ordered by creation time
+  shell:
+    cmd: >-
+      virsh
+      --connect {{ uri | quote }}
+      snapshot-list
+      --domain {{ vm_name | quote }}
+      --from {{ snapshot_name | quote }}
+      --descendants
+      --external
+      --name
+#      | awk 'NR>2 {print $0}' | sort -k2 | awk '{print $1}'
+  register: _snapshot_descendants_result
+  changed_when: false
+
+- name: Set descendants tree
+  set_fact:
+    _descendants_tree_list: "{{ ( [ snapshot_name ] + _snapshot_descendants_result.stdout_lines ) }}"
+
+- name: Dump VM xml for snapshots
+  loop: "{{ _descendants_tree_list }}"
+  loop_control:
+    loop_var: _snapshot_name_to_delete
+  shell:
+    cmd: >-
+      virsh
+      --connect {{ uri | quote }}
+      snapshot-dumpxml
+      --domain {{ vm_name | quote }}
+      --snapshotname {{ _snapshot_name_to_delete | quote }}
+  register: _snapshots_dumpxml_result
+  changed_when: false
+
+- name: Init facts
+  set_fact:
+    overlays_disks: []
+
+- name: Get list of overlay disks
+  loop: "{{  _snapshots_dumpxml_result.results }}"
+  loop_control:
+    loop_var: dump_result
+    label: "{{ dump_result._snapshot_name_to_delete }}"
+  set_fact:
+    overlays_disks: "{{ myParsedXMLSnapshot.domainsnapshot.disks.disk is mapping | ternary( [ myParsedXMLSnapshot.domainsnapshot.disks.disk ], myParsedXMLSnapshot.domainsnapshot.disks.disk, [] ) | union( overlays_disks ) }}"
+  vars:
+    # Note: don't use community.general.xml because for some reason it can't get the full xml tag associated to the xpath /domainsnapshot/domain, and output wrong data
+    myParsedXMLSnapshot: "{{ ( dump_result.stdout | ansible.utils.from_xml ) }}"
+
+- name: Restore to the backing Store of this snapshot if we are in descendants
+  include_tasks: restore_external.yaml
+  vars:
+    should_restore_with_new_branch: false
+  when: _snapshot_current_before_delete_result.stdout in _descendants_tree_list
+
+- name: "Delete self and descendants snapshot metadata of '{{ snapshot_name }}' from leaves"
+  loop: "{{ _descendants_tree_list | reverse }}"
+  loop_control:
+    loop_var: _snapshot_name_to_delete
+  shell: 
+    cmd: >-
+      virsh
+      --connect {{ uri | quote }}
+      snapshot-delete
+      --domain {{ vm_name | quote }}
+      --snapshotname {{ _snapshot_name_to_delete | quote }}
+      --metadata
+  # Note: after this operation the current snaphot is updated automatically by libvirt
+  register: _snapshots_delete_metadata_result
+
+- name: Cleanup dandling overlays
+  loop: "{{ overlays_disks }}"
+  when: disk.source[ '@file' ] is defined
+  loop_control:
+    loop_var: disk
+    label: "{{ disk.source[ '@file' ] }}"
+  file:
+    path: "{{ disk.source[ '@file'] }}"
+    state: absent
+
+- name: clear vars
+  set_fact:
+    overlays_disks: null
+    _descendants_tree_list: null
+
+- name: set snapshot result
+  shell: /bin/true
+  register: snapshot_delete_result
+  when: &on_success 
+    - snapshot_delete_result is defined
+    - snapshot_delete_result is succeeded

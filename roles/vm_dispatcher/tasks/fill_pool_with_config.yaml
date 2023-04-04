@@ -1,0 +1,34 @@
+---
+
+- name: Init vms vars list
+  set_fact:
+    permutations: "{{ config.permutations | default(omit, true) }}"
+    configurations: "{{ config.list | default([] ) }}"
+    configurations_pools: {}
+
+- name: Init permutations
+  include_role:
+    name: parse_vms_definitions
+    tasks_from: init/init_permutations
+  when: permutations is defined
+
+- name: Normalize definitions list
+  set_fact:
+    configurations: "{{ configurations | unique }}"
+
+- name: "Assign configuration's items to an architecture pool"
+  loop: "{{ configurations }}"
+
+  include_tasks: assign_config_from_target_to_pool.yaml
+  vars:
+    target: "{{ configuration.target }}"
+
+  loop_control:
+    loop_var: configuration
+  when: configurations is defined
+
+- name: Clear vars
+  set_fact:
+    permutations: null
+    configurations: null
+    default_vm_vars: null

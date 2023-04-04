@@ -1,0 +1,9 @@
+# This playbook will init_vm_definitions per hypervisor host
+---
+
+- name: "Init VM definitions from VM configuration (matrix)"
+  import_playbook: init_vm_definitions
+
+- name: Create and provision each VM in serial on its assigned hypervisor
+  import_playbook: run_vm_provision
+

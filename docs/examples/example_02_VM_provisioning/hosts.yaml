@@ -1,7 +1,32 @@
 all:
   children:
+    Arch-Linux:
+      vars:
+        # arch image doesn't have python installed, so use ssh port-based waits instead
+        wait_until_port_reachable: true
     hypervisors:
       hosts:
         local_hypervisor:
           ansible_connection: local
           ansible_host: localhost
+      vars:
+        config:
+          permutations:
+            targets:
+              - "amd64"
+            platforms:
+              - "debian_vs"
+              - "Arch-Linux"
+    vms:
+      vars:
+        allowed_phases:
+          - startup
+          - restore init
+          - create init
+          - restore clean
+          - create clean
+          - dependencies
+          - init
+          - main
+          - terminate
+          - shutdown

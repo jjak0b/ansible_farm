@@ -1,0 +1,60 @@
+---
+
+- name: Defining platform with usermode networking
+  vars:
+    type: basic
+    version: "20230301.130409"
+    vm_name: "VM {{ vm.metadata.platform_name }}_{{ vm.metadata.target_name }}"
+  block:
+
+    - vars:
+        ssh_forward_port: "{{ 65535 | random( start=2201, seed=vm_name) }}"
+      block:
+
+        - name: Set connection port for VM
+          add_host:
+            name: "{{ vm_name }}"
+            ansible_port: "{{ ssh_forward_port }}"
+        
+        - name: Define platform definition
+          vars:
+            uri_base: "https://geo.mirror.pkgbuild.com/images/v{{ version }}"
+            image_name: "Arch-Linux-{{ vm.arch }}-{{ type }}.qcow2"
+          set_fact:
+            vm:
+              # metadata properties are used inside a task for installation and setup purposes
+              metadata:
+                name: "{{ vm_name }}"
+                hostname: archlinux
+                auth:
+                  become_method: sudo
+                  user: arch
+                  password: arch
+                  become_user: root
+                  become_password: archpassword
+                sources:
+                  - before_provision:
+                      - callback: callbacks/sources/fetch.yaml
+                        src: "{{ uri_base }}/{{ image_name }}"
+                        dest: &image_file_name "{{ image_name }}"
+                      - callback: callbacks/sources/copy.yaml
+                        src: *image_file_name
+                        dest: &working_img "tmp-{{ image_name }}"
+                      - callback: callbacks/sources/setup_image.yaml
+                        src: *working_img
+                        keys_path: "{{ vm.metadata.tmp_dir }}id_ssh_rsa_vm"
+                    on_provision:
+                      src: *working_img
+                      dest: *image_file_name
+
+              vcpus: 2
+              ram: 2048
+              disks:
+              - type: "qcow2"
+                devname: "hda"
+                src: *image_file_name
+              net:
+                type: user
+                source: "hostfwd=tcp:127.0.0.1:{{ ssh_forward_port }}-:22"
+                mac: "{{ '52:54:00' | random_mac( seed = vm_name ) }}"
+

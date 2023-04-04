@@ -2,6 +2,7 @@
 #   vm_name: "Vm name"
 #   snapshot_name: "snapshot name"
 #   uri: "session uri"  example: qemu:///system
+#   snapshot_type: external or internal
 ---
 
 - name: "Create snapshot '{{ snapshot_name }}' for vm '{{ vm_name }}'"
@@ -12,5 +13,8 @@
       snapshot-create-as
       --domain {{ vm_name | quote }}
       --name {{ snapshot_name | quote }}
+      {% if snapshot_type == 'external' %}
+      --disk-only
+      {% endif %}
   register: snapshot_create_result
 

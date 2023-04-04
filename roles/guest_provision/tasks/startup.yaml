@@ -1,0 +1,9 @@
+- name: Ensure VM is started
+  community.libvirt.virt:
+    name: "{{ vm.metadata.name }}"
+    state: running
+    uri: "{{ vm.metadata.connection | default(ansible_libvirt_uri, true) | default(omit, true) }}"
+  register: vm_start_result
+  until: vm_start_result is success
+  retries: "{{ retry_count | default(10) }}"
+  delay: "{{ retry_delay | default(5) }}"

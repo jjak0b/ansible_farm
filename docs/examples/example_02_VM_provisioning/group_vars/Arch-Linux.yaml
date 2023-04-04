@@ -1,6 +1,0 @@
-ansible_port: 2202
-# ansible_user: arch
-# ansible_password: arch
-# ansible_become_user: arch
-# ansible_become_password: arch
-# ansible_become_method: su

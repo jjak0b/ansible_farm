@@ -1,0 +1,25 @@
+# Simulate a playbook execution for this VM host
+---
+
+- name: gather facts of hypervisor host since some definitions require to use them
+  setup:
+    gather_subset: 
+    - 'all'
+
+- import_role:
+    name: vde_provisioning
+
+- import_role: 
+    name: parse_vms_definitions
+
+- name: init VM connection
+  loop: "{{ virtual_machines }}"
+
+  include_role:
+    name: init_vm_connection
+  vars:
+    vm: "{{ L2vm }}"
+  
+  loop_control:
+    loop_var: L2vm
+

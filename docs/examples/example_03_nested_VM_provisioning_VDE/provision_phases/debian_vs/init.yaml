@@ -1,0 +1,49 @@
+
+- name: gather facts of hypervisor host since some definitions require to use them
+  setup:
+    gather_subset: 
+    - 'all'
+
+- name: Setup groups
+  become: yes
+  vars:
+    libvirt_groups:
+      - kvm
+      - libvirt
+  block: 
+
+    - name: Ensure KVM and libvirt group exists
+      group:
+        name: "{{ group_name }}"
+        state: present
+      loop: "{{ libvirt_groups }}"
+      loop_control:
+        loop_var: group_name
+
+    - name: "Add '{{ ansible_user }}' to hypervisor groups"
+      user:
+        name: "{{ ansible_user }}"
+        groups: "{{ libvirt_groups | join(',') }}"
+        append: yes
+        state: present
+
+- name: 
+  vars:
+    ansible_become: false
+    libvirt_host_uri: "{{ vm.metadata.connection | default( ansible_libvirt_uri ) | default(omit, true) }}"
+    libvirt_host_python3: false
+    libvirt_host_install_daemon: false
+    libvirt_host_install_client: false
+    libvirt_host_pools:
+      - name: default
+        type: dir
+        capacity: 4096
+        path: "{{ ansible_env.HOME }}/.local/share/libvirt/images/"
+        mode: 755
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+  block:
+
+    - name: Setup libvirt pool
+      import_role:
+        name: stackhpc.libvirt-host

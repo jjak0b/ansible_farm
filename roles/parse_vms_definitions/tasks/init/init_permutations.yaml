@@ -1,16 +1,16 @@
-- name: Define VMs permutations
-  set_fact:
-    permutation_list: "{{ permutations.platforms | product( permutations.targets ) | default( [] ) }}"
-
-- name: Add permutated (platform, target) to definitions
-  loop: "{{ permutation_list }}"
-
-  include_tasks: init/add_vm_config.yaml
+- name: Init permutation
   vars:
-    configuration:
-      target: "{{ pair[1] }}"
-      platform: "{{ pair[0] }}"
+    permutation_list: "{{ permutations.platforms | default( [], true) | product( permutations.targets | default( [], true) ) | default( [] ) }}"
+  block:
+    - name: Serialize permutations to configurations
+      loop: "{{ permutation_list }}"
 
-  loop_control:
-    loop_var: pair
+      include_tasks: init/add_vm_config.yaml
+      vars:
+        configuration:
+          target: "{{ pair[1] }}"
+          platform: "{{ pair[0] }}"
+
+      loop_control:
+        loop_var: pair
 

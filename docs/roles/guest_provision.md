@@ -82,6 +82,8 @@ Role Variables
   - recommended
   - standard [connection plugins](https://docs.ansible.com/ansible/latest/plugins/connection.html)  are supported
       - `community.libvirt.libvirt_qemu` is supported
+- `wait_until_reachable`: boolean (default: true)
+  - if true will wait until VM becomes rechable in some way (by port or by connection) before run the VM provisioning, otherwise it won't wait.
 - `wait_until_port_reachable`: boolean
   - required **only** if VM's platform doesn't ship with python or the `community.libvirt.libvirt_qemu` connection plugin isn't used
   - if `true` the ansible controller will wait until the VM's host can be reached at the provided `ansible_port` (or default port 22); otherwise python must be installed on the VM and the [wait_for_connection](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/wait_for_connection_module.html) module will be used.
@@ -112,11 +114,21 @@ Role Variables
     - `terminate`: will run the **terminate** phase if possible
     - `shutdown` will shutdown the VM
 
+Handlers
+--------
+
+- `shutdown_hypervisor`: You can notify this handler to shutdown the current VM's hypervisor if it's a VM.
+  - **Note**: This will work only if the hypervisor is a VM handled by this collection since this may tracks the nested VMs in the current ansible instance, otherwise it does nothing.
+
 Dependencies
 ------------
 
 - Format of `VM definition` in `vm` var required by `roles/kvm_provision` and used in this role phase tasks
 - Format of `VM definition` in `vm` var produced by `roles/parse_vms_provision`'s output and used in this role phase tasks
+
+- `community.libvirt`
+- `ansible.windows`
+  - Only if using **Windows** (VM) targets
 
 Example Playbook
 ----------------
@@ -149,7 +161,7 @@ Example Playbook
 License
 -------
 
-BSD
+GPL-3.0-or-later
 
 Author Information
 ------------------

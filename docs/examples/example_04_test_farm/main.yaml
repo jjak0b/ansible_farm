@@ -1,0 +1,49 @@
+---
+
+- hosts: localhost
+  connection: local
+  gather_facts: yes
+  
+- name: Init VM on Hypervisor
+  hosts: hypervisors
+  gather_facts: yes
+
+  roles:
+    - vm_dispatcher
+    - parse_vms_definitions
+
+  tasks:  
+
+    - name: init VM connection
+      loop: "{{ virtual_machines }}"
+
+      include_role:
+        name: init_vm_connection
+      
+      loop_control:
+        loop_var: vm
+
+- name: VM provisioning on Hypervisor host
+  hosts: vms
+  gather_facts: no
+  tasks:
+
+    - block:
+      
+        - name: gather min facts of hypervisor host since some definitions require to use them
+          setup:
+            gather_subset: 
+            - '!all'
+        
+        - name: "start KVM Provision role for '{{ vm.metadata.name }}'"
+          include_role: 
+            name: kvm_provision
+
+      delegate_to: "{{ kvm_host }}"
+      tags:
+        - kvm_provision
+    - block:
+        - name: "Start VM provisioning of '{{ vm.metadata.name }}' "
+          include_role: 
+            name: guest_provision
+

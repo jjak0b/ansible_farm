@@ -1,9 +1,0 @@
-- include_vars:
-    file: dependencies_list.yml
-  
-- name: "install deps: {{ dependencies }} "
-  package:
-    name: "{{ dependencies }}"
-    state: present
-  become: yes
-  when: dependencies is defined and ( dependencies | length > 0 )

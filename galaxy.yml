@@ -46,6 +46,7 @@ tags:
 # range specifiers can be set and are separated by ','
 dependencies:
   community.libvirt: ">=1.2.0"
+  ansible.utils: ">=2.7.0"
 
 # The URL of the originating SCM repository
 repository: https://github.com/jjak0b/test_farm

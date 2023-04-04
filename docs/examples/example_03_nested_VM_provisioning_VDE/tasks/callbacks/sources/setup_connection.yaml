@@ -1,0 +1,47 @@
+
+# ip addr add 10.0.0.21/24 dev eth0
+# ip link set eth0 up
+
+- name: preparing Image
+  vars:
+    src_path: "{{ (vm.metadata.tmp_dir, task.src) | path_join }}"
+    dest_path: "{{ vm.metadata.tmp_dir }}"
+    net_config_location: "{{ (vm.metadata.tmp_dir, ) | path_join }}"
+    ifname: enp0s3
+  block:
+
+    - name: Find template for interface
+      set_fact:
+        interface_template_path: "{{ lookup( 'first_found', params, errors='ignore' ) }}"
+      vars:
+        params:
+          skip: true
+          files:
+            - interface.j2
+          paths:
+            - "{{ ( 'templates', vm.metadata.platform_name ) | path_join }}"
+            - templates
+
+    - name: Setup Image interface
+      vars:
+        new_content: "{{ lookup('template', interface_template_path ) }}"
+        default_content: |
+          source /etc/network/interfaces.d/*
+          auto lo
+          iface lo inet loopback
+      environment:
+        SUPERMIN_KERNEL: "{{ supermin_kernel | default( omit, true) }}"
+      # reason for this: https://bugs.launchpad.net/ubuntu/+source/linux/+bug/759725
+      become: "{{ ansible_distribution == 'Ubuntu' and not( supermin_kernel is defined ) }}"
+      shell:
+        cmd: >
+          virt-sysprep -a '{{ src_path }}'
+          --network --update --install ifupdown
+          --run-command 'echo "{{ new_content }}" >> /etc/network/interfaces.d/{{ ifname }}'
+          --run-command 'chmod +x /etc/network/interfaces.d/{{ ifname }}'
+#          --run-command 'echo "{{ new_content }}" >> /etc/systemd/network/{{ ifname }}.network'
+
+
+
+
+

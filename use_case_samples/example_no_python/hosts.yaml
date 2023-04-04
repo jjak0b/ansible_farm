@@ -1,7 +1,0 @@
-all:
-  children:
-    hypervisors:
-      hosts:
-        localhost:
-
-

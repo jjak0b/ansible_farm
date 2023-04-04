@@ -1,0 +1,18 @@
+
+- name: Convert image format
+  vars:
+    from_format: "{{ task.from }}"
+    to_format: "{{ task.to }}"
+    src_path: "{{ (vm.metadata.tmp_dir, task.src) | path_join }}"
+    dest_path: "{{ (vm.metadata.tmp_dir, task.dest) | path_join }}"
+  block:
+    - name: "Convert image to format"
+      shell:
+        cmd: >-
+          qemu-img convert
+          -f {{ from_format }} -O {{ to_format }}
+          {{ src_path | quote }} {{ dest_path | quote }}
+        creates: "{{ dest_path }}"
+
+        
+    

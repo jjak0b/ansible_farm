@@ -5,3 +5,6 @@ hypervisor_group: libvirt-qemu
 hypervisor_lookup_dir_path: setup_hypervisor
 # lookup directory for templates
 parse_lookup_dir_path: setup_vm
+
+delete_vm: false
+create_vm: true

@@ -1,0 +1,6 @@
+
+- name: Sync FS
+  raw: /bin/sync
+  changed_when: false
+
+  

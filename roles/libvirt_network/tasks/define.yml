@@ -8,10 +8,10 @@
 
 - name: "Search network definition '{{ name }}'"
   include_vars:
-    file: "{{ lookup( 'first_found', params, errors='ignore' ) }}"
+    file: "{{ lookup( 'first_found', _searchNetParams, errors='ignore' ) }}"
     name: network
   vars:
-    params:
+    _searchNetParams:
       files:
       - "{{ name }}.yml"
       paths: &default_paths
@@ -20,9 +20,9 @@
 
 - name: Search for network template
   set_fact:
-    net_xml_path: "{{ lookup( 'first_found', params, errors='ignore' ) }}"
+    net_xml_path: "{{ lookup( 'first_found', _searchNetParams, errors='ignore' ) }}"
   vars:
-    params:
+    _searchNetParams:
       files:
       - "{{ network.template }}.xml.j2"
       paths: *default_paths

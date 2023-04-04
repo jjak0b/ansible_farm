@@ -13,40 +13,15 @@
       uri: &libvirt_uri "{{ vm.metadata.connection | default(ansible_libvirt_uri, true) | default(omit, true) }}"
     when: vm.net is defined and vm.net.type == 'network'
   
-  - name: Ensure VM is started
-    community.libvirt.virt:
-      name: "{{ vm.metadata.name }}"
-      state: running
-      uri: *libvirt_uri
-    register: vm_start_result
-
-    until: vm_start_result is success
-    retries: "{{ retry_count | default(10) }}"
-    delay: "{{ retry_delay | default(5) }}"
+  - import_tasks: startup.yaml
     when: ( "startup" in allowed_phases )
   
   delegate_to: "{{ kvm_host }}"
 
-# - name: "debug host vars"
-#  debug:
-#    var: hostvars[ vm.metadata.name ]
-
 - name: VM Main lifecycle
   block:
-  - name: Wait for defined connection to VM
-    wait_for_connection:
-      timeout: "{{ connection_timeout | default(120) }}"
-    when: ansible_connection is defined and not( wait_until_port_reachable )
-    register: connection_wait_result
-  
-  - name: Wait until VM becomes reachable
-    local_action:
-      module: wait_for
-      host: "{{ ansible_host }}"
-      port: "{{ ansible_port | default( 22 ) }}"
-      timeout: "{{ connection_timeout | default(120) }}"
-    when: connection_wait_result is skipped
-    register: connection_wait_result
+
+  - import_tasks: wait_until_reachable.yaml
 
   - import_tasks: guest_main.yaml
     register: delegate_result
@@ -61,29 +36,9 @@
       var: delegate_result
     when: delegate_result is failed
   always:
-  - block:
-    - name: Ensure VM shutdown
-      community.libvirt.virt:
-        command: shutdown
-        name: "{{ vm.metadata.name }}"
-        state: shutdown
-        uri: *libvirt_uri
-      register: vm_stop_result
-      retries: &shutdown_retries "{{ retry_count }}"
-      until: &shutdown_until vm_stop_result is success and not(vm_stop_result is changed)
-      delay: &shutdown_delay "{{ retry_delay }}"
-    rescue:
-    - name: Ensure VM is destroyed as fallback
-      community.libvirt.virt:
-        command: destroy
-        name: "{{ vm.metadata.name }}"
-        state: destroyed
-        uri: *libvirt_uri
-      register: vm_stop_result
-      retries: *shutdown_retries
-      until: *shutdown_until
-      delay: *shutdown_delay
-    delegate_to: "{{ kvm_host }}"
-    when: ( "shutdown" in allowed_phases )
-
+    - block:
+        - import_tasks: shutdown.yaml
+          when: ( "shutdown" in allowed_phases )
+      delegate_to: "{{ kvm_host }}"
+      
   

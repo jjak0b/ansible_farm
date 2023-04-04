@@ -1,5 +1,0 @@
-ansible_connection: "ssh"
-ansible_port: 22
-ansible_scp_if_ssh: true
-ansible_scp_extra_args: ”-O”
-wait_until_port_reachable: true

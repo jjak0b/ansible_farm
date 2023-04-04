@@ -1,0 +1,40 @@
+# vars:
+# address: IPv4 address in CIDR notation assigned to the tap interface
+# mask: bytes used for network mask
+# ifname: name of tap interface to connect this host to a VDE network assigned to the tap interface
+# vde_network: VDE URI network to use
+
+
+# PROBLEMONE CON UBUNTU: https://askubuntu.com/questions/1427364/qemu-vde-network-backend-error
+# Usare qemu compilato con VDE abilitato ?
+---
+
+- block:
+
+  - import_tasks:
+      file: install.yaml
+
+  - name: Setup tap interface on host
+    loop:
+      - "ip tuntap add mode tap name tap0 user {{ ansible_user }}"
+      - "ip addr add 10.0.0.254/24 dev tap0"
+      - "ip link set tap0 up"
+    loop_control:
+      loop_var: command
+    shell:
+      cmd: "{{ command }}"
+    failed_when: false
+    become: yes
+
+  - name: plug tap to VDE network
+    vars:
+      pidfile_path: "{{ (vm.metadata.tmp_dir, 'tap0.pid') | path_join }}"
+    shell:
+      cmd: >
+        vde_plug tap://tap0 {{ vde_network }} -p {{ pidfile_path }} &
+      creates: "{{ pidfile_path }}"
+    async: 10
+    poll: 0
+
+
+

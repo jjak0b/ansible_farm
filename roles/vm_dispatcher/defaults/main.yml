@@ -1,0 +1,3 @@
+priority_domains:
+  - kvm
+  - qemu

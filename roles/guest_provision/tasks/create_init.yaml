@@ -1,25 +1,32 @@
-- block:
 
-    - name: Request Init Snapshot
-      vars:
-        snapshot_name: "{{ snapshot_phase_name.init }}"
-      import_role:
-        name: libvirt_snapshot
-        tasks_from: create
-      when:
-        - not( snapshot_phase_name.init in snapshot_list )
-        - ( "create init" in allowed_phases )
-      # ignore any error like "snaphot unsupported" or "snapshot already exists / doesn't exists"
-      failed_when: false
-  
-    - name: get snapshot result
-      shell: /bin/true
-      register: create_init_result
-      # is skipped when rc != 0 
-      when: &on_success 
-        - not( snapshot_create_result is skipped )
-        - snapshot_create_result.rc == 0
-      # is changed when rc == 0
-      changed_when: *on_success
+- name: Create Init
+  when:
+    - not( snapshot_phase_name.init in snapshot_list )
+    - ( "create init" in allowed_phases )
+  block:
 
-  delegate_to: "{{ kvm_host }}"
+    - name: Ensure FS sync
+      include_tasks: syncfs.yaml
+
+    - block:
+
+        - name: Request Init Snapshot
+          vars:
+            snapshot_name: "{{ snapshot_phase_name.init }}"
+          import_role:
+            name: libvirt_snapshot
+            tasks_from: create
+          # ignore any error like "snaphot unsupported" or "snapshot already exists / doesn't exists"
+          failed_when: false
+      
+        - name: get snapshot result
+          shell: /bin/true
+          register: create_init_result
+          # is skipped when rc != 0 
+          when: &on_success 
+            - not( snapshot_create_result is skipped )
+            - snapshot_create_result.rc == 0
+          # is changed when rc == 0
+          changed_when: *on_success
+
+      delegate_to: "{{ kvm_host }}"

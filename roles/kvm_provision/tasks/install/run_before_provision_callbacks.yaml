@@ -1,0 +1,19 @@
+# Runs each callback's task of .before_provision for the provided 'source' object.
+# The included callback can access to the following documented facts:
+# - vm: the vm definition
+# - source : the resource item  of vm.metadata.sources list
+# - source_index : the resource item's index  
+# - task : the task item of vm.metadata.sources.before_provision list
+# - task_index : the task item 's index  
+---
+
+- name: Run all source's tasks before provision
+  loop: "{{ source.before_provision | default( [], true ) }}"
+
+  include_tasks: run_callbacks.yaml
+
+  loop_control:
+    loop_var: task
+    index_var: task_index
+  vars:
+    callback_task_file: "{{ task.callback }}"

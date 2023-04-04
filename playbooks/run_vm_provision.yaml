@@ -1,0 +1,38 @@
+# This playbook can use all variables from kvm_provision and guest_provision roles
+---
+
+- name: VM provisioning on Hypervisor host
+  hosts: "{{ vms_group | default('vms') }}"
+  gather_facts: no
+  serial: 1
+  tasks:
+
+    - block:
+      
+        - name: gather min facts of hypervisor host since some definitions require to use them
+          setup:
+            gather_subset: 
+            - '!all'
+        
+        - name: "start KVM Provision role for '{{ vm.metadata.name }}'"
+          include_role: 
+            name: kvm_provision
+        
+      delegate_to: "{{ kvm_host }}"
+      
+      tags:
+        - kvm_provision
+
+    - block:
+
+        - name: "Start VM provisioning of '{{ vm.metadata.name }}' "
+          include_role: 
+            name: guest_provision
+        
+        - name: Flag VM as processed
+          add_host:
+            name: "{{ inventory_hostname }}"
+            groups:
+              - processed
+      tags:
+        - guest_provision

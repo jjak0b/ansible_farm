@@ -1,0 +1,7 @@
+- name: Terminate hypervisor on play
+  ping:
+  notify: shutdown_hypervisor
+  # the notify signal is produced only if the task introduces a change
+  changed_when: true
+
+  

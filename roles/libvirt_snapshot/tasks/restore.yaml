@@ -2,14 +2,18 @@
 #   vm_name: "Vm name"
 #   snapshot_name: "snapshot name"
 #   uri: "session uri"  example: qemu:///system
+#   snapshot_type: external or internal
+#   should_delete_dandling_overlays: (default: true) affect only if snapshot_type == 'external'
+#    - true if you want to delete the previous overlay image IF IT HAS NO DESCENDANTS SNAPSHOTS (that depends by the specified snapshot), otherwise will keep it anyway.
+#    - false if you want to keep the dandling overlay image but lose the reference on the provided snapshot to restore. ( Note this option should be only used if you )
 ---
 
-- name: "Restore snapshot '{{ snapshot_name }}' for vm {{ vm_name }}"
-  shell: 
-    cmd: >-
-      virsh
-      --connect {{ uri | quote }}
-      snapshot-revert
-      --domain {{ vm_name | quote }}
-      --snapshotname {{ snapshot_name | quote }}
-  register: snapshot_restore_result
+- name: "Restore internal snapshot ({{ snapshot_name }})"
+  include_tasks: restore_internal.yaml
+  when: snapshot_type == 'internal'
+
+# Simulate a snapshot-edit --current and update the VM xml
+- name: "Restore external snapshot ({{ snapshot_name }})"
+  include_tasks: restore_external.yaml
+  when: snapshot_type == 'external'
+

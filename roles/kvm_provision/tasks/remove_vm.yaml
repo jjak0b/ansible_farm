@@ -1,0 +1,53 @@
+
+- name: Stop VM
+  import_role:
+    name: guest_provision
+    tasks_from: shutdown.yaml
+
+- name: Remove Snapshots
+  vars:
+    vm_name: "{{ vm.metadata.name }}"
+    uri: "{{ vm.metadata.connection }}"
+  block: 
+
+    - name: get snapshot tree
+      shell:
+        cmd: >-
+          virsh
+          --connect {{ uri | quote }}
+          snapshot-list
+          --domain {{ vm_name | quote }}
+          --roots
+          --name
+      register: roots_snapshot_list_result
+      
+    - name: Removing all VM snapshots
+      loop: "{{ roots_snapshot_list_result.stdout_lines }}"
+      loop_control:
+        loop_var: snapshot_to_remove
+      include_role:
+        name: libvirt_snapshot
+      vars:
+        delete: "{{ snapshot_to_remove }}"
+
+- block:
+    - name: Remove existing vm
+      community.libvirt.virt:
+        command: undefine
+        name: "{{ vm.metadata.name }}"
+        uri: "{{ vm.metadata.connection }}"
+        # Note: This may be required on some VM since this parameter feature force undefine of nvram, bios, etc ...
+        # Will be added on version > 1.2, see https://github.com/ansible-collections/community.libvirt/pull/136
+        force: true
+  rescue:
+    - name: Remove existing vm - fallback
+      shell: 
+        cmd: >-
+          virsh
+          --connect {{  vm.metadata.connection | quote }}
+          undefine
+          --domain {{ vm.metadata.name | quote }}
+          --nvram
+          {% if should_remove_all_vm_storage is defined and should_remove_all_vm_storage %}
+          --remove-all-storage
+          {% endif %}

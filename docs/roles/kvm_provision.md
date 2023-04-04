@@ -17,26 +17,42 @@ You can instanciate each [ VM definition ](objects/vm_definition.md) by using th
 ### Definition use details
 -  **Properties defined in `vm.metadata` are required and needs their respective API names because are also used internally by the roles of its collection**
 - properties of `vm.metada.auth` may be declared instead as host/group variables adding the "ansible_" prefix to the property' names (for example ansible_user) and they depends by the connection method used to allow ansible to connect and login to the virtualized hosts.
-- Each uri entry of `vm.metadata.sources` is preprocessed by all callback-tasks specified from each entry of `vm.metadata.callbacks.sources`
-  - The supported callback types are:
-    - `before_provision` : Any pre-processing tasks on i-th resource. Before this callback type ends, the image specified into `.asset_name` property  must be stored in `vm.metadata.tmp_dir`
-      - Each callback-tasks can assume that in its scope can access to the following facts:
-        - `source` and `source_index`: mapped to `vm.metadata.sources` 's items on declared order
-        - `vm`
-      - Some built-in provided callbacks are:
-        - `callbacks/sources/fetch.yaml`
-          - use [ansible.builtin.get_url](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/get_url_module.html) module which supports HTTP, HTTPS, or FTP URLs
-        - `callbacks/sources/unarchive.yml`
-          - extract the `.resource_name` file by using:
-            - `gzip` command on `.gz` or `.tar.gz` files
-            - `bunzip2` command on `.bz2` files
-            - [ansible.builtin.unarchive](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/unarchive_module.html) module otherwise.
-        - `callbacks/sources/fetch_and_unarchive.yaml`
-          - call the unarchive callback if the `.asset_name` 's filename is different than the `.uri`'s filename
-      - Other callbacks may be stored into _tasks_ or `hypervisor_lookup_dir_path` directories
-        - You can override the built-in callbacks as you want
-      - When all callbacks has been completed on a resource, then the implicit `callbacks/sources/install_to_libvirt.yaml` callback is going to be called and it assumes that the `source.asset_name` is ready inside the `vm.metadata.tmp_dir` and it will proced to install that asset into libvirt.
-    
+- Each item of `vm.metadata.sources` is first processed by all `callback-tasks` defined into each entry of the `vm.metadata.sources[i].before_provision` list and after processed by the `callback-tasks` specified by the `vm.metadata.sources[i].on_provision` property.
+  - A `callback-task` has the following scheme:
+    ```
+    callback: The path of the callback task file to use, relative to the `tasks` directory
+    ... others specific arguments used by the callback-task
+    ```
+    When defining a `callback-task` you can assume that in its task's scope can access to the following facts:
+      - `source` and `source_index`: mapped to `vm.metadata.sources` 's items on declared order
+      - `task` and `task_index`: mapped to each item of `vm.metadata.sources[i].before_provision` or the `vm.metadata.sources[i].on_provision` entry.
+      - `vm`: the VM definition
+  - The `before_provision` entry lists any pre-processing `callback-tasks` that the i-th (re)source needs before being installed.
+  - The `on_provision` entry define the last `callback-task` that the i-th (re)source needs to be installed. This type of callback will be processed after all sources have processed their `before_provision`'s `callback-tasks`.
+  If the `.callback` property is not provided then the `callbacks/sources/install_to_libvirt.yaml` callback is going to be used implicitly.
+  - Some built-in provided `callback-task` are:
+    - `callbacks/sources/fetch.yaml`
+      - use [ansible.builtin.get_url](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/get_url_module.html) module which supports HTTP, HTTPS, or FTP URLs.
+      it will use the cached resource if available, otherwise will fetch the resource.
+      - arguments:
+        - `src`: The URI of the resource to fetch 
+        - `dest`: The resource name of the URI to be renamed to
+    - `callbacks/sources/unarchive.yml`
+      - extract the `src` file to the `dest` directory by using:
+        - `gzip` command on `.gz` or `.tar.gz` files
+        - `bunzip2` command on `.bz2` files
+        - [ansible.builtin.unarchive](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/unarchive_module.html) module otherwise.
+      - arguments:
+        - `src`: The input archive file to extract
+        - `dest`: The destination path to extract to
+    - `callbacks/sources/install_to_libvirt.yaml`
+      - Move the resource to the `vm.metadata.libvirt_pool_dir` path
+      - arcguments:
+        - `src`: The resource path to the file to be installed
+        - `dest`: The final resource name to use into the installation directory
+  - Other callbacks may be stored into the  _tasks_ or `hypervisor_lookup_dir_path` directories
+    - You can override the built-in callbacks as you want
+  - The `src` and `dest` of the builtin callbacks when are relative to the `vm.metadata.tmp_dir` when they are related to a file path. 
 -  Other properties in the `vm` root, except for `vm.metadata`, can be customized or renamed if you are using a custom XML template for VM definitions.
    - For instance `vcpus` is a property that is used by the default template but the variable name can be changed if you are using a custom XML template and use the new reference name inside of it.
    - About the custom variables the important thing is that they must be defined in final `VM definition` but **it doesn't matter where the custom variable is defined** since both definitions are merged together and so they can be defined into the target or platform definitions.
@@ -66,6 +82,8 @@ Requirements
 - ansible collections:
   - [community.libvirt](https://galaxy.ansible.com/community/libvirt) 
     - ```ansible-galaxy collection install community.libvirt```
+  - [community.crypto](https://galaxy.ansible.com/community/crypto) 
+    - ```ansible-galaxy collection install community.crypto```
 - ansible modules:
   - [unarchive](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/unarchive_module.html) 
 - Packages
@@ -79,6 +97,8 @@ Requirements
     - required **if** using unsupported archive format by the unarchive module
   - `bzip2` to handle .bz2 files (optional)
     - required **if** using unsupported archive format by the unarchive module
+  - `libvirt-clients`
+    - required to use the `virsh` command
 - System running hypervisor:
   - Supported platform:
     - Theoretically any GNU/Linux distribution
@@ -106,6 +126,12 @@ Role Variables
 - `vm`
   - required
   - it's a `VM definition` object
+- `create_vm`: (default: true)
+  - if true wil create VM if not exists, otherwise won't install any VM
+- `delete_vm`: (default: false)
+  - if true will stop and delete VM (without resource cleanup)
+- `should_remove_all_vm_storage`: (default: false)
+  - if true will add the flag --remove-all-storage to remove all storage assets when `delete_vm` is true, none otherwise
 - `parse_lookup_dir_path`
   - optional (default: see defaults/main )
   - It's the lookup path for searching VM templates
@@ -141,7 +167,7 @@ Example Playbook
       some_other_vms:
       - vm:
           metadata:
-            target_name: " "armvirt64"
+            target_name: "armvirt64"
             name: "my VM name for armvirt64"
             hostname: "debian-armvirt64"
             connection: "qemu:///system"
@@ -153,16 +179,20 @@ Example Playbook
               user: "root"
               password: "user"
             sources:
-            - uri: "myURI/myImage-armvirt64.qcow2.tar.gz"
-              checksum_uri: "myURI/myImage-armvirt64.qcow2.tar.gz.sha1sum"
-              checksum_type: "sha1"
-              checksum_value: "onlyThisIsSupportedForNow"
-              asset_name: &image_file_name "myImage.qcow2"
-            callbacks:
-              sources:
-              - before_provision:
-                - callbacks/sources/fetch_and_unarchive.yaml
-            cleanup_tmp: no
+            - before_provision:
+              - callback: "callbacks/sources/fetch.yaml"
+                src: "myURI/myImage-armvirt64.qcow2.tar.gz"
+                dest: "myImage-armvirt64.qcow2.tar.gz"
+              - callback: "callbacks/sources/unarchive.yml"
+                src: "myImage-armvirt64.qcow2.tar.gz"
+                dest: "./"
+              - callback: "myCustomProcessingTask.yaml"
+                src: "myImage-armvirt64.qcow2"
+                parameterA: ...
+                parameterB: ...
+              on_provision:
+                src: myImage-armvirt64.qcow2
+                dest: "version-X_myImage-armvirt64.qcow2"  
             template: "virtio"
           arch: "aarch64"
           net:
@@ -191,7 +221,7 @@ Example Playbook
 License
 -------
 
-BSD
+GPL-3.0-or-later
 
 Author Information
 ------------------

@@ -1,12 +1,46 @@
 # params:
-# - vm: VM definition object 
-# - force: boolean if true will force to override the vm resources, otherwise will use cached resources if available. xml is updated on both cases
+# - vm: VM definition object to operate
+# - create_vm: (default: true) if true wil create VM if not exists
+# - delete_vm: (default: false) if true will stop and delete VM (without resource cleanup)
+# - should_remove_all_vm_storage: if true will add the flag --remove-all-storage to remove all storage assets when delete_vm is true, none otherwise
 ---
 
 - name: "VM Main lifecycle: {{ vm.metadata.name }}"
   debug:
     var: vm
 
+- assert:
+    fail_msg: VM definition has not been provided
+    that:
+      - vm is defined
+    quiet: true
+
+- assert:
+    fail_msg: Bad format - Some required properties are missing in VM definition
+    that:
+      - vm.metadata is defined
+      - vm.metadata.name is defined
+      - vm.metadata.connection is defined
+      - vm.metadata.sources is defined and vm.metadata.sources | length > 0
+    quiet: true
+
+- assert:
+    fail_msg: Bad format - You need to provide both the temp working directory used also as cache and the installation directory
+    that:
+      - vm.metadata.tmp_dir is defined
+      - vm.metadata.libvirt_pool_dir is defined
+    quiet: true
+
+- name: Verify existing vms
+  community.libvirt.virt:
+    command: list_vms
+    uri: "{{ vm.metadata.connection }}"
+  register: all_vms
+
+- name: Remove VM
+  include_tasks: remove_vm.yaml
+  when: delete_vm and vm.metadata.name in all_vms.list_vms
+
 - name: Install VM
   include_tasks: install/install_vm.yml
-  
+  when: create_vm and ( delete_vm or not( vm.metadata.name in all_vms.list_vms ) )

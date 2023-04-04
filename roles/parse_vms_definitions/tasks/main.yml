@@ -1,6 +1,18 @@
 ---
 # tasks file for parse_vms_definitions
 
+# We need to backup up the 'vm' variable since the running host may be another VM ( otherwise the 'vm' fact is replaced by the user vm definitions )
+- name: backup VM definition structure defined in hostvars
+  set_fact:
+    vm_backup: "{{ vm }}"
+  when: vm is defined
 
 - name: Init virtual machines definitions
-  include_tasks: init.yaml
+  import_tasks: init.yaml
+
+# So restore it
+- name: Restore backup of VM definition structure 
+  set_fact:
+    vm: "{{ vm_backup }}"
+    vm_backup: null
+  when: vm_backup is defined

@@ -1,0 +1,41 @@
+- name: Clone repo
+  ansible.builtin.git:
+    repo: 'https://github.com/virtualsquare/vde-2.git'
+    dest: &prj_dir ~/VDE
+    version: master
+    recursive: true
+
+- name: Resolve working directory
+  ansible.builtin.stat:
+    path: *prj_dir
+  register: working_dir_result
+
+- name: Init conf
+  shell: 
+    cmd: autoreconf -fis
+    chdir: *prj_dir
+
+- name: Configure
+  shell: 
+    cmd: ./configure --prefix=/opt/vde
+    chdir: *prj_dir
+
+- name: Build
+  shell:
+    cmd: make
+    chdir: *prj_dir
+
+- name: Install
+  shell:
+    cmd: make install
+    chdir: "{{ working_dir_result.stat.path }}"
+  become: yes
+
+- name: Smoke test
+  shell:
+    cmd: /opt/vde/bin/vde_switch --version
+  register: smoke_test_res
+
+- debug:
+    msg: "{{ smoke_test_res.stdout }}"
+

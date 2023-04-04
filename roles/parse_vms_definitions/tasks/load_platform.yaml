@@ -1,0 +1,43 @@
+---
+
+- name: include defaults platform tasks
+  loop: "{{ lookup('first_found', _searchPlatformParams, errors='ignore', wantlist=True) }}"
+  include_tasks:
+    file: "{{ path }}"
+  loop_control:
+    loop_var: path 
+  vars:
+    _searchPlatformParams:
+      files:
+      - defaults.yaml
+      - defaults.yml
+      paths:
+      - defaults/platforms
+      skip: True
+
+- name: Merge VM definition with defaults
+  set_fact:
+    platform_vars: &pvars "{{ target_vars | combine (vm, recursive=True) }}"
+    vm: *pvars
+
+- name: "include platform tasks of '{{ platform }}'"
+  loop: "{{ lookup('first_found', _searchPlatformParams, errors='ignore', wantlist=True) }}"
+  include_tasks:
+    file: "{{ path }}"
+  loop_control:
+    loop_var: path 
+  vars:
+    _searchPlatformParams:
+      files:
+      - "{{ platform }}.yaml"
+      - "{{ platform }}.yml"
+      - default.yaml
+      - default.yml
+      paths:
+      - "{{ ( parse_lookup_dir_path, 'platforms' ) | path_join }}"
+      - defaults/platforms
+      skip: True
+
+- name: Merge VM configuration for target and platform
+  set_fact:
+    vm: "{{ platform_vars | combine (vm, recursive=True) }}"

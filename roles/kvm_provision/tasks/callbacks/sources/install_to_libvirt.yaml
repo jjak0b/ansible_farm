@@ -1,16 +1,38 @@
+# Install a resource from vm.metadata.tmp_dir/src to vm.metadata.libvirt_pool_dir/dest
+# The installation use the 'mv' command on host 
+# params:
+# - task.src: relative path to vm.metadata.tmp_dir
+# - task.dest: relative path to vm.metadata.libvirt_pool_dir
+# - task.replace: (default: true) if true will replace the resource at location, otherwise it won't
+---
+
 - name: Moving asset to libvirt pool
   vars:
-    resource_path: "{{ (vm.metadata.tmp_dir, source.resource_name) | path_join }}"
-    src_path: "{{ (vm.metadata.tmp_dir, source.asset_name) | path_join }}"
-    dest_path: "{{ (vm.metadata.libvirt_pool_dir, source.asset_name) | path_join }}"
+    replace: "{{ task.replace | default( true ) }}"
+    src_path: "{{ (vm.metadata.tmp_dir, task.src) | path_join }}"
+    dest_path: "{{ (vm.metadata.libvirt_pool_dir, task.dest) | path_join }}"
   block:
 
-    - name: Ensure libvirt pool directory exists and own to <hypervisor_group> / libvirt-qemu
+    - name: Check libvirt pool directory
+      stat:
+        path: "{{ dest_path | dirname }}" 
+        get_checksum: false
+      register: local_pool_stat_result
+
+    - name: Ensure libvirt pool directory exists
+      file:
+        path: "{{ dest_path | dirname }}" 
+        state: directory
+        mode: u+rwx,g+rwx,o+rx
+    #   become: True
+
+    - name: Ensure libvirt pool directory own to <hypervisor_group> / libvirt-qemu
       file:
         path: "{{ dest_path | dirname }}" 
         state: directory
         group: "{{ hypervisor_group }}"
         mode: u+rwx,g+rwx,o+rx
+      when: local_pool_stat_result.stat.pw_name != ansible_env.USER
     #   become: True
 
     - name: Check current asset location
@@ -26,7 +48,7 @@
       register: installed_asset_stat_result
 
     - name: Moving asset
-      when: local_asset_stat_result.stat.exists or not( installed_asset_stat_result.stat.exists )
+      when: (installed_asset_stat_result.stat.exists and replace) or not( installed_asset_stat_result.stat.exists )
       block:
 
         - assert:
@@ -35,19 +57,20 @@
             msg: "Required Asset resource '{{ src_path | basename }}' doesn't exist in {{ src_path | dirname }}"
             quiet: true
 
-        - name: "Move {{ source.asset_name }} to libvirt pool directory"
+        - name: "Move {{ src_path | basename }} to libvirt pool directory"
           shell: "mv {{ src_path | quote }} {{ dest_path | quote }}"
 
-    - name: "Ensure image is at install path and accessible by <hypervisor_group>"
+    - name: "Ensure image is at install path"
+      file:
+        path: "{{ dest_path }}"
+        owner: "{{ ansible_env.USER }}"
+        mode: u+rwx,g+rwx,o+rx
+
+    - name: "Ensure image is accessible by <hypervisor_group>"
       file:
         path: "{{ dest_path }}"
         owner: "{{ ansible_env.USER }}"
         group: "{{ hypervisor_group }}"
         mode: u+rwx,g+rwx,o+rx
-    
-    - name: Ensure temporary files are deleted
-      file:
-        path: "{{ resource_path }}"
-        state: absent
-      when: vm.metadata.cleanup_tmp | bool
+      when: local_pool_stat_result.stat.pw_name != ansible_env.USER
 #   become: True

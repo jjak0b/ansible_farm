@@ -1,0 +1,16 @@
+
+- import_tasks: ../common-tasks/gather_sysinfo.yaml
+
+- block:
+
+    - include_tasks: ../common-tasks/sync-clock.yaml
+
+    - include_vars:
+        file: Linux/dependencies_list.yml
+      
+    - name: Install dependencies.
+      package:
+        name: "{{ dependencies }}"
+        state: present
+
+  become: yes

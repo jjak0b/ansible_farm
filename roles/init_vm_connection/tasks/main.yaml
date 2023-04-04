@@ -50,4 +50,12 @@
       name: "{{ vm.metadata.name }}"
       ansible_host: "{{ hostvars[ vm.metadata.name ].inventory_hostname }}"
       ansible_libvirt_uri: "{{ vm.metadata.connection | default(omit, true) }}"
-    when: hostvars[ vm.metadata.name ].ansible_connection is defined and hostvars[ vm.metadata.name ].ansible_connection == 'community.libvirt.libvirt_qemu'
+    when:
+      - hostvars[ vm.metadata.name ].ansible_connection is defined
+      - hostvars[ vm.metadata.name ].ansible_connection == 'community.libvirt.libvirt_qemu'
+
+- name: Use Proxy Jumps
+  import_tasks: setup_proxy_jumps.yaml
+  when: 
+    - hostvars[ vm.metadata.name ].ansible_connection is defined
+    - hostvars[ vm.metadata.name ].ansible_connection in [ 'ssh', 'paramiko_ssh' ]

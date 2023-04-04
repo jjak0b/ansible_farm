@@ -1,46 +1,42 @@
+# task.src: URI to fetch
+# task.dest: fetched resource name
+---
+
 - name: Check local resource
   stat:
-    path: &resource_install_path "{{ (vm.metadata.tmp_dir, source.resource_name) | path_join }}"
+    path: &resource_install_path "{{ (vm.metadata.tmp_dir, task.dest) | path_join }}"
     get_checksum: false
-  register: cloudres_local_stat
-
-- name: Check local img
-  stat:
-    path: &img_install_path "{{ (vm.metadata.libvirt_pool_dir, source.asset_name) | path_join }}"
-    get_checksum: false
-  register: img_local_stat
+  register: cached_resource_stat
 
 - name: check uri type
   set_fact:
-    isValidURL: "{{ source.uri is defined and source.uri is match( '((http|https|ftp):\/\/).*' ) }}"
-    shouldUpdateImg: "{{ not img_local_stat.stat.exists }}"
+    isValidURL: "{{ task.src is defined and task.src is match( '((http|https|ftp):\/\/).*' ) }}"
 
 - name: Fetch URI
   block:
   - name: Check image uri
     uri:
-      url: "{{ source.uri }}"
+      url: "{{ task.src }}"
       method: HEAD
-    register: cloudimg_http_stat
+    register: remote_resource_http_stat
     check_mode: false
-    when: source.uri is defined and isValidURL
+    when:
+      - task.src is defined
+      - isValidURL
   
-  - name: check should update if local img doesn't exists or resource doesn't exists or cached resource and remote mismatch
+  - name: check should update if local resource doesn't exists or cached resource and remote mismatch
     set_fact:
-      shouldUpdateImg: "{{ shouldUpdateImg or not cloudres_local_stat.stat.exists or 
-                        ( cloudimg_http_stat is succeeded and cloudres_local_stat.stat.size != cloudimg_http_stat.content_length )
+      shouldUpdateImg: "{{not cached_resource_stat.stat.exists or 
+                        ( remote_resource_http_stat is succeeded and cached_resource_stat.stat.size | int != remote_resource_http_stat.content_length | int )
                       }}"
     
-  - name: "Update image {{ source.resource_name }}"
+  - name: "Update image {{ task.dest }}"
     get_url:
-      url: "{{ source.uri }}"
+      url: "{{ task.src }}"
       dest: *resource_install_path
       timeout: 20
-    when: source.uri is defined and isValidURL and shouldUpdateImg
-    register: cloudimg_local_updated
-
-  - name: check should update if resource has been fetched or image is missing and cache exists or should force to use cache
-    set_fact: 
-      shouldUpdateImg: "{{ (cloudimg_local_updated is succeeded and cloudimg_local_updated.changed)
-                        or (not img_local_stat.stat.exists and cloudres_local_stat.stat.exists )
-                        or ( (force is defined and force) and cloudres_local_stat.stat.exists ) }}"
+    when:
+      - task.src is defined
+      - isValidURL
+      - shouldUpdateImg
+    register: cached_resource_updated

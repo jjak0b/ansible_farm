@@ -1,0 +1,46 @@
+
+- stat:
+    path: &path_main ~/main.txt
+  register: stat_result_main
+
+- name: "Ensure main file doesn't exists"
+  assert:
+    fail_msg: "main file shouldn't exists"
+    that: not( stat_result_main.stat.exists )
+
+- name: Create 'main' file
+  file:
+    path: *path_main
+    state: touch
+
+- block:
+
+    - import_role:
+        name: libvirt_snapshot
+  
+  delegate_to: "{{ kvm_host }}"
+  vars:
+    restore: '{{ test_snapshot_name }}'
+
+- import_role:
+    name: guest_provision
+    tasks_from: wait_until_reachable.yaml
+
+- stat:
+    path: *path_main
+  register: stat_result_main2
+
+- stat:
+    path: &path_init ~/init.txt
+  register: stat_result_init2
+
+- name: "Ensure main file doesn't exists after restore to 'init'"
+  assert:
+    fail_msg: "main file shouldn't exists"
+    that: not( stat_result_main2.stat.exists )
+
+- name: "Ensure 'init' file exists after restore to 'init'"
+  assert:
+    fail_msg: "init file should exists"
+    that: stat_result_init2.stat.exists
+

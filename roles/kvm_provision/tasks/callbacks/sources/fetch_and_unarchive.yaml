@@ -1,5 +1,0 @@
-- import_tasks: fetch.yaml
-
-- name: "Unarchive if resource is an archive and should update img"
-  include_tasks: unarchive.yml
-  when: source.resource_name != source.asset_name and shouldUpdateImg

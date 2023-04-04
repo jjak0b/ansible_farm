@@ -1,0 +1,9 @@
+
+- block:
+    - name: Ensure to shutdown hypervisor
+      include_tasks: shutdown.yaml
+  delegate_to: "{{ kvm_host }}"
+  vars:
+    vm: "{{ hostvars[ hostjumps[-1] ].vm }}"
+    kvm_host: "{{ hostvars[ hostjumps[-1] ].kvm_host }}"
+  when: vm is defined

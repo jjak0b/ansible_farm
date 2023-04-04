@@ -1,0 +1,37 @@
+- include_tasks: libvirt/get_capabilities.yaml
+  when: libvirt_capabilities is not defined
+
+# We need to backup up the 'vm' variable since the running host may be another VM ( otherwise the 'vm' fact is replaced by the user vm definitions )
+- name: backup VM definition structure defined in hostvars
+  set_fact:
+    vm_backup: "{{ vm }}"
+  when: vm is defined
+
+- block:
+    - import_tasks: fill_pool_with_config.yaml
+  delegate_to: localhost
+  delegate_facts: false
+  vars:
+    config: "{{ hostvars[ 'localhost' ].config }}"
+  when: hostvars[ inventory_hostname ].libvirt_capabilities is defined
+  run_once: true
+
+# So restore it
+- name: Restore backup of VM definition structure 
+  set_fact:
+    vm: "{{ vm_backup }}"
+    vm_backup: null
+  when: vm_backup is defined
+
+- name: Dispatch pool entries per architecture
+  loop: "{{ query('dict', configurations_pools, wantlist=true ) }}"
+  vars:
+    arch: "{{ pool_entries.key }}"
+    pool: "{{ pool_entries.value}}"
+  loop_control:
+    loop_var: pool_entries  
+  include_tasks: dispatch_pool.yaml
+
+- name: Show assigned configurations
+  debug: 
+    var: config

@@ -7,17 +7,17 @@
   debug:
     var: configuration
 
-- name: Init vm definition
+- name: Init vm definition vars
   set_fact:
     default_vm_vars:
       metadata:
         platform_name: "{{ platform }}"
         target_name: "{{ target }}"
 
-- name: "Load VM target vars for '{{ target }}'"
+- name: "Load VM target - '{{ target }}'"
   include_tasks: load_target.yaml
   
-- name: "Load VM platform vars - {{ platform }}"
+- name: "Load VM platform - {{ platform }}"
   include_tasks: load_platform.yaml
 
 - name: Override template
@@ -34,3 +34,4 @@
   - name: "Initialized VM definition - {{ vm.metadata.name }}"
     set_fact:
       virtual_machines: "{{ virtual_machines + [ vm ] }}"
+      vm: null

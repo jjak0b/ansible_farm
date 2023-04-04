@@ -1,0 +1,9 @@
+dependencies:
+  - git
+  - cmake
+  - make
+  - autogen
+  - autoconf
+  - automake
+  - libtool
+  - libpcap-dev
