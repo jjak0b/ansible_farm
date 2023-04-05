@@ -1,0 +1,24 @@
+{% for node_name in (hostjumps + [ vm.metadata.name ] )  %}
+{% if hostvars[ node_name ].get('ansible_connection') | ternary( hostvars[ node_name ].get('ansible_connection') == 'ssh', true ) %}
+Host {{ hostvars[ node_name ].ansible_host }}
+{% if loop.index0 > 0 and loop.previtem is defined %}{# Use proxy jumps even for non-vm hosts #}
+  ProxyJump {{ hostvars[ loop.previtem ].ansible_host }}
+{% endif %}
+{% if hostvars[ node_name ].vm.net.type | default(None) == 'user' %}
+  Hostname localhost
+{% else %}
+  Hostname {{ hostvars[ node_name ].ansible_host }}
+{% endif %}
+{% if hostvars[ node_name ].ansible_port is defined %}
+  Port {{ hostvars[ node_name ].ansible_port }}
+{% endif %}
+  User {{ hostvars[ node_name ].ansible_user }}
+  IdentityFile {{ hostvars[ node_name ].ansible_ssh_private_key_file }}
+{% if hostvars[ node_name ].get('kvm_host') %}{# Avoid Host Key Checking for vm hosts only #}
+  StrictHostKeyChecking no
+  UserKnownHostsFile /dev/null
+{% endif %}
+  ForwardX11 yes
+
+{% endif %}
+{% endfor %}
