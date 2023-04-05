@@ -13,7 +13,9 @@ Host {{ hostvars[ node_name ].ansible_host }}
   Port {{ hostvars[ node_name ].ansible_port }}
 {% endif %}
   User {{ hostvars[ node_name ].ansible_user }}
+{% if hostvars[ node_name ].get('ansible_ssh_private_key_file') %}
   IdentityFile {{ hostvars[ node_name ].ansible_ssh_private_key_file }}
+{% endif %}
 {% if hostvars[ node_name ].get('kvm_host') %}{# Avoid Host Key Checking for vm hosts only #}
   StrictHostKeyChecking no
   UserKnownHostsFile /dev/null

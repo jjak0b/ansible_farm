@@ -9,7 +9,7 @@
 
     - name: Create temporary file for ssh host jumps
       ansible.builtin.tempfile:
-        suffix: "ssh_{{ vm.metadata.name }}.cfg"
+        suffix: "{{ vm.metadata.name | regex_replace('[^A-Za-z0-9]', '') }}_ssh.cfg"
         state: file
       register: _tmp_ssh_cfg
 
