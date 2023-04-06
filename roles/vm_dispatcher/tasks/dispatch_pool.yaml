@@ -15,7 +15,7 @@
   set_fact: 
     queue: "{{ hypervisors_virttypes | dict2items | json_query( query ) }}" 
   vars:
-    hypervisors_virttypes: "{{ dict( groups[ 'hypervisors' ] | zip( groups[ 'hypervisors' ] | map('extract', hostvars ) | map( attribute='libvirt_supported_virtualization_types', default={ arch: [] } ) ) ) }}"
+    hypervisors_virttypes: "{{ dict( ansible_play_hosts | zip( ansible_play_hosts | map('extract', hostvars ) | map( attribute='libvirt_supported_virtualization_types', default={ arch: [] } ) ) ) }}"
     query: "[?value.{{ arch }}[?contains(@, '{{ domain_type }}' )] ].key"
   # consider only first domain with matches
   when: 
