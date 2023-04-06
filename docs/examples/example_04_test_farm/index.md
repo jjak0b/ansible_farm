@@ -7,7 +7,7 @@ Each VM will be assigned to each hypervisor target by using the `vm_dispatcher` 
 
 Note: In this example hypervisors will be bare metal hosts only but the concept of hypervisor target can be applied on any inventory host that has at least a libvirt environment, so you can build first a test farm made up of VM hypervisors and distribute the (nested) VM over these ones like explained in the [nested VM provisioning example](../example_03_nested_VM_provisioning_VDE/index.md). 
 
-- [Full code](//github.com/jjak0b/test_farm/tree/master/docs/examples/example_04_test_farm/)
+- [Full code](//github.com/jjak0b/ansible_farm/tree/master/docs/examples/example_04_test_farm/)
 
 ## Prerequisite
 

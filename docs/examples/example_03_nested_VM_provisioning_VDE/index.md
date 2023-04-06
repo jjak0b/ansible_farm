@@ -4,7 +4,7 @@
 
 This example will show how to deploy a VM on a bare metal hypervisor host and use this VM as hypervisor to create 2 others nested VMs: one of these uses user networking and the other one will be connected to its hypervisor through [VDE](http://wiki.virtualsquare.org/#!repos.md#VDE).
 
-- [Full code](//github.com/jjak0b/test_farm/tree/master/docs/examples/example_03_nested_VM_provisioning_VDE/)
+- [Full code](//github.com/jjak0b/ansible_farm/tree/master/docs/examples/example_03_nested_VM_provisioning_VDE/)
 
 The following document will use the following terms:
 
