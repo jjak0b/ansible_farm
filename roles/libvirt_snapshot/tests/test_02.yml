@@ -1,0 +1,83 @@
+
+# Test virsh 9.0.0 features
+
+- name: Init L1 hypervisors VM
+  import_playbook: init_vm_definitions.yaml
+  vars:
+    hypervisors_group: 'hypervisors:&L0'
+
+- hosts: 'vms:!processed'
+  gather_facts: no
+  tasks:
+    - add_host:
+        name: "{{ inventory_hostname }}"
+        groups:
+          - L1
+
+- name: Create Init L1 hypervisors VM
+  import_playbook: run_vm_provision.yaml
+  vars:
+    vms_group: 'vms:&L1'
+    allowed_phases:
+      - startup
+      - restore clean
+      - create clean
+      - restore init
+      - create init
+      - dependencies
+      - init
+      - main
+#      - terminate
+#      - shutdown
+
+- name: Init L2 VM
+  import_playbook: init_vm_definitions.yaml
+  vars:
+    hypervisors_group: 'hypervisors:&L1'
+
+- hosts: 'vms:!L1'
+  gather_facts: no
+  tasks:
+    - add_host:
+        name: "{{ inventory_hostname }}"
+        groups:
+          - L2
+
+- name: Create L2 VM
+  import_playbook: run_vm_provision.yaml
+  vars:
+    vms_group: 'vms:&L2'
+    allowed_phases:
+      - startup
+      - restore clean
+      - create clean
+      - restore init
+      - create init
+      - dependencies
+      - init
+      - main
+      - terminate
+      - shutdown
+
+- name: Remove L2 VM
+  hosts: 'vms:&L2'
+  gather_facts: no
+  tasks: &remove_vms_tasks
+
+    - block:
+        - import_role:
+            name: kvm_provision
+      delegate_to: "{{ kvm_host }}"
+      vars:
+        create_vm: false
+        delete_vm: false
+
+- name: Terminate L1 hypervisors VM
+  import_playbook: run_vm_provision.yaml
+  vars:
+    vms_group: 'vms:&L1'
+    allowed_phases:
+      - startup
+      - terminate
+      - shutdown
+

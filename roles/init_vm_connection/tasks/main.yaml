@@ -38,7 +38,7 @@
       ansible_become_user: "{{ vm.metadata.auth is defined and vm.metadata.auth.become_user is defined | ternary( vm.metadata.auth.become_user, omit ) }}"
       ansible_become_password: "{{ vm.metadata.auth is defined and vm.metadata.auth.become_password is defined | ternary( vm.metadata.auth.become_password, omit ) }}"
 
-      ansible_host: "{{ vm.net.ip }}"
+      ansible_host: "{{ vm.metadata.hostname if vm.net.type | default(None) == 'user' else vm.net.ip }}"
       ansible_hostname: "{{ vm.metadata.hostname }}"
       # other host vars
       vm: "{{ vm }}"

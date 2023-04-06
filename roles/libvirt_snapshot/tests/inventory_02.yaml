@@ -1,0 +1,49 @@
+all:
+  hosts:
+    local_hypevisor:
+      ansible_host: localhost
+      ansible_connection: local
+    localhost:
+      ansible_host: localhost
+      ansible_connection: local
+  children:
+    hypervisors:
+      children:
+        L0:
+          hosts:
+            local_hypervisor:
+          vars:
+            config:
+              permutations:
+                targets:
+                  - "amd64"
+                platforms:
+                  - "debian_sid"
+        L1:
+          vars:
+            config:
+              permutations:
+                targets:
+                  - "amd64"
+                platforms:
+                  - "debian_12"
+
+      vars:
+        ansible_libvirt_uri: 'qemu:///session'
+    vms:
+      children:
+        processed:
+        L1:
+          vars:
+            snapshot_type: internal
+        L2:
+          vars:
+            snapshot_type: external
+      vars:
+        project_id: libvirt_snapshot.tests.test02
+        project_revision: 0
+        ansible_ssh_private_key_file: ~/.ssh/id_ssh_rsa_vm
+        ansible_connection: ssh
+  vars:
+    phases_lookup_dir_path: phases/test02
+    parse_lookup_dir_path: setup_vm

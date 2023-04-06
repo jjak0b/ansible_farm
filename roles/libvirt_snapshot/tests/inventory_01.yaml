@@ -12,11 +12,13 @@ all:
             targets:
               - "amd64"
             platforms:
-              - "debian"
+              - "debian_12"
     vms:
       vars:
+        ansible_ssh_private_key_file: ~/.ssh/id_ssh_rsa_vm
         ansible_connection: ssh
         ansible_host: localhost
-        ansible_port: 2201
   vars:
     snapshot_type: external
+    phases_lookup_dir_path: phases/test01
+    parse_lookup_dir_path: setup_vm

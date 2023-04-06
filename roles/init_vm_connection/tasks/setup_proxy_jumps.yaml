@@ -6,33 +6,21 @@
     - hostvars[ vm.metadata.name ].kvm_host is defined
     - hostvars[ vm.metadata.name ].kvm_host in hostvars
   block:
-      
-    - name: Init Proxy jumps
-      set_fact:
-        proxyjumps: []
-    
-    - name: build needed ssh proxy hosts
-      loop: "{{ hostjumps }}"
-      loop_control:
-        loop_var: node_name
-      set_fact:
-        proxyjumps: "{{ proxyjumps + [ jump ] }}"
-      when: 
-        - hostjumps | length > 0
-        # Special case: we don't need a jump host if hostvars[ hostvars[ vm.metadata.name ].kvm_host ].ansible_connection == 'local'
-        - hostvars[ node_name ].get('ansible_connection') | ternary( hostvars[ node_name ].get('ansible_connection') != 'local', true )
-      vars:
-        jump: "{{ [ [ hostvars[ node_name ].ansible_user, hostvars[ node_name ].ansible_host ] | join('@'), hostvars[ node_name ].ansible_port | default(22, true) | string ] | join( ':' ) }}"
-      
-    - debug:
-        var: proxyjumps
 
-    - name: Setup ProxyJumps
-      when:
-        - proxyjumps | length > 0
+    - name: Create temporary file for ssh host jumps
+      ansible.builtin.tempfile:
+        suffix: "{{ vm.metadata.name | regex_replace('[^A-Za-z0-9]', '') }}_ssh.cfg"
+        state: file
+      register: _tmp_ssh_cfg
+
+    - name: template ssh config
+      local_action:
+        module: template
+        src: ssh.cfg.j2
+        dest: "{{ _tmp_ssh_cfg.path }}"    
+
+    - name: Setup SSH config host inventory at
       add_host:
         name: "{{ vm.metadata.name }}"
-        ansible_ssh_common_args: >
-          -J {{ proxyjumps | join(',') }}
-          -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
+        ansible_ssh_args: "-F {{ _tmp_ssh_cfg.path }}"
         hostjumps: "{{ hostjumps }}"

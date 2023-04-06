@@ -1,0 +1,14 @@
+
+- block:
+    - import_tasks: debian.yaml
+  vars:
+    version_name: bookworm
+    version_major_num: 12
+    version: '20230403-1339'
+
+- name: Override VM definition
+  set_fact:
+    vm: "{{ vm | combine(vm_override, recursive=true ) }}"
+  vars:
+    vm_override:
+      ram: 1024

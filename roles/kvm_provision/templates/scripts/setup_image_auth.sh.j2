@@ -1,6 +1,7 @@
 #!/bin/sh
 
 ssh-keygen -A
+sed -i 's/^.*PasswordAuthentication.*$/#PasswordAuthentication yes/' /etc/ssh/sshd_config
 sed -i 's/^.*PermitRootLogin.*$/PermitRootLogin Yes/' /etc/ssh/sshd_config
 
 {% if vm.metadata.auth.user is defined %}

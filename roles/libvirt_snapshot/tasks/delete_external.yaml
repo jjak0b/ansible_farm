@@ -101,9 +101,9 @@
     overlays_disks: null
     _descendants_tree_list: null
 
-- name: set snapshot result
+- name: set external snapshot result
   shell: /bin/true
-  register: snapshot_delete_result
+  register: snapshot_delete_external_result
   when: &on_success 
-    - snapshot_delete_result is defined
-    - snapshot_delete_result is succeeded
+    - snapshot_delete_external_result is defined
+    - snapshot_delete_external_result is succeeded

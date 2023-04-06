@@ -8,11 +8,11 @@ Both internal and external snapshots are supported. It's your responsibility to 
   - use the features supported by `virsh`
 - External snapshots
   - **create** and **list** operations use the features supported by `virsh`
-  - **restore** and **delete** operaions are "manually" emulated by using other features since they aren't supported by `virsh`
+  - **restore** and **delete** operaions are "manually" emulated by using other features since they aren't fully supported by `virsh`
 
 Hint: if VM is running, the use of `/bin/sync` command on VM before the use of any **create** operation is recommended. That command isn't handled by this role. since this role focus to support snapshot features for hypervisor targets.
 
-Note: The **restore** operation for _external snapshots_ feature try to emulate the same behavior of respective internal snapshots operations but **without restoring the memory state** . This is needed since external snapshots are only partially supported by `virsh` ( but [recent versions > 9.0 have more support](https://libvirt.org/news.html#v9-0-0-2023-01-16) ). This role add some support for specific snapshot restore and delete use case operations by updating the VM domain and some snapshot metadata, since `virsh` doesn't update the VM domain and snapshots automatically.
+Note: The **restore** operation for _external snapshots_ feature try to emulate the same behavior of respective internal snapshots operations but **without restoring the memory state** . This is needed since external snapshots are only partially supported by `virsh` . This role add some support for specific snapshot restore and delete **use case** operations by updating the VM domain and some snapshot metadata, since `virsh` doesn't update the VM domain and snapshots automatically.
 
 Warning: if you use a `restore` or `delete` operation with `snapshot_type == 'external'` variable, then after that task you should add a task with [wait_for_connection](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/wait_for_connection_module.html) module or any wait until VM is reachable before doing any action on the VM target since these operations require a VM restart to make changes effective.
 
@@ -47,7 +47,7 @@ The **restore** _external_ operation depends by the `should_restore_with_new_bra
   - edit the snapshot definition to restore by (eventually) updating the overlay disks in use, and set it as current.
   - restore the VM to the previous running state before the shutdown. ( note: this is just a poweron if VM was running ).
 
-The **delete** _external_ operation focus to delete **a snapshot and its descendants** by deleting their metadata and deleting overlay disks from snapshot leaves up to the snapshot target and **behaves in different way than internal one**: it try to emulates the result of `virsh snapshot-delete` for each entry of `virsh snapshot-list --from <snapshot> --descendants --external`. This is a simplification for an easier management.
+The **delete** _external_ operation focus to delete **a snapshot and its descendants** by deleting their metadata and deleting overlay disks from snapshot leaves up to the snapshot target and **behaves in different way than internal and external ones [supported on recents virsh versions > 9.0](https://libvirt.org/news.html#v9-0-0-2023-01-16)**: The delete operation on external snapshots supported by virsh merge the deleted snapshot overlay to its parent snapshot, this role instead  try to emulates the result of `virsh snapshot-delete` for each entry of `virsh snapshot-list --from <snapshot> --descendants` that would happen with internal snapshot. This is a simplification for an easier management.
 
 Warning: if the current VM snapshot should be affected by the deletion, then a `restore` operation will occur before the deletion to restore with the `should_restore_with_new_branch: false` variable parameter.
 

@@ -1,0 +1,8 @@
+# Simulate a playbook execution for this VM host
+---
+
+- name: gather facts of hypervisor host since some definitions require to use them
+  setup:
+    gather_subset: 
+    - 'all'
+
