@@ -1,20 +1,9 @@
 ---
 
-- name: Init VM on Hypervisor
-  hosts: hypervisors
-  gather_facts: yes
-  roles:
-    - parse_vms_definitions
-  tasks:  
-
-    - name: init VM connection
-      loop: "{{ virtual_machines }}"
-
-      include_role:
-        name: init_vm_connection
-      
-      loop_control:
-        loop_var: vm
+- name: Init L1 hypervisors VM
+  import_playbook: init_vm_definitions.yaml
+  vars:
+    hypervisors_group: 'hypervisors'
 
 - name: VM provisioning on Hypervisor host
   hosts: vms
@@ -70,7 +59,7 @@
           delegate_to: "{{ kvm_host }}"
 
         - name: Fill 'clean' overlay
-          include_tasks: phases/init.yaml
+          include_tasks: "{{ (phases_lookup_dir_path, 'init.yaml' ) | path_join }}"
 
         - name: Ensure FS sync
           import_role:
@@ -86,7 +75,7 @@
           delegate_to: "{{ kvm_host }}"
 
         - name: Fill a 'init' overlay
-          include_tasks: phases/main.yaml
+          include_tasks: "{{ (phases_lookup_dir_path, 'main.yaml' ) | path_join }}"
           vars:
             test_snapshot_name: 'test.init'
 
@@ -105,7 +94,7 @@
           delegate_to: "{{ kvm_host }}"        
 
         - name: Fill another 'init' overlay
-          include_tasks: phases/main.yaml
+          include_tasks: "{{ (phases_lookup_dir_path, 'main.yaml' ) | path_join }}"
           vars:
             test_snapshot_name: 'test.init'
 
