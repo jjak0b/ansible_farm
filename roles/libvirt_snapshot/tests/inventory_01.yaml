@@ -18,7 +18,6 @@ all:
         ansible_ssh_private_key_file: ~/.ssh/id_ssh_rsa_vm
         ansible_connection: ssh
         ansible_host: localhost
-        ansible_port: 2201
   vars:
     snapshot_type: external
     phases_lookup_dir_path: phases/test01
