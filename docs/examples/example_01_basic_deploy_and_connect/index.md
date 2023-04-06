@@ -6,7 +6,7 @@ Intro
 
 In this example we are going to show how to deploy a single VM on a hypervisor host using the default VM template and connect to it using SSH through the user network.
 
-- [Full code](//github.com/jjak0b/test_farm/tree/master/docs/examples/example_01_basic_deploy_and_connect/)
+- [Full code](//github.com/jjak0b/ansible_farm/tree/master/docs/examples/example_01_basic_deploy_and_connect/)
 
 Prerequisite
 -----------------------

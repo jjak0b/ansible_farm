@@ -8,7 +8,7 @@ In this example we are going to deploy two VMs on a hypervisor host using and sh
 
 Note: The concept can be applied on any phase of the VM provisioning even if this example shows a use case of a single phase.
 
-- [Full code](//github.com/jjak0b/test_farm/tree/master/docs/examples/example_02_VM_provisioning/)
+- [Full code](//github.com/jjak0b/ansible_farm/tree/master/docs/examples/example_02_VM_provisioning/)
 
 Prerequisite
 -------------
@@ -226,7 +226,7 @@ If we run the `main.yaml` playbook, then for each VM definition:
 
 Note: Since the playbook has the `serial: 1` parameter set, then each VM will be processed on serial. If you want to process them on parallel then you need to remove that parameter.
 
-Hint: The playbook of this example is almost identical to the `playbooks/main.yaml` of this collection so you can directly replace the `main.yaml` playbook content of this example with ``` - import_playbook: jjak0b.deploy_farm.main ``` if you installed the collection or use a symbolic link.
+Hint: The playbook of this example is almost identical to the `playbooks/main.yaml` of this collection so you can directly replace the `main.yaml` playbook content of this example with ``` - import_playbook: jjak0b.ansible_farm.main ``` if you installed the collection or use a symbolic link.
 
 Let's focus on the provisioning lifecycle: all phases will execute in sequence.
 The init phase should include all tasks of dependencies and init tasks that will install anything on the guest system and since the downloads and setup of dependencies may require a lot of time and resources, then it's often helful if it may cache that content and skip directly to the init phase. For such reason the `guest_provision` role will restore the image to the safest available snapshot 
