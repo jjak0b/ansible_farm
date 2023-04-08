@@ -1,0 +1,27 @@
+
+- include_tasks: "{{ (phases_lookup_dir_path, 'common-tasks', 'gather_sysinfo.yaml' ) | path_join }}"
+
+- block:
+
+    - include_tasks: "{{ (phases_lookup_dir_path, 'common-tasks', 'sync-clock.yaml' ) | path_join }}"
+
+    - include_vars:
+        file: "{{ (phases_lookup_dir_path, 'dependencies', ansible_distribution + '.yaml' ) | path_join }}"
+      
+    - name: Install dependencies.
+      package:
+        name: "{{ dependencies }}"
+        state: present
+
+  become: yes
+
+- name: Install Junit from pip
+  shell: pip install junit-xml
+
+- name: Clone repo
+  ansible.builtin.git:
+    repo: 'https://github.com/jjak0b/ansible_farm.git'
+    dest: &prj_dir ~/ansible_farm
+    version: master
+    recursive: true
+  

@@ -1,0 +1,82 @@
+
+- name: Check requirements
+  ansible.builtin.stat:
+    path: "{{ ( project_dir, 'requirements.yml') | path_join }}"
+  register: requirements_stat_result
+
+- name: Check config
+  ansible.builtin.stat:
+    path: "{{ ( project_dir, 'ansible.cfg') | path_join }}"
+  register: config_stat_result
+
+- name: Check main
+  ansible.builtin.stat:
+    path: "{{ ( project_dir, 'main.yaml') | path_join }}"
+  register: playbook_stat_result
+
+- name: Install ansible-galaxy requirements
+  shell:
+    cmd: ansible-galaxy install -r requirements.yml
+    chdir: "{{ project_dir }}"
+  when: requirements_stat_result.stat.exists
+
+- name: Run playbook
+  when: 
+    - playbook_stat_result.stat.exists
+  block:
+
+    - name: Run ansible playbook with config
+      when:
+        - config_stat_result.stat.exists
+      environment:
+        ANSIBLE_CONFIG: ansible.cfg
+        ANSIBLE_STDOUT_CALLBACK: junit
+        JUNIT_OUTPUT_DIR: &output_dir "{{ (project_dir, 'output' ) | path_join }}"
+      register: run_playbook_result
+      shell:
+        cmd: ansible-playbook main.yaml
+        chdir: "{{ project_dir }}"
+
+    - name: Run ansible playbook without config
+      environment:
+        ANSIBLE_STDOUT_CALLBACK: junit
+        JUNIT_OUTPUT_DIR: *output_dir
+      when:
+        - run_playbook_result is defined
+        - run_playbook_result is skipped
+      shell:
+        cmd: ansible-playbook main.yml
+        chdir: "{{ project_dir }}"
+      when:
+  always:
+
+    - name: Save output in controller
+      loop: "{{ lookup('ansible.builtin.fileglob', (project_dir, 'output', '*.xml' ) | path_join, wantlist=True) }}"
+      loop_control:
+        loop_var: output_file
+
+      ansible.builtin.fetch:
+        src: "{{ output_file }}"
+        dest: 'output'
+
+- name: Clean up
+  block:
+    - name: Verify existing vms
+      community.libvirt.virt:
+        command: list_vms
+        uri: 'qemu:///session'
+      register: all_vms_to_remove
+
+    - name: Delete all VMs
+      loop: "{{ all_vms_to_remove.list_vms }}"
+      loop_control:
+        loop_var: name
+      vars:
+        vm:
+          metadata:
+            name: "{{ name }}"
+            connection: 'qemu:///session'
+      include_role:
+        name: kvm_provision
+        tasks_from: remove_vm
+

@@ -11,7 +11,7 @@
 
 - name: Wait until VM becomes reachable by port
   wait_for:
-    host: "{{ ansible_host }}"
+    host: "{{ ansible_host_real | default( ansible_host, true ) }}"
     port: "{{ ansible_port | default( 22 ) }}"
     state: started
     timeout: "{{ connection_timeout | default(120) }}"

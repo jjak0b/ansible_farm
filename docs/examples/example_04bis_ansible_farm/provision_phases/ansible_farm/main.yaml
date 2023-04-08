@@ -1,0 +1,14 @@
+---
+
+- name: Resolve working directory
+  ansible.builtin.stat:
+    path: ~/ansible_farm
+  register: working_dir_result
+  
+- loop:
+    - "{{ ( working_dir_result.stat.path, 'docs/examples/example_01_basic_deploy_and_connect') | path_join }}"
+    - "{{ ( working_dir_result.stat.path, 'docs/examples/example_02_VM_provisioning') | path_join }}"
+    - "{{ ( working_dir_result.stat.path, 'docs/examples/example_03_nested_VM_provisioning_VDE') | path_join }}"
+  loop_control:
+    loop_var: project_dir
+  include_tasks: shared/run_ansible_playbook.yaml

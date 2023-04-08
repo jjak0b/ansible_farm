@@ -1,0 +1,7 @@
+---
+
+- name: Ensure at least python is installed first
+  raw: pacman -Syy python --needed --noconfirm
+  become: yes
+  
+- include_tasks: "{{ (phases_lookup_dir_path, 'dependencies.yaml' ) | path_join }}"

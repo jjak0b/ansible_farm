@@ -1,0 +1,14 @@
+dependencies:  
+  - python3-pip
+  - python3-lxml
+  - python3-libvirt
+  - libvirt-daemon-system
+  - qemu-kvm
+  - libvirt-clients
+  - libguestfs-tools
+  - virt-manager
+  - xauth
+  - bzip2
+  - gzip
+  - ansible
+  - git

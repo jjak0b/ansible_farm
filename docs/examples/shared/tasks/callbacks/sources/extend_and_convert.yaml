@@ -29,7 +29,7 @@
     - name: resize the root partition
       shell:
         cmd: >-
-          /sbin/parted -s {{ src_path_raw | quote }} resizepart 1 100%
+          /sbin/parted -s {{ src_path_raw | quote }} resizepart {{ partition_number }} 100%
 
     - name: convert to chosen format
       shell:
