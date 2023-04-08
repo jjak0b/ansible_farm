@@ -1,0 +1,28 @@
+
+- block:
+    - import_tasks: _debian.yaml
+  vars:
+    version_name: bookworm
+    version_major_num: 12
+    version: '20230403-1339'
+  
+- vars:
+    new_task:
+      callback: callbacks/sources/extend_and_convert.yaml
+      src: "{{ vm.metadata.sources[0].before_provision[2].src }}"
+      dest: "{{ vm.metadata.sources[0].before_provision[2].src }}"
+      from_format: qcow2
+      to_format: qcow2
+      partition_number: 1
+      size: 20G
+  block:
+
+    - name: Add new task to imported definition
+      set_fact:
+        vm: "{{ vm | combine(vm_override, recursive=true ) }}"
+      vars:
+        vm_override:
+          metadata:
+            sources:
+              - before_provision: "{{ vm.metadata.sources[0].before_provision[:2] + [ new_task ] + vm.metadata.sources[0].before_provision[2:] }}"
+                on_provision: "{{ vm.metadata.sources[0].on_provision }}"
