@@ -25,6 +25,11 @@ list:
 - `list` : It's a list of all explicit declaration of some `(platform, target)` object pairs. It may contains also tuples in the `(platform, target, template)` form to assign a template name inside the `VM definition` if it requires to be used while installed.
 
 ## Usage
-This object is used as variable parameter for the `parse_vms_definitions` role which will combine both the permutations and definitions lists and so will lookup, parse and merge both platform and target definitions for each pair of the combined list.
+
+- `vm_dispatcher` role
+  - if this object is defined in `localhost` inventory, then you can use this role to distribute all `VM configuration` to hypervisors hosts that support emulation capabilities for that specific target (architecture). The distribution consists on the assignment of the `VM configuration` object with only the `list` property. Note that the list will be appended if the hypervisor inventory already has `VM configurations`.
+
+- `parse_vms_definitions` role
+  - This object is used as variable parameter for the `parse_vms_definitions` role which will combine both the permutations and definitions lists and so will lookup, parse and merge both platform and target definitions for each pair of the combined list.
 
 **Note**: foreach `(platform, target, template)` tuple the `parse_vms_definitions` role will set the template name to the `vm.metadata.template` property.

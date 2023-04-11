@@ -1,55 +1,92 @@
 # jjak0b.ansible_farm Collection
 
-An ansible tool to provision an host with VMs of different machine, architecture and OS configs and to provision VMs with custom tasks
+An ansible collection used to create a farm of virtual machines and control these with tasks categorized in different provision phases.
+
+The roles of this collection focus on:
+
+- Create VM definitions from different configuration files separating platform-specific data and target-specific data
+- Provision an hypervisor host with VMs of different VM definitions
+- Provision a VM (guest) host with **repeateable** and **cachable** provision phases by using **snapshots**
+- **Don't require root privileges** whenever possible and for the use main use cases of this collection don't require root privileges by default.
+
+The main use case for this collection is to create a VM farm made of different platforms and targets to distribute repeateable and cachable provision phases over these like project builds and testing scripts.
+
+This collection is flexible so you can use the features it provide also for other purposes.
+
+All roles of this collection uses some common terms:
+
+- The `VM configuration` is a convenient object which describes a permutations of all platforms and targets pairs that we need as virtual machines and each of those are going to be generated in the form of `VM definition` object after parsing some `platform and target definitions` files.
+- The `VM definition` object describes the characteristics of a VM about the hardware it emulates, the firmware or OS that is installed onto it and other parameters like credentials and network host configuration. It's a combination of `platform` and `target` definitions.
+- The `platform` definition (synonym of OS) is the definition of the used OS, disks, network, credentials, VM components that may be required by the OS. This specify also how a resource should be processed and installed later into libvirt.
+- The`target` definition (synonym of machine, architecture of machine) is the definition of emulated hardware components in each `VM definition`, like CPU, RAM, machine type, emulator, etc ...
 
 The Hypervisor and VM provisioning
 ----------------------------------
 
-the VMs configurations should be defined in a var file, for example `vms_config.yaml` and these configurations vars should be then provided as input of `roles/parse_vms_definitions` such that generates `VM definitions` items in a `virtual_machines` list.
+the `VMs configurations` should be defined in the hypervisors inventory and these configurations vars should be then provided as input of the `parse_vms_definitions` role such that it generates the `VM definitions` items in a `virtual_machines` list.
 
-### Usage 
+These `VM definitions` should be prepared with the `init_vm_connection` role first, installed using the `kvm_provision` role later and provisioned using the `guest_provision` role finally
+
+### Standard Usage and How it works
+
 - For each host of hypervisors
-  - For each `vm` item ( for example of `virtual_machines` list ) should be provided as input of:
-    - `roles/init_vm_connection` to add a new ansible host entry to the inventory and define a libvirt network and a DHCP entry for connection such that the vm should be connected to it
+  - ( optional: Assign `VMs configurations` to the hypervisor host using `roles/vm_dispatcher` )
+  - Provide all `VMs configurations` as input of `roles/parse_vms_definitions`
+    - This will generate a list of `VM Definition` items called `virtual_machines`
+  - Each `vm` item of `virtual_machines` should be provided as input of:
+    - `roles/init_vm_connection`
+      - to add a new ansible inventory host entry to the global inventory
+      - to configure the connection to allow the controller to connect to the VM
+        - Eventually defining a libvirt network and a DHCP entry for connection such that the vm should be connected to it
       - After that
-        - each VM host is added as ansible host
-        - the `VM definition` is added as global `vm`  host var in VM's lifecycle.
-        - the hypervisor's inventory host is added as global `kvm_host` host var in VM's lifecycle.
+        - each VM host is added as ansible inventory host
+        - the `VM definition` is added as `vm` inventory host var
+        - the hypervisor's `inventory_hostname` is added as `kvm_host` inventory host var to keep a reference of its hypervisor node.
         - Each VM host are added to the following ansible groups:
           - `vms`
           - `"{{ vm.metadata.name }}"`
           - `"{{ vm.metadata.platform_name }}"`
           - `"{{ vm.metadata.target_name }}"`
-    - `roles/kvm_provision` to define and install VM resources 
 
 - For each host in `vms` should run:
-  - ( alternatively use `roles/kvm_provision` here to define and install VM resources if `vm` var as `VM definition` object is defined as vm host variable )
+  - Delegated `roles/kvm_provision` to `kvm_host`, to define and install the `VM definition` stored in `vm` inventory host var
   - `roles/guest_provision` to provision the VM with the guest lifecycle
 
 The VM Guest lifecycle
 ----------------------
-The lifecycle of the provisioned VM runs the following phases:
 
-0. **Init** use case phase
-   1. Restore to '**init**' snapshot (if exists)
-   2. otherwise restore or create the '**clean**' snapshot
-      1. **dependencies** phase
+The lifecycle of the provisioned VM runs the following workflow:
+
+0. **Startup** 
+   - Start the VM
+   - Wait until connection is ready
+
+1. **Init** use case phase
+   - Restore to a '**init**' snapshot if exists
+   - otherwise fallback to restore or create a '**clean**' snapshot and run the **init** phase:
+
+      1. **dependencies** pre-phase
          - Run dependencies tasks (`{{ import_path }}/dependencies.yaml`)
       2. use case phase: 
          - Run init tasks `{{ import_path }}/init.yaml`
          - Create 'init' snapshot
-1. **Main** use case phase: 
-   - Run main tasks `{{ import_path }}/main.yaml`
-2. **Terminate** use case phase: 
-   - Run end tasks `{{ import_path }}/terminate.yaml`
 
+2. **Main** use case phase: 
+   - Run main tasks `{{ import_path }}/main.yaml`
+
+3. **Terminate** use case phase: 
+   - Run end tasks `{{ import_path }}/terminate.yaml` whether the main phase succeeds or fails
+
+4. **shutdown**
+   - Shutdown gracefully first the VM, otherwise force it
+ 
 Where `import_path` is a subpath that match with the most detailited phase file location, according to the target and platform type of the VM.
 The `import_path` is the one in the following priority list path which contains a phase file:
 - `"{{ ( phases_lookup_dir_path, vm.metadata.platform_name, vm.metadata.target_name| path_join }}"`
 - `"{{ ( phases_lookup_dir_path, vm.metadata.platform_name ) | path_join }}"`
 - `"{{ phases_lookup_dir_path }}"`
 
-A use case may needs specific tasks/vars for a target on platform or only platform; for instance:
+**Why:** A use case may needs specific tasks/vars for a target on platform or only platform; for instance:
 
 - *debian_11* folder (`vm.metadata.platform_name` value in `platforms/debian_sid.yml`)
     - *amd64* folder (`vm.metadata.target_namevalue )
@@ -67,66 +104,41 @@ The `import_path` is useful when some dependencies have different alias in some 
 Requirements
 ------------
 
-- ansible collections:
-  - [community.libvirt](https://galaxy.ansible.com/community/libvirt) 
-    - ```ansible-galaxy collection install community.libvirt```
-- Packages
-  - `python` >= 2.6
-  - `python3-libvirt` ( community.libvirt dep )
-  - `python3-lxml` ( community.libvirt dep )
-  - `zstd` to expand .tar.zst files (unarchive module optional dep)
-  - `unzip` for `zipinfo` and to handle .zip and .tar.* files (unarchive module optional dep)
-    - or `gtar` (unarchive module optional dep)
-  - `gzip` to handle .gz files (optional)
-    - required **if** using unsupported archive format by the unarchive module
-  - `bzip2` to handle .bz2 files (optional)
-    - required **if** using unsupported archive format by the unarchive module
-  - `sshpass`
-    - optional but required to use password on ssh on vm connections
-    - otherwise use [ansible vault](https://docs.ansible.com/ansible/2.8/user_guide/vault.html)
-  - `libvirt-clients`
-    - required by `guest_provision` role to handle snapshots using virsh
-  - Any `qemu-system-<architecture>` (if you are using qemu)
-    - these must be installed on the hypervisor host before processing the VM installation
-- System running hypervisor:
-  - Supported platform:
-    - Theoretically any GNU/Linux distribution
-    - Tested:
-      - debian
-  - hypervisor
-    - default: `qemu`
+- Read the documentation of each role for specific role's requirements
+- **Common hypervisor target** requirements
+
+  - A libvirt environment already setup
+  - platforms:
+    - Supported: 
+      - Any GNU/Linux distribution (in theory)
+      - POSIX-compilant OS should work (in theory)
+    - Tested platforms:
+      - Debian 11, 12
+      - ArchLinux
+  - Supported hypervisors:
+    - Any hypervisor driver compatible with libvirt should work
     - tested:
       - `qemu`
-  - libvirt environment
-    - libvirt daemon active and running
-- Ansible User:
-  - group: `libvirt_group` var value (default: `libvirt`)
-    - require to have access to libvirt features
-      - See your distribution requirements to use libvirt features
-  - group: `kvm`
-    - required to use KVM
-  - group: `hypervisor_group` var value (default: `libvirt-qemu` )
-    - required to change files ownership to allow the hypervisor to access it
-      - in general see your hypervisor requirements
-  - Note: default `hypervisor_group` and `libvirt_group` vars are defined in `roles/kvm_provision/defaults/main.yaml`, so they can be overridden on hypervisor's host (group)vars according to your use case.
+      - `kvm`
+    - **Note: QEMU or KVM are recommended** for the following reasons:
+      - The collection support `qemu:///session` URI by default only when the `VDE` and `user` (Slirp) virtual networks types are supported by the hypervisor.
+      - The `VDE` and `user` virtual networks are supported only when custom network interface can be added via the XML libvirt template through the libvirt [QEMU namespace](https://libvirt.org/drvqemu.html#pass-through-of-arbitrary-qemu-commands) for now. So other hypervisors may require specific extra configuration like definining other VM XML template.
+      - the [SSH connection plugin](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/ssh_connection.html) support may be achieved with `qemu:///session` only when SSH port of the VM is reachable from the hypervisor. The `user` network interface built with the QEMU namespace allow to specify a port forward with the `hostfwd` option but this is not supported by libvirt XML format for other hypervisors.
+      - the [community.libvirt.libvirt_qemu connection plugin](https://docs.ansible.com/ansible/latest/collections/community/libvirt/libvirt_qemu_connection.html) is supported only for local (controller) hypervisor: The use of `ssh+qemu` has not been tested.
 
-For more details see each role's requirements
-
-All prerequisites are satisfied by the usage help above, but if you need advanced usage these informations may help:
-
-- `roles/guest_provision` requires that
-  - each **already defined** VM host have
-    - an already defined ansible_connection plugin with relative variables
-    - The ansible controller can reach the VM and hypervisor
-      - So there should be a network that connect the hypervisor to the VM
-    - the `vm` var object with `VM definition` format (mainly required for `vm.metadata.name` and `vm.metadata.connection` uri)
-    - the `kvm_host` var string with the value of the VM's hypervisor
-  - Note: all these, expect for `ansible_connection`, are satisfied by using the `roles/init_vm_connection` utility
-- `roles/kvm_provision` requires that
-  - the `vm` var object as `VM definition` format
+  - Common Packages and commands
+    - `python` >= 2.6
+    - `python3-libvirt` ( community.libvirt dep )
+    - `python3-lxml` ( community.libvirt dep )
+    - `virsh`
+    - Any emulator you will use in the VM XML template
+      - any `qemu-system-<architecture>` emulator by default
 
 Dependencies
 ------------
 
-- [community.libvirt](https://galaxy.ansible.com/community/libvirt)
-- [ansible.utils](https://galaxy.ansible.com/ansible/utils)
+- Otherwise The following collections are dependency of this collection roles and will be installed with ```ansible-galaxy install -r requirements.yml```
+  - [community.libvirt](https://galaxy.ansible.com/community/libvirt) 
+  - [community.general](https://docs.ansible.com/ansible/latest/collections/community/general/index.html)
+  - [community.crypto](https://docs.ansible.com/ansible/latest/collections/community/crypto/index.html)
+  - [ansible.utils](https://docs.ansible.com/ansible/latest/collections/ansible/utils/index.html)

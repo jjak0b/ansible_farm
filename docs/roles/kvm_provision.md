@@ -1,7 +1,11 @@
 kvm_provision
 =========
 
-This role configures and creates VMs on a hypervisor which supports libvirt API (QEMU, KVM, etc ...)
+This role configures and creates VMs on a hypervisor which supports libvirt API (QEMU, KVM, etc ...).
+
+- Create: Allow to specify how a VM should be defined and installed into libvirt by using a `VM definition` and a `libvirt XML template`.
+
+- Configure: Allow to specificy how a resource should be elaborated (an image disk, kernel, etc ...) by specifing `callback-tasks` .
 
 ## Vocabulary
 
@@ -10,23 +14,49 @@ This role configures and creates VMs on a hypervisor which supports libvirt API 
 - `VM definition` indicates the object which is a combination of nested target and platform definitions' properties used to create VM template in XML libvirt format.
 
 ## The VM definition
-You can instanciate each [ VM definition ](objects/vm_definition.md) by using the `roles/parse_vms_definitions` utility role to create definitions from separated files organized by [ platforms ](objects/vm_definition.md#Platform_definition)) and [targets](objects/vm_definition.md#Target_definition). See its documentations for more details.
+You can instanciate each [ VM definition ](objects/vm_definition.md) by using the `roles/parse_vms_definitions` utility role to create definitions from separated files organized by [ platforms ](objects/vm_definition.md#Platform_definition) and [targets](objects/vm_definition.md#Target_definition). See its documentations for more details.
 
-**Note: the use of `parse_vms_definitions` role is recommended because both target and platform definitions use a default definition, but some of the properties must me overrided according to your use case.**
+A `VM definition` object is composed by 2 parts:
 
-### Definition use details
+- metadata variables
+- template dependent variables
+
+The **metadata** variables are used to specify different info about the VM which any role of this collection can handle by using a documented API for different purposes:
+
+- VM identification
+- libvirt URI connection type
+- Authentication info
+- Resource processing and installation
+- XML libvirt Template specification
+
+The **template dependent** variables are used to specify custom variables to use for different purposes of the user but are mainly used to define the components that the virtual machine is made of. 
+
+- **Why:** The Libvirt XML format is complex and a single role cannot handle all possible use cases, so the `kvm_provision` role provides you a default template that uses default template dependent variables for a simple use case, but you can specify your own template and use any custom variables you want for your use case.
+
+**Note: the use of `parse_vms_definitions` role is recommended because both target and platform definitions use some default metadata properties, but some of these may me overrided according to your use case inside you VM definition.**
+
+### Definition use details for this role
+
 -  **Properties defined in `vm.metadata` are required and needs their respective API names because are also used internally by the roles of its collection**
 - properties of `vm.metada.auth` may be declared instead as host/group variables adding the "ansible_" prefix to the property' names (for example ansible_user) and they depends by the connection method used to allow ansible to connect and login to the virtualized hosts.
-- Each item of `vm.metadata.sources` is first processed by all `callback-tasks` defined into each entry of the `vm.metadata.sources[i].before_provision` list and after processed by the `callback-tasks` specified by the `vm.metadata.sources[i].on_provision` property.
-  - A `callback-task` has the following scheme:
+- `vm.metadata.sources` are a list of resources that specify the workflow of a resource using `callback-tasks`.
+For each item of the list: all `callback-tasks` defined into each entry of the `vm.metadata.sources[i].before_provision` list are processed first and then the `callback-task` specified by the `vm.metadata.sources[i].on_provision` property will be processed later.
+  - A `callback-task` object has the following scheme:
     ```
     callback: The path of the callback task file to use, relative to the `tasks` directory
-    ... others specific arguments used by the callback-task
+    ...: any others specific arguments used by the callback-task
     ```
     When defining a `callback-task` you can assume that in its task's scope can access to the following facts:
       - `source` and `source_index`: mapped to `vm.metadata.sources` 's items on declared order
       - `task` and `task_index`: mapped to each item of `vm.metadata.sources[i].before_provision` or the `vm.metadata.sources[i].on_provision` entry.
       - `vm`: the VM definition
+    
+  - **Why:** This role provide a **customizable and documented way** to: 
+      - define the elaboration hooks of a VM resource through the `.before_provision` list of `callback-task` 
+        - So you can pre-process an image by resizing it, adding users, change credentials, add ssh keys, etc ...
+      - define the installation hook of a VM resource through the `.on_provision` entry
+        - So you can install into libvirt using different ways you want, for example using different storage managment
+
   - The `before_provision` entry lists any pre-processing `callback-tasks` that the i-th (re)source needs before being installed.
   - The `on_provision` entry define the last `callback-task` that the i-th (re)source needs to be installed. This type of callback will be processed after all sources have processed their `before_provision`'s `callback-tasks`.
   If the `.callback` property is not provided then the `callbacks/sources/install_to_libvirt.yaml` callback is going to be used implicitly.
@@ -45,14 +75,31 @@ You can instanciate each [ VM definition ](objects/vm_definition.md) by using th
       - arguments:
         - `src`: The input archive file to extract
         - `dest`: The destination path to extract to
+    - `callbacks/sources/copy.yaml`
+      - Copy a remote resource to a destination relative to the `vm.metadata.libvirt_pool_dir` path on remote
+      - arguments:
+        - `src`: The relative resource path of the file to be copied
+        - `dest`: The relative resource path destination
+    - `callbacks/sources/img_convert.yaml`
+      - Convert an image from a format to an other format using `qemu-img`
+      - arguments:
+        - `src`: The relative resource path of the file to convert
+        - `dest`: The relative resource path destination of file
+        - `from_format`: the image format of `src`
+        - `to_format`: the image format of `dest`
+    - `callbacks/sources/setup_image.yaml`
+      - Setup an image using `virt-sysprep` to setup root password, hostname, SSH public key and first boot script that add user and SSH authorized key for the user. The credentials used for root and user are the same of the one set in `.metadata.auth` variables.
+      - arguments:
+        - `src`: The relative resource path of the file to be copied
+        - `dest`: The relative resource path destination
     - `callbacks/sources/install_to_libvirt.yaml`
       - Move the resource to the `vm.metadata.libvirt_pool_dir` path
-      - arcguments:
+      - arguments:
         - `src`: The resource path to the file to be installed
         - `dest`: The final resource name to use into the installation directory
   - Other callbacks may be stored into the  _tasks_ or `hypervisor_lookup_dir_path` directories
     - You can override the built-in callbacks as you want
-  - The `src` and `dest` of the builtin callbacks when are relative to the `vm.metadata.tmp_dir` when they are related to a file path. 
+  - The `src` and `dest` parameters of the builtin callbacks should be relative to the `vm.metadata.tmp_dir` when they are related to a file path and you should use this convention for processing tasks.
 -  Other properties in the `vm` root, except for `vm.metadata`, can be customized or renamed if you are using a custom XML template for VM definitions.
    - For instance `vcpus` is a property that is used by the default template but the variable name can be changed if you are using a custom XML template and use the new reference name inside of it.
    - About the custom variables the important thing is that they must be defined in final `VM definition` but **it doesn't matter where the custom variable is defined** since both definitions are merged together and so they can be defined into the target or platform definitions.
@@ -60,6 +107,7 @@ You can instanciate each [ VM definition ](objects/vm_definition.md) by using th
 ## VM template XML definition
 A `default.xml.j2` VM template definition scheme has been provided in `roles/kvm_provision/templates`
 Otherwise custom templates are applied, searching into `templates` folder with the matching name and the following priority order:
+
 - `{{ vm.metadata.template }}.xml.j2`
 - `{{ vm.metadata.name }}.xml.j2`
 - `{{ vm.arch }}.xml.j2`
@@ -68,58 +116,70 @@ Each template during the templating process can access to the `vm` root property
 
 For advanced libvirt XML, see its [format documentation](https://libvirt.org/format.html).
 
-### Default template's variable dependencies
+### Default template dependant variables
 
-The common and default definitions provided in `defaults/targets/` and `defaults/platforms/` role folders and they are used by the default provided template: All `vm`'s properties defined outside the `vm.metadata` are considered as "template dependencies".
+The common and default definitions are provided in `defaults/targets/` and `defaults/platforms/` role folders and they are used by the default provided template.
 
 
 Requirements
 ------------
 
-- hypervisor Requirements
-  - System components like `qemu-system-<architecture>` if you are using qemu
-    - these must be present before processing the VM installation
+- hypervisor target requirements
+
+  - A libvirt environment already setup
+  - Packages and commands
+    - `python` >= 2.6
+    - `python3-libvirt` ( community.libvirt dep )
+    - `python3-lxml` ( community.libvirt dep )
+    - `virsh`
+    - Any emulator you will use in the VM XML template
+      - any `qemu-system-<architecture>` emulator by default
+    - `zstd` to expand .tar.zst files (unarchive module optional dep)
+      - required **if** using `unarchive` callback-task with a supported `unarchive` module format
+    - `unzip` for `zipinfo` command and to handle .zip and .tar.* files (unarchive module optional dep)
+      - or `gtar` (unarchive module optional dep)
+      - required **if** using `unarchive` callback-task with a supported `unarchive` module format
+    - `gzip` to handle .gz files (optional)
+      - required **if** using `unarchive` callback-task with an unsupported archive format by the unarchive module
+    - `bzip2` to handle .bz2 files (optional)
+      - required **if** using `unarchive` callback-task with an unsupported archive format by the unarchive module
+    - `virt-sysprep`
+      - required if using the `setup_image` callback-task
+    - `qemu-img`
+      - required if using the `img_convert` callback-task
+  - platforms:
+    - Supported: 
+      - Any GNU/Linux distribution (in theory)
+      - POSIX-compilant OS should work
+    - Tested platforms:
+        - Debian 11, 12
+        - ArchLinux
+  - Supported hypervisors:
+    - Any hypervisor driver compatible with libvirt should work with this role
+    - tested:
+      - `kvm`
+      - `qemu`
+  - Ansible User:
+    - group: `libvirt_group` var value (default: `libvirt`)
+      - required **if** you need to use some libvirt features like libvirt network and `/system` URI
+        - See your distribution requirements to use libvirt features
+    - group: `kvm`
+      - required **if** you use KVM
+    - group: `hypervisor_group` var value (default: `libvirt-qemu` )
+      - required  **if** you use `install_to_libvirt` callback-task to change files ownership to allow the hypervisor to access it
+        - This is required if you specify an installation directory that the user don't own like `/var/lib/libvirt/images`
+        - Your user should have the permission to do that, this role won't use `become: yes` because focus to be used by standard user first, so i recommend to create a custom installation callback-task to use your ansible_become_user for this type of operation
+        - in general see your hypervisor requirements
+    - Note: default `hypervisor_group` and `libvirt_group` vars are defined in `roles/kvm_provision/defaults/main.yaml`, so they can be overridden on hypervisor's host (group)vars according to your use case.
+
 - ansible collections:
   - [community.libvirt](https://galaxy.ansible.com/community/libvirt) 
-    - ```ansible-galaxy collection install community.libvirt```
   - [community.crypto](https://galaxy.ansible.com/community/crypto) 
-    - ```ansible-galaxy collection install community.crypto```
+    - required **if** using `setup_image` callback-task
 - ansible modules:
   - [unarchive](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/unarchive_module.html) 
-- Packages
-  - `python` >= 2.6
-  - `python3-libvirt` ( community.libvirt dep )
-  - `python3-lxml` ( community.libvirt dep )
-  - `zstd` to expand .tar.zst files (unarchive module optional dep)
-  - `unzip` for `zipinfo` command and to handle .zip and .tar.* files (unarchive module optional dep)
-    - or `gtar` (unarchive module optional dep)
-  - `gzip` to handle .gz files (optional)
-    - required **if** using unsupported archive format by the unarchive module
-  - `bzip2` to handle .bz2 files (optional)
-    - required **if** using unsupported archive format by the unarchive module
-  - `libvirt-clients`
-    - required to use the `virsh` command
-- System running hypervisor:
-  - Supported platform:
-    - Theoretically any GNU/Linux distribution
-    - Tested:
-      - debian
-  - hypervisor
-    - default: `qemu`
-    - tested:
-      - `qemu`
-  - libvirt environment
-    - libvirt daemon active and running
-- Ansible User:
-  - group: `libvirt_group` var value (default: `libvirt`)
-    - require to have access to libvirt features
-      - See your distribution requirements to use libvirt features
-  - group: `kvm`
-    - required to use KVM
-  - group: `hypervisor_group` var value (default: `libvirt-qemu` )
-    - required to change files ownership to allow the hypervisor to access it
-      - in general see your hypervisor requirements
-  - Note: default `hypervisor_group` and `libvirt_group` vars are defined in `roles/kvm_provision/defaults/main.yaml`, so they can be overridden on hypervisor's host (group)vars according to your use case.
+    - required **if** using `unarchive` callback-task
+
 
 Role Variables
 --------------
@@ -133,11 +193,11 @@ Role Variables
 - `should_remove_all_vm_storage`: (default: false)
   - if true will add the flag --remove-all-storage to remove all storage assets when `delete_vm` is true, none otherwise
 - `parse_lookup_dir_path`
-  - optional (default: see defaults/main )
+  - optional (default: `setup_vm`, see defaults/main )
   - It's the lookup path for searching VM templates
 - `hypervisor_lookup_dir_path`
-  - optional (default: see defaults/main )
-  - It's the lookup path for searching hypervisor prerequisite tasks
+  - optional (default: `setup_hypervisor`, see defaults/main )
+  - It's the lookup path for searching `callback-tasks`
 - `libvirt_group`: 
   - optional (default: *libvirt*)
 - `hypervisor_group`:

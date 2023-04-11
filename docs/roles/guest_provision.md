@@ -4,26 +4,32 @@ guest_provision
 This role provision VMs with custom VM lifecycle phases organized in phases. This role offer a revion-based cache for an **init** phase which may helpful to avoid long setup time.
 
 ### The VM Guest lifecycle
-The lifecycle of the provisioned VM follows the following control flow:
 
-- **Startup** phase
-  1. Start the VM on its hypervisor;
-  2. Wait until either timeout or VM is ready and reachable by using the specified connection method.
-- **Init** and **dependencies** phases: Cache control
-  1. if the "_init_" snapshot is available then restore it first;
-  2. otherwise if the "_clean_" snapshot is available then restore it;
-  3. otherwise create the "_clean_" snapshot.
-  4. if the "_init_" snapshot hasn't been restored, then:
-     1. Run **dependencies** use case tasks `{{ import_path }}/dependencies.yaml`
-     2. Run **init** use case tasks `{{ import_path }}/init.yaml`
-     3. Create "_init_" snapshot
-- **Main** phase:
-  1. Run **Main** use case tasks `{{ import_path }}/main.yaml`
-- **Terminate** phase: Always execute even if any of the previous phases failed or succeeded
-  1. Run **Terminate** use case tasks `{{ import_path }}/terminate.yaml`
-- **Shutdown** phase
-  - Try to shutdown VM gracefully or poweroff forcefully.
+The lifecycle of the provisioned VM runs the following workflow:
 
+0. **Startup** 
+   - Start the VM
+   - Wait until connection is ready
+
+1. **Init** use case phase
+   - Restore to a '**init**' snapshot if exists
+   - otherwise fallback to restore or create a '**clean**' snapshot and run the **init** phase:
+
+      1. **dependencies** pre-phase
+         - Run dependencies tasks (`{{ import_path }}/dependencies.yaml`)
+      2. use case phase: 
+         - Run init tasks `{{ import_path }}/init.yaml`
+         - Create 'init' snapshot
+
+2. **Main** use case phase: 
+   - Run main tasks `{{ import_path }}/main.yaml`
+
+3. **Terminate** use case phase: 
+   - Run end tasks `{{ import_path }}/terminate.yaml` whether the main phase succeeds or fails
+
+4. **shutdown**
+   - Shutdown gracefully first the VM, otherwise poweroff forcefully
+ 
 Where:
 
 - The real "_init_" snapshot name is `{{ project_id }}.{{ project_revision }}.init` 
@@ -63,10 +69,11 @@ Requirements
     - libvirt daemon active and running
 - Packages
   - `sshpass`
-    - optional but required to use password on ssh on vm connections
-    - otherwise use [ansible vault](https://docs.ansible.com/ansible/2.8/user_guide/vault.html)
-  - `libvirt-clients`
-    - required by `guest_provision` role to handle snapshots using `virsh`
+    - optional but required to use password on ssh on vm connections.
+      - You can use [ansible vault](https://docs.ansible.com/ansible/2.8/user_guide/vault.html)
+    - otherwise use ssh keys 
+  - `virsh`
+
 
 Role Variables
 --------------
@@ -79,8 +86,9 @@ Role Variables
   - It's the `VM definition` object required to specify which VM have to be provisioned
 
 - `ansible_connection` (and its required parameters):
-  - recommended
-  - standard [connection plugins](https://docs.ansible.com/ansible/latest/plugins/connection.html)  are supported
+  - recommended: `ssh`
+  - The following standard [connection plugins](https://docs.ansible.com/ansible/latest/plugins/connection.html) are supported:
+
       - `community.libvirt.libvirt_qemu` is supported
 - `wait_until_reachable`: boolean (default: true)
   - if true will wait until VM becomes rechable in some way (by port or by connection) before run the VM provisioning, otherwise it won't wait.
@@ -125,6 +133,7 @@ Dependencies
 
 - Format of `VM definition` in `vm` var required by `roles/kvm_provision` and used in this role phase tasks
 - Format of `VM definition` in `vm` var produced by `roles/parse_vms_provision`'s output and used in this role phase tasks
+- `libvirt_snapshot` role to handle snapshots
 
 - `community.libvirt`
 - `ansible.windows`
@@ -137,25 +146,28 @@ Example Playbook
   hosts: vms
   gather_facts: no
   serial: 1
+  vars:
+    project_id: 'my_example'
+    project_revision: '0'
   tasks:
-  - block:
-    - name: gather min facts if definitions use them
-      setup:
-        gather_subset: 
-        - '!all'
-    - name: "start KVM Provision role for '{{ vm.metadata.name }}'"
-      include_role: 
-        name: kvm_provision
-    delegate_to: "{{ kvm_host }}"
-    tags:
-    - kvm_provision
-  
-  - block:
-    - name: "Start VM provisioning of '{{ vm.metadata.name }}' "
-      include_role: 
-        name: guest_provision
-    tags:
-    - guest_provision
+
+    - block:
+
+      - name: gather min facts if definitions use them
+        setup:
+          gather_subset: 
+          - '!all'
+      
+      - name: "start KVM Provision role for '{{ vm.metadata.name }}'"
+        include_role: 
+          name: kvm_provision
+
+      delegate_to: "{{ kvm_host }}"
+    
+    - block:
+        - name: "Start VM provisioning of '{{ vm.metadata.name }}' "
+          include_role: 
+            name: guest_provision
 ```
 
 License

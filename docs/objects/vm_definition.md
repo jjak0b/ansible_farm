@@ -10,15 +10,20 @@ A target definition has the following require scheme:
 ```
 vm:
   metadata:
+
     target_name:  the architecture name alias given to this target, it's the target identifier.
 ```
 Additional (target) properties that depends by the default template
 ```
 vm:
   arch:         emulated architeture name alias used by the libvirt XML Domain format like "x86_64", "aarch64", etc ...
+
   emulator:     emulator path of this target into the Hypervisor host, for example "/usr/bin/qemu-system-x86_64" 
+
   virt_domain:  libvirt domain used like "qemu", "kvm", etc ...
+
   cpu:          cpu name to emulate this target like 'qemu64'. set this only if virt_domain is not 'kvm'
+
   machine:      Machine type that describe the VM like "q35", "armvirt", etc ...
 ```
 ## Platform definition 
@@ -28,36 +33,58 @@ A platform definition has the following required scheme
 vm:
   # metadata properties are used inside a task for installation and setup purposes
   metadata:
+
     name: The VM name domain identifier 
+
     hostname: The VM guest hostname
+
     connection: The libvirt uri like "qemu:///system" or"qemu:///session"  
+
     libvirt_pool_dir: path to the directory where to store VM images (a libvirt pool)
+
     # auth credentials to auth as user or become_user (root/admin) into this platform
     auth:
+
       user: "user name"
+
       password: "user password"
+
       become_user: The root / admin user
+
       become_password: The root / admin password
+
       # see https://docs.ansible.com/ansible/latest/user_guide/become.html 
       become_method: command used to perform the privilage escalation like "su" 
+
     tmp_dir: path to the directory where you want to cache assets and process them before installation
+
     # assets to be downloaded and processed, required for VM install 
     sources: List of resources to be processed and installed
-    - before_provision: List of callback-task. These will run in sequence to perform a preprocessing of the resource like: download, unarchive, customize/convert image, 
-      - callback: a callback to use to process a resource
-        callback arguments ...
-      - ...
-      on_provision:
-        callback: (optional) The callback to use to install a resource
-        src: source filename where to get the resource
-        dest: final reource filename
+
+      - before_provision: List of callback-task. These will run in sequence to perform a preprocessing of the resource like: download, unarchive, customize/convert image, 
+      
+          - callback: a callback to use to process a resource
+            callback arguments ...
+          - ...
+      
+        on_provision:
+          callback: (optional) The callback to use to install a resource
+          src: source filename where to get the resource
+          dest: final reource filename
     ...
 
-  net:
-    type: libvirt network type ('user' or 'network' or 'bridge' or 'vde')
-    source: what network should use ( 'default' or 'a network name' or a interface name like 'virbr0', or a VDE network)
+  # VM network info to connect to the VM
+  net: 
+
+    type: network interface type ('network', 'bridge', 'vde', 'user')
+
+    source: what network should use ( a network name like 'default', an interface name like 'virbr0', a VDE network, a QEMU hostfwd option)
+
     mac: The mac address of the VM
-    ip: IPv4 address
+
+    ip: The address / hostname used to connect to the VM.
+        If 'user' is specified, it should be 'localhost'
+
     mask: Netmask in CIDR notation
 
   # Here can be inserted others fully custom properties for templating a custom vm's xml
@@ -73,6 +100,7 @@ vm:
   - type: type of the image used for this disk like "raw", "qcow2", etc ...
     devname: device name, for example "hda"
     src: relative path to the installation path of the image, should be equals to any resource.asset_name's value
+  firmware: The Loader path to use if provided
   kernel:
     src: relative path to the installation path of the image, should be equals to any resource.asset_name's value
     params: the kernel' string of parameter
