@@ -14,6 +14,11 @@
     path: "{{ ( project_dir, 'main.yaml') | path_join }}"
   register: playbook_stat_result
 
+- name: Remove ansible_collection
+  ansible.bultin.file:
+    path: ~/.ansible/collections/ansible_collections
+    state: absent
+
 - name: Install ansible-galaxy requirements
   shell:
     cmd: ansible-galaxy install -r requirements.yml
@@ -36,25 +41,32 @@
       shell:
         cmd: ansible-playbook main.yaml
         chdir: "{{ project_dir }}"
+      ignore_errors: yes
 
     - name: Run ansible playbook without config
-      environment:
-        ANSIBLE_STDOUT_CALLBACK: junit
-        JUNIT_OUTPUT_DIR: *output_dir
       when:
         - run_playbook_result is defined
         - run_playbook_result is skipped
+      environment:
+        ANSIBLE_STDOUT_CALLBACK: junit
+        JUNIT_OUTPUT_DIR: *output_dir
       shell:
         cmd: ansible-playbook main.yml
         chdir: "{{ project_dir }}"
-      when:
-  always:
+      ignore_errors: yes
+    
+    - name: Find output
+      find:
+        paths:
+          - "{{ (project_dir, 'output') | path_join }}"
+        patterns: '*.xml' 
+      register: _foundOutputFiles_result
 
     - name: Save output in controller
-      loop: "{{ lookup('ansible.builtin.fileglob', (project_dir, 'output', '*.xml' ) | path_join, wantlist=True) }}"
+      loop: "{{ _foundOutputFiles_result.files | map(attribute='path') }}"
       loop_control:
         loop_var: output_file
-
+    
       ansible.builtin.fetch:
         src: "{{ output_file }}"
         dest: 'output'

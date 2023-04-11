@@ -1,5 +1,11 @@
 ---
 
+- include_tasks: "{{ (phases_lookup_dir_path, 'common-tasks', 'gather_sysinfo.yaml' ) | path_join }}"
+
+- block:
+    - include_tasks: "{{ (phases_lookup_dir_path, 'common-tasks', 'sync-clock.yaml' ) | path_join }}"
+  become: yes
+
 - name: Resolve working directory
   ansible.builtin.stat:
     path: ~/ansible_farm
