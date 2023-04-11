@@ -7,11 +7,15 @@
 
     - include_vars:
         file: "{{ (phases_lookup_dir_path, 'dependencies', ansible_distribution + '.yaml' ) | path_join }}"
-      
+    
+    - name: Update manager cache
+      package:
+        update_cache: yes
+
     - name: Install dependencies.
       package:
         name: "{{ dependencies }}"
-        state: present
+        state: latest
 
   become: yes
 
