@@ -26,3 +26,4 @@
             sources:
               - before_provision: "{{ vm.metadata.sources[0].before_provision[:2] + [ new_task ] + vm.metadata.sources[0].before_provision[2:] }}"
                 on_provision: "{{ vm.metadata.sources[0].on_provision }}"
+          ram: 4096

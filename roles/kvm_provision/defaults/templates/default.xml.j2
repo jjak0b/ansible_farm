@@ -95,15 +95,34 @@
       <image compression="off"/>
     </graphics>
 -->
+{#
+  <!-- passt should be available only since 9.0.0, source: https://libvirt.org/formatdomain.html#userspace-slirp-or-passt-connection 
+    But this test example should work in Debian 12 with libvirt 9.0.0 but it doesn't: https://github.com/libvirt/libvirt/blob/master/tests/qemuxml2xmloutdata/net-user-passt.x86_64-latest.xml 
+    So opened issue here https://gitlab.com/libvirt/libvirt/-/issues/462
+    And find out that it has been disable in Debian 12 release because stable passt support is available since 9.2.0 (future Debian releases) so we will use it since that version
+  -->
+ {% if vm.net.type is defined and vm.net.type in [ "user" ] and virsh_version is defined and virsh_version is version('9.2.0', 'ge') %}
+    <interface type='user'>
+      <backend type='passt'/>
+      <model type="virtio"/>
+      <mac address="{{ vm.net.mac }}"/>
+      <portForward proto='tcp'>
+        <!-- SSH port -->
+        <range start="{{ hostvars[ vm.metadata.name ].ansible_port | default('8022') }}" to="22" />
+      </portForward>
+    </interface>
+  {% endif %}
+#}
   </devices>
   <!-- 
     qemu:commandline must a direct children of the <domain/> tag, 
     source: https://libvirt.org/kbase/qemu-passthrough-security.html#xml-document-additions
   -->
-  {% if vm.net.type is defined and vm.net.type in [ "vde", "user" ]  %}
+  {% if vm.net.type is defined and ( vm.net.type in [ "vde" ] or ( vm.net.type in [ "user" ] and virsh_version is defined and virsh_version is version('9.2.0', 'lt') ) ) %}
     <qemu:commandline>
       <qemu:arg value="-netdev"/>
       {% if vm.net.type == "vde" %}
+      <!-- maybe <interface type='vhostuser'/> can generalize this -->
       <qemu:arg value="type=vde,id=vde0,sock={{ vm.net.source }}"/>
       {% elif vm.net.type == "user" %}
       <qemu:arg value="type=user,id=user0,{{ vm.net.source | default( 'hostfwd=tcp:127.0.0.1:8022-:22' ) }}"/>

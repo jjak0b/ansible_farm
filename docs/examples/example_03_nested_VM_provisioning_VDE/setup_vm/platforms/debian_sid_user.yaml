@@ -1,11 +1,12 @@
-- import_tasks:
-    file: debian_vs.yaml
+- block:
+    - import_tasks:
+        file: _debian.yaml
+  vars:
+    version_name: sid
+    version_major_num: sid
+    version: '20230403-1339'
 
 - name: Override platform
-  vars: 
-    new_task:
-      callback: callbacks/sources/setup_connection.yaml
-      src: "{{ vm.metadata.sources[0].on_provision.src }}"
   block:
     - name: Override for user network setup
       set_fact:

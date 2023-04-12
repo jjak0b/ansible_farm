@@ -109,24 +109,22 @@ Note:  `run_vm_provision.yaml` is repeated twice since the changes to the L1 hyp
 
 Let's define an inventory such that:
 
-- The L0 (bare metal) hypervisor will deploy an L1 VM of platform **debian_vs**
+- The L0 (bare metal) hypervisor will deploy an L1 VM of platform **debian_sid**
 - The L1 (VM) hypervisor will deploy these L2 VMs of platforms:
 
-  - **debian_vs_vde**
-  - **debian_vs_user**
+  - **debian_sid_vde**
+  - **debian_sid_user**
 
-Note: L1 hypervisors will auto-generate and setup the required ssh jump hosts ( through `init_vm_connection` role ) by using the `-J` parameter to allow ansible to `ssh` into VMs. In specific  the following variable will be set as: ``` ansible_ssh_common_args: "-J {{ generated_jumphosts | join(',') }} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" ``` where the generated jump hosts are the nested `kvm_host` hypervisors formated as `ansible_user@ansible_host:ansible_port`
+Note: L1 hypervisors will auto-generate and setup the required ssh jump hosts ( through `init_vm_connection` role ) by using the `-F` parameter of the `ssh` command to allow ansible to authenticate through `ssh` into VMs using a custom auto-generated configuration file with all proxy jumps which are the nested `kvm_host` hypervisors
 
-Warning: The `-J` can only use ssh keys to authenticate, so you need to provided at least the `ansible_ssh_private_key_file` for your L0 hypervisors in the inventory. You can set it as `~/.ssh/id_rsa` and generate it with ```ssh-keygen -b 2048 -t rsa```. You should specify also the keys used by the VMs and inject them into the used image but if you use the `callbacks/sources/setup_image.yaml` callback-task, then will do it for you.
+Warning: You need to provide at least the `ansible_ssh_private_key_file` for your L0 hypervisors in the inventory. You can set it as `~/.ssh/id_rsa` and generate it with ```ssh-keygen -b 2048 -t rsa``` command. You should specify also the keys used by the VMs and inject them into the used image but if you use the `callbacks/sources/setup_image.yaml` callback-task, then it will do it for you.
 
 ```
 all:
   hosts:
     L0-hypervisor:
-      ansible_connection: ssh
-      ansible_user: user
+      ansible_connection: local
       ansible_host: localhost
-      ansible_become_method: enable
       ansible_ssh_private_key_file: ~/.ssh/id_rsa
       # L0 deploy these VMs
       config:
@@ -134,23 +132,23 @@ all:
           targets:
             - "amd64"
           platforms:
-            - "debian_vs"
-    VM debian_vs_amd64:
+            - "debian_sid"
+    VM debian_sid_amd64:
       # L1 deploy these VMs
       config:
         permutations:
           targets:
             - "amd64"
           platforms: 
-            - "debian_vs_vde"
-            - "debian_vs_user"
+            - "debian_sid_vde"
+            - "debian_sid_user"
 
   children:
     hypervisors:
       hosts:
         L0-hypervisor:
       # This will be added later by the guest provision phases
-      # VM debian_vs_amd64
+      # VM debian_sid_amd64
     vms:
       vars:
         ansible_connection: ssh
@@ -162,17 +160,191 @@ all:
     
 ```
 
+## Define the platforms
+
+Lets define a parametric `_debian.yaml` platform that will be used to define common data for other platforms:
+
+```
+- name: Defining platform
+  vars:
+    # version_name: bookworm
+    # version_major_num: 12
+    # version: "20230330-1335"
+    period: daily
+    vm_name: "VM {{ vm.metadata.platform_name }}_{{ vm.metadata.target_name }}"
+    debian_arch_names:
+      "arm64": "arm64"
+      "amd64": "amd64"
+      "ppc64": "ppc64el"
+  block:
+
+    - vars:
+        ssh_forward_port: "{{ 65535 | random( start=2201, seed=vm_name) }}"
+      block:
+      
+        - name: Set connection port for VM
+          add_host:
+            name: "{{ vm_name }}"
+            ansible_port: "{{ ssh_forward_port }}"
+      
+        - name: Define platform definition
+          vars:
+            uri_base: "https://cdimage.debian.org/cdimage/cloud/{{ version_name }}/{{ period }}/{{ version }}"
+            image_name: "debian-{{ version_major_num }}-nocloud-{{ debian_arch_names[ vm.metadata.target_name ] }}-daily-{{ version }}.qcow2"
+          set_fact:
+            vm:
+              # metadata properties are used inside a task for installation and setup purposes
+              metadata:
+                name: "{{ vm_name }}"
+                connection: "qemu:///session"
+                auth:
+                  become_user: "root"
+                  become_password: &root_pass "virtualsquare"
+                  become_method: su
+                  user: "user"
+                  password: *root_pass
+                sources:
+                - before_provision:
+                  - callback: callbacks/sources/fetch.yaml
+                    src: "{{ uri_base }}/{{ image_name }}"
+                    dest: "{{ image_name }}"
+                  - callback: callbacks/sources/copy.yaml
+                    src: "{{ image_name }}"
+                    dest: "tmp-{{ image_name }}"
+                  - callback: callbacks/sources/setup_image.yaml
+                    src: "tmp-{{ image_name }}"
+                    keys_path: "{{ vm.metadata.tmp_dir }}id_ssh_rsa_vm"
+                  on_provision:
+                    src: "tmp-{{ image_name }}"
+                    dest: &image_file_name "{{ vm.metadata.platform_name }}_{{ image_name }}"
+              vcpus: 2
+              ram: 1536
+              disks:
+                - type: "qcow2"
+                  devname: "hda"
+                  src: *image_file_name
+              net:
+                type: user
+                source: "hostfwd=tcp:127.0.0.1:{{ ssh_forward_port }}-:22"
+                mac: "{{ '52:54:00' | random_mac( seed = vm_name ) }}"
+                # note: user networking is associated to hypervisor's ip
+                ip: "localhost"
+
+```
+
+As you can see the  `setup_image` callback-task prepare the image and inject the SSH authorized key.
+
+Note: the `ansible_ssh_private_key_file: ~/.ssh/id_ssh_rsa_vm` will be generated by the `setup_image.yaml` callback-task and used later as authorized key and we will use the same key to authenticate into the virtual machines automatically.
+
+Lets define the real platforms:
+
+- **debian_sid** will be a L1 VM hypervisor that will use a resized debian sid image to store the hypervisor requirements L2 images
+  ```
+
+  - block:
+      - import_tasks: _debian.yaml
+    vars:
+      version_name: sid
+      version_major_num: sid
+      version: '20230403-1339'
+    
+  - vars:
+      new_task:
+        callback: callbacks/sources/extend_and_convert.yaml
+        src: "{{ vm.metadata.sources[0].before_provision[2].src }}"
+        dest: "{{ vm.metadata.sources[0].before_provision[2].src }}"
+        from_format: qcow2
+        to_format: qcow2
+        partition_number: 1
+        size: 10G
+    block:
+
+      - name: Add new task to imported definition
+        set_fact:
+          vm: "{{ vm | combine(vm_override, recursive=true ) }}"
+        vars:
+          vm_override:
+            metadata:
+              sources:
+                - before_provision: "{{ vm.metadata.sources[0].before_provision[:2] + [ new_task ] + vm.metadata.sources[0].before_provision[2:] }}"
+                  on_provision: "{{ vm.metadata.sources[0].on_provision }}"
+  ```
+  - The `extend_and_convert.yaml` callback-task is used to resize the debian image, similar to how the `debian_vs` image [was created](https://github.com/virtualsquare/freshly_brewed_virtualsquare/blob/master/brew_v2)
+
+- **debian_sid_user** will be a L2 VM with network type 'user' configured, so just reuse the *debian* platform:
+
+  ```
+  - block:
+      - import_tasks:
+          file: _debian.yaml
+    vars:
+      version_name: sid
+      version_major_num: sid
+      version: '20230403-1339'
+
+  - name: Override platform
+    block:
+      - name: Override for user network setup
+        set_fact:
+          vm: "{{ vm | combine( vm_override, recursive=true) }}"
+        vars:
+          vm_override:
+            ram: 512
+  ```
+
+- **debian_sid_vde** will be a L2 VM connected with a 'vde' network type, so we need to add an callback-task to insert a network interface configuration file into the image such that the VM will be reachable through its interface address:
+  ```
+  - block:
+      - import_tasks:
+          file: _debian.yaml
+    vars:
+      version_name: sid
+      version_major_num: sid
+      version: '20230403-1339'
+
+  - name: Reset connection port for VM
+    add_host:
+      name: "{{ vm.metadata.name }}"
+      ansible_port: 22
+
+  - name: Override platform
+    vars: 
+      new_task:
+        callback: callbacks/sources/setup_connection.yaml
+        src: "{{ vm.metadata.sources[0].on_provision.src }}"
+    block:
+      - name: Override for VDE setup
+        set_fact:
+          vm: "{{ vm | combine( vm_override, recursive=true) }}"
+        vars:
+          vm_override:
+            metadata:
+              # reuse the old_before_provision but insert the network preprocessing before the main setup image
+              sources:
+                # Note: For some strange reason if we add the "setup network" as last callback task, the VM won't start ssh service
+                # maybe because the "setup image" callback-task uses 'ssh-keygen -A'
+                - before_provision: "{{ vm.metadata.sources[0].before_provision[:2] + [ new_task ] + vm.metadata.sources[0].before_provision[2:] }}"
+                  on_provision: "{{ vm.metadata.sources[0].on_provision }}"
+            ram: 512
+            net:
+              type: vde
+              source: "{{ vde_network }}"
+              ip: "10.0.0.21"
+              mask: "24"
+              gateway: "10.0.0.254"
+  ```
+
 ## The VMs provisioning
 
-The **1st** `run_vm_provision.yaml` playbook will deploy and run the provisioning of the L1 VM about the **debian_vs** platform which VM provisioning phases will run tasks such that:
+The **1st** `run_vm_provision.yaml` playbook will deploy and run the provisioning of the L1 VM about the **debian_sid** platform which VM provisioning phases will run tasks such that:
 
-  - In **debian_vs**'s init phases:
+  - In **debian_sid**'s init phases:
 
     - Upgrade preinstalled packages
     - Install [this collection's requirements](../../index.md#Requirements) such as libvirt env and dependencies
     - Install a `default` libvirt pool by using the external [stackhpc.libvirt-host](https://github.com/stackhpc/ansible-role-libvirt-host) utility role
   
-  - In **debian_vs**'s main phase
+  - In **debian_sid**'s main phase
 
     - Install `vde2`
     - Import a `vde_provisioning` local utility role, in short:
@@ -190,7 +362,7 @@ The **1st** `run_vm_provision.yaml` playbook will deploy and run the provisionin
     
     - Init the L2 VMs with `parse_vms_definitions` and `init_vm_connection`, adding it-self as their hypervisor
 
-  - In **debian_vs**'s terminate phase
+  - In **debian_sid**'s terminate phase
     - Remove the `shutdown` phase to allow ansible to run the VM provisioning process on next playbook.
   
   The **2nd** `run_vm_provision.yaml` playbook will deploy and run the provisioning of the nested L2 VMs which VM provisioning phases won't run any meaningful phase expect for the `terminate` phase:
@@ -202,6 +374,6 @@ The **1st** `run_vm_provision.yaml` playbook will deploy and run the provisionin
 ANSIBLE_CONFIG=ansible.cfg ansible-playbook main.yaml
 ```
 
-You shouldn't get any error and both L2 VMs will result reachable by using the ssh jump host feature: the **debian_vs_vde** VM through a VDE network and **debian_vs_user** through the QEMU slirp user networking.
+You shouldn't get any error and both L2 VMs will result reachable by using the ssh jump host feature: the **debian_sid_vde** VM through a VDE network and **debian_sid_user** through the QEMU slirp user networking.
 
 Warning: If you are trying to connect to your VM with a VDE network and its hypervisors is Ubuntu 22.04 LTS (and maybe future releases) and you get the [error](https://askubuntu.com/questions/1427364/qemu-vde-network-backend-error) `Parameter 'type' expects a netdev backend type` you have to build QEMU binaries from source and use it in your VM definition to use VDE.

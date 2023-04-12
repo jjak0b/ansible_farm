@@ -5,3 +5,8 @@
   become: yes
   
 - include_tasks: "{{ (phases_lookup_dir_path, 'dependencies.yaml' ) | path_join }}"
+
+- name: Install Junit from pip
+  ansible.builtin.pip:
+    name: junit-xml
+    extra_args: --user

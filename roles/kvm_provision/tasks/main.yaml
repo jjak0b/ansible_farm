@@ -9,6 +9,14 @@
   debug:
     var: vm
 
+- name: Check virsh version
+  shell: virsh --version
+  register: _virsh_version_result
+
+- name: Set fact about virsh version
+  set_fact:
+    virsh_version: "{{ _virsh_version_result.stdout }}"
+  
 - assert:
     fail_msg: VM definition has not been provided
     that:

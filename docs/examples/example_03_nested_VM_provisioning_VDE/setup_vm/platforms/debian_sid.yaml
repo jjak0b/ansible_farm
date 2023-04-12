@@ -2,8 +2,8 @@
 - block:
     - import_tasks: _debian.yaml
   vars:
-    version_name: bullseye
-    version_major_num: 11
+    version_name: sid
+    version_major_num: sid
     version: '20230403-1339'
   
 - vars:
@@ -14,7 +14,7 @@
       from_format: qcow2
       to_format: qcow2
       partition_number: 1
-      size: 20G
+      size: 10G
   block:
 
     - name: Add new task to imported definition
@@ -26,4 +26,3 @@
             sources:
               - before_provision: "{{ vm.metadata.sources[0].before_provision[:2] + [ new_task ] + vm.metadata.sources[0].before_provision[2:] }}"
                 on_provision: "{{ vm.metadata.sources[0].on_provision }}"
-          ram: 4096

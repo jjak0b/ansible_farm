@@ -1,5 +1,4 @@
 dependencies:  
-  - python3-pip
   - python3-lxml
   - python3-libvirt
   - libvirt-daemon-system
@@ -10,5 +9,10 @@ dependencies:
   - xauth
   - bzip2
   - gzip
+  # Extra for testing
+#  - python3-pip
+#  - python3-virtualenv
+#  - python3-setuptools
+  - python3-junitxml
   - ansible
   - git

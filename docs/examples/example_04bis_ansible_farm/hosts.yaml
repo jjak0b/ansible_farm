@@ -10,7 +10,7 @@ all:
         permutations:
           targets:
             - 'amd64'
-#           - 'arm64'
+            - 'arm64'
           platforms:
             - 'debian_11'
             - 'debian_12'

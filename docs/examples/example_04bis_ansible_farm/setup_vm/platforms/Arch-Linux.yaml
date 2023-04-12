@@ -1,2 +1,14 @@
 
-- import_tasks: '_Arch-Linux.yaml'
+
+- block:
+    - import_tasks: '_Arch-Linux.yaml'
+  
+- vars:
+  block:
+
+    - name: Override imported definition
+      set_fact:
+        vm: "{{ vm | combine(vm_override, recursive=true ) }}"
+      vars:
+        vm_override:
+          ram: 4096

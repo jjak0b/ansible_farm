@@ -25,7 +25,7 @@
               # metadata properties are used inside a task for installation and setup purposes
               metadata:
                 name: "{{ vm_name }}"
-                hostname: "V2-{{ version }}"
+                hostname: "vm.{{ vm.metadata.platform_name }}.{{ vm.metadata.target_name }}"
                 connection: "qemu:///session"
                 auth:
                   become_user: "root"

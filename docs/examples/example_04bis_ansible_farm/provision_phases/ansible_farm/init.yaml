@@ -1,0 +1,51 @@
+
+- name: Setup groups
+  become: yes
+  vars:
+    libvirt_groups:
+      - kvm
+#     - libvirt
+  block: 
+
+    - name: Ensure KVM and libvirt group exists
+      loop: "{{ libvirt_groups }}"
+      loop_control:
+        loop_var: group_name
+      group:
+        name: "{{ group_name }}"
+        state: present
+
+
+    - name: "Add '{{ ansible_user }}' to hypervisor groups"
+      user:
+        name: "{{ ansible_user }}"
+        groups: "{{ libvirt_groups | join(',') }}"
+        append: yes
+        state: present
+
+- name: Setup libvirt pools
+  vars:
+    ansible_become: false
+    libvirt_host_uri: 'qemu:///session'
+    libvirt_host_python3: false
+    libvirt_host_install_daemon: false
+    libvirt_host_install_client: false
+    libvirt_host_pools:
+      - name: default
+        type: dir
+        capacity: 4096
+        path: "{{ ansible_env.HOME }}/.local/share/libvirt/images/"
+        mode: 755
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+  block:
+
+    - name: Setup libvirt pool
+      import_role:
+        name: stackhpc.libvirt-host
+
+- name: Generate an SSH keypair 
+  community.crypto.openssh_keypair:
+    path: ~/.ssh/id_rsa
+    type: rsa
+    state: present  
