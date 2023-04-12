@@ -15,7 +15,7 @@
   register: playbook_stat_result
 
 - name: Remove ansible_collection
-  ansible.bultin.file:
+  ansible.builtin.file:
     path: ~/.ansible/collections/ansible_collections
     state: absent
 

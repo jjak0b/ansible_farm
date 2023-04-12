@@ -1,0 +1,9 @@
+---
+roles:
+  - name: stackhpc.libvirt-host
+    version: 'v1.12.1'
+collections:
+
+  - name: community.crypto
+    version: ">=2.10.0"
+    type: galaxy

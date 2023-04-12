@@ -11,16 +11,19 @@
     - name: Update manager cache
       package:
         update_cache: yes
+        upgrade: yes
 
     - name: Install dependencies.
       package:
         name: "{{ dependencies }}"
         state: latest
 
-  become: yes
+    - name: Reboot VM
+      ansible.builtin.reboot:
+        connect_timeout: "{{ connection_timeout | default(omit, true) }}"
+        test_command: 'true'
 
-- name: Install Junit from pip
-  shell: pip install junit-xml
+  become: yes
 
 - name: Clone repo
   ansible.builtin.git:
@@ -29,3 +32,11 @@
     version: master
     recursive: true
   
+- name: Install collections and roles together
+  community.general.ansible_galaxy_install:
+    type: both
+    requirements_file: ~/ansible_farm/requirements.yml
+  retries: 4
+  delay: 2
+  register: install_repo_requirements_result
+  until: install_repo_requirements_result is success

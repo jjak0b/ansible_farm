@@ -1,5 +1,4 @@
 dependencies:  
-  - python-pip
   - python-lxml
   - libvirt-python
   - libvirt
@@ -10,5 +9,10 @@ dependencies:
   - xorg-xauth
   - bzip2
   - gzip
+  # Extra for testing
+  - python-pip
+  - python-virtualenv
+  - python-setuptools
+#  - python-junitxml
   - ansible
   - git
