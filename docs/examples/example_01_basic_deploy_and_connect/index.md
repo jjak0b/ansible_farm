@@ -239,14 +239,14 @@ Note: The `ansible_connection` and `ansible_port` values aren't set by any role 
 
 Hint: Alternatively you can assign a random (but repeatable) port that depends by your VM name so you can automatically assign a connection port to your VMs that use the same platform definition. So each VM have its own indipendent port since it depends by the VM's name. You can achieve this by adding the following code in your `setup_vm/<platform_name>.yaml`:
 
-- Set a temp fact or variable: ```your_ssh_forward_port: "{{ 65535 | random( start=2201, seed=vm.metadata.name) }}"```
+- Set a temp fact or variable: ```your_ssh_forward_port: "{{ hostvars[ vm_name ].ansible_port | default( 65535 | random( start=2201, seed=vm_name), true ) }}"```
 - Set your ```vm.net.source: "hostfwd=tcp:127.0.0.1:{{your_ssh_forward_port}}-:22"```
 - add the task:
   ```
   - name: Set connection port for VM
     add_host:
       name: "{{ vm.metadata.name }}"
-      ansible_port: "{{ ssh_forward_port }}"
+      ansible_port: "{{ your_ssh_forward_port }}"
   ```
 
 ###  Define a playbook: VM provisioning

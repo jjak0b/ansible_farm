@@ -156,7 +156,7 @@ We just show how to add the `debian_12.yaml` using a different image directly fr
     block:
 
       - vars:
-          ssh_forward_port: "{{ 65535 | random( start=2201, seed=vm_name) }}"
+          ssh_forward_port: "{{ hostvars[ vm_name ].ansible_port | default( 65535 | random( start=2201, seed=vm_name), true ) }}"
         block:
         
           - name: Set connection port for VM

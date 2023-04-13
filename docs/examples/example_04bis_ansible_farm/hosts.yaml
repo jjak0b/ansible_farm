@@ -10,11 +10,11 @@ all:
         permutations:
           targets:
             - 'amd64'
-            - 'arm64'
+#            - 'arm64'
           platforms:
-            - 'debian_11'
+#            - 'debian_11'
             - 'debian_12'
-            - 'debian_sid'
+#            - 'debian_sid'
         list:
           - platform: 'Arch-Linux'
             target: 'amd64'
@@ -22,7 +22,7 @@ all:
     hypervisors:
       hosts:
         notebook_amd64:
-          ansible_host: notebook.local
+          ansible_host: nb-jacopo.lan
           ansible_user: user
         rpi_4_arm64:
           ansible_host: raspi4.local
@@ -49,6 +49,6 @@ all:
           - create clean
           - dependencies
           - init
-          - main
-          - terminate
-          - shutdown
+          #- main
+          #- terminate
+          #- shutdown

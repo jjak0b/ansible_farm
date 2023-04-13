@@ -179,7 +179,7 @@ Lets define a parametric `_debian.yaml` platform that will be used to define com
   block:
 
     - vars:
-        ssh_forward_port: "{{ 65535 | random( start=2201, seed=vm_name) }}"
+        ssh_forward_port: "{{ hostvars[ vm_name ].ansible_port | default( 65535 | random( start=2201, seed=vm_name), true ) }}"
       block:
       
         - name: Set connection port for VM
