@@ -7,7 +7,8 @@
     src_path: "{{ (vm.metadata.tmp_dir, task.src) | path_join }}"
     dest_path: "{{ vm.metadata.tmp_dir }}"
     net_config_location: "{{ (vm.metadata.tmp_dir, ) | path_join }}"
-    ifname: enp0s3
+    # Note: This change on used network interface address: bus 0, address 0x0f
+    ifname: enp0s15
   block:
 
     - name: Find template for interface
