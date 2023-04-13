@@ -36,7 +36,7 @@
       shell:
         cmd: >
           virt-sysprep -a '{{ src_path }}'
-          --network --update --install ifupdown
+          --network --install ifupdown
           --run-command 'echo "{{ new_content }}" >> /etc/network/interfaces.d/{{ ifname }}'
           --run-command 'chmod +x /etc/network/interfaces.d/{{ ifname }}'
 #          --run-command 'echo "{{ new_content }}" >> /etc/systemd/network/{{ ifname }}.network'
