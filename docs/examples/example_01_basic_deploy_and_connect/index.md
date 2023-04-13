@@ -216,6 +216,12 @@ all:
         ansible_become_user: root
         ansible_become_password: virtualsquare
 
+        # following are used by the guest_provision role
+        project_id: example_01
+        project_revision: 0
+        allowed_phases:
+          - startup
+
 ```
 
 Hint: Since `parse_vms_definitions` is usually used to generate multiple VM, some platform dependent's info like the `ansible_user` may be useful to define them per platform group instead per host. This behavior may be achieved on runtime by the `init_vm_connection` role. It will add each VM as inventory host entry by using the `VM definition` object such that:
@@ -280,7 +286,7 @@ Now let's define the [playbook_connect.yaml](playbook_connect.yaml) that will co
 
 ```
 
-Warning: In the playbook "VMs provisioning" the `gather_facts` must be set to `no`/`false` because the VMs may not be turned on yet and ansible will try to connect to them and run the [setup module](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/setup_module.html), but failing if VMs are unreachable. The VM turn on/off and wait for connection behavior is handled by the `guest_provision` role.
+Warning: In the playbook "VMs provisioning" the `gather_facts` must be set to `no`/`false` because the VMs may not be ready to receive ssh connection yet but ansible will try to connect to them and if `gather_facts: yes` then it will run the [setup module](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/setup_module.html), but will fail because VMs are unreachable until SSH service is running. The VM startup/shutdown and waits for the connection behaviors are handled by the `guest_provision` role.
 
 Final steps
 -----------
@@ -289,12 +295,9 @@ Final steps
 Now we can just re-use the written playbook and import them in a single [main.yaml](main.yaml) playbook to run both the deploy and connect playbooks: 
 
 ```
----
-
 - import_playbook: playbook_deploy.yaml
 
 - import_playbook: playbook_connect.yaml
-
 ```
 
 Note: **playbook_deploy** defines the `virtual_machines` fact which is accessible also by **playbook_connect**.
