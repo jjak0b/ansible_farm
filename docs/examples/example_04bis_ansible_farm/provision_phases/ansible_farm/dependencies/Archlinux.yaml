@@ -9,6 +9,7 @@ dependencies:
   - xorg-xauth
   - bzip2
   - gzip
+  - sshpass
   # Extra for testing
   - python-pip
   - python-virtualenv
