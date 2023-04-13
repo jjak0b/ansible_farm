@@ -4,6 +4,8 @@
       include_tasks: shutdown.yaml
   delegate_to: "{{ kvm_host }}"
   vars:
-    vm: "{{ hostvars[ hostjumps[-1] ].vm }}"
-    kvm_host: "{{ hostvars[ hostjumps[-1] ].kvm_host }}"
-  when: vm is defined
+    vm: "{{ hostvars[ hostjumps[-1] ].vm | default(omit, true) }}"
+    kvm_host: "{{ hostvars[ hostjumps[-1] ].kvm_host | default(omit, true) }}"
+  when:
+    - hostvars[ hostjumps[-1] ].vm is defined
+    - hostvars[ hostjumps[-1] ].kvm_host is defined
