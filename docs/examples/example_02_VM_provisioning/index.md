@@ -37,6 +37,10 @@ all:
               platforms:
                 - "debian_vs"
                 - "Arch-Linux"
+    # reuse same port of previous example
+    debian_vs:
+      vars:
+        ansible_port: 2201
     vms:
       vars:
         should_setup_proxy_jumps: false
