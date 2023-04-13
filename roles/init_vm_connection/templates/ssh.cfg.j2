@@ -1,7 +1,7 @@
 {% for node_name in (hostjumps + [ vm.metadata.name ] )  %}
 {% if hostvars[ node_name ].get('ansible_connection') | ternary( hostvars[ node_name ].get('ansible_connection') == 'ssh', true ) %}
 Host {{ hostvars[ node_name ].ansible_host }}
-{% if loop.index0 > 0 and loop.previtem is defined %}{# Use proxy jumps even for non-vm hosts #}
+{% if loop.index0 > 0 and loop.previtem is defined and hostvars[ loop.previtem ].get('ansible_connection') | ternary( hostvars[ loop.previtem ].get('ansible_connection') == 'ssh', true ) %}{# Use proxy jumps even for non-vm hosts #}
   ProxyJump {{ hostvars[ loop.previtem ].ansible_host }}
 {% endif %}
 {% if hostvars[ node_name ].vm.net.type | default(None) == 'user' %}
