@@ -12,7 +12,7 @@ Prerequisite
 -----------------------
 
 - [kvm_provision](../../roles/kvm_provision.md#Requirements ) role requirements
-
+- Install `sshpass` in your hypervisor host because this example use credentials
 
 Hypervisor provisioning
 -----------------------
@@ -216,6 +216,9 @@ all:
         ansible_become_user: root
         ansible_become_password: virtualsquare
 
+        # disable proxy jumps so we can use passwords
+        should_setup_proxy_jumps: false
+
         # following are used by the guest_provision role
         project_id: example_01
         project_revision: 0
@@ -234,6 +237,11 @@ Hint: Since `parse_vms_definitions` is usually used to generate multiple VM, som
   - `kvm_host` will be associated to the **hypervisor**'s inventory hostname, which may useful to delegate some tasks directly to underling hypervisor.
   - `ansible_host` will be associated to the value of its `vm.net.ip` and this must be reachable by the ansible controller node.
   - `ansible_user`, `ansible_password`, `ansible_become_user`, `ansible_become_passwrd`, `ansible_become_method` will be associated to respective values of `vm.metadata.auth`'s properties (without 'ansible_' prefix).
+
+If you use SSH authentication with credentials (this is the case of this example) you need to:
+
+- Install `sshpass` in your hypervisor host
+- set `should_setup_proxy_jumps: false` to disable authentication with keys and proxy jumps setup
 
 Note: The `ansible_connection` and `ansible_port` values aren't set by any role of this collection and ansible will use its default ones if they are not overwritten ( they are usually `ssh` and `22` respectively ).
 

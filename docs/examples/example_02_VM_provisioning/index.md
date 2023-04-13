@@ -12,7 +12,7 @@ Note: The concept can be applied on any phase of the VM provisioning even if thi
 
 Prerequisite
 -------------
-
+- Install `sshpass` in your hypervisor host
 - [kvm_provision](../../roles/kvm_provision.md#Requirements ) role requirements
 - [guest_provision](../../roles/guest_provision.md#Requirements ) role requirements
 
@@ -39,6 +39,7 @@ all:
                 - "Arch-Linux"
     vms:
       vars:
+        should_setup_proxy_jumps: false
         allowed_phases:
           - startup
           - restore init
