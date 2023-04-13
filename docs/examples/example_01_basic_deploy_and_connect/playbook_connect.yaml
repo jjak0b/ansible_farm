@@ -20,9 +20,6 @@
   hosts: vms
   gather_facts: no
   serial: 1
-  vars:
-    project_id: example_01
-    project_revision: 0
   tasks:
 
     # Note: 
