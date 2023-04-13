@@ -7,6 +7,15 @@
     - hostvars[ vm.metadata.name ].kvm_host in hostvars
   block:
 
+    - name: Use ansible_hostname as ansible_host
+      add_host:
+        name: "{{ vm.metadata.name }}"
+        # This is used by ansible to connect with any connection method, it may be an alias so not a real reachable host
+        ansible_host: "{{ hostvars[ vm.metadata.name ].ansible_hostname }}"
+        when: 
+          - hostvars[ vm.metadata.name ].ansible_hostname is defined
+          - vm.net.type == 'user'
+    
     - name: Create temporary file for ssh host jumps
       ansible.builtin.tempfile:
         suffix: "{{ vm.metadata.name | regex_replace('[^A-Za-z0-9]', '') }}_ssh.cfg"

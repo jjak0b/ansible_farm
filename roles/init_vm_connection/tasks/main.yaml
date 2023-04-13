@@ -39,12 +39,15 @@
       ansible_become_password: "{{ vm.metadata.auth is defined and vm.metadata.auth.become_password is defined | ternary( vm.metadata.auth.become_password, omit ) }}"
       # save real host 
       ansible_host_real: "{{ vm.net.ip | default(omit, true) }}"
-      # This is used by ansible to connect with any connection method, it may be an alias so not a real reachable host
-      ansible_host: "{{ vm.metadata.hostname if vm.net.type | default(None) == 'user' else vm.net.ip }}"
       ansible_hostname: "{{ vm.metadata.hostname }}"
       # other host vars
       vm: "{{ vm }}"
       kvm_host: "{{ inventory_hostname }}"
+  
+  - name: Use ansible_host_real as ansible_host
+    add_host:
+      name: "{{ vm.metadata.name }}"
+      ansible_host: "{{ hostvars[ vm.metadata.name ].ansible_host_real }}"
 
   # need to place it here because after the previous add_host module, i can know if a different connection type have been specified from host_vars / group_vars
   - name: "Update VM's ansible_host as VM's domain name for libvirt_qemu connection plugin"
@@ -59,5 +62,4 @@
 - name: Use Proxy Jumps
   import_tasks: setup_proxy_jumps.yaml
   when: 
-    - hostvars[ vm.metadata.name ].ansible_connection is defined
-    - hostvars[ vm.metadata.name ].ansible_connection in [ 'ssh', 'paramiko_ssh' ]
+    - hostvars[ vm.metadata.name ].should_setup_proxy_jumps | default( should_setup_proxy_jumps | default( hostvars[ vm.metadata.name ].ansible_connection is defined and hostvars[ vm.metadata.name ].ansible_connection in [ 'ssh', 'paramiko_ssh' ] ) )
