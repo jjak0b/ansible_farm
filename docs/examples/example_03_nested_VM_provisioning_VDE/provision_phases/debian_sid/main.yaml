@@ -6,6 +6,10 @@
     gather_subset: 
     - 'all'
 
+- block:
+    - include_tasks: ../common-tasks/sync-clock.yaml
+  become: true
+
 - import_role:
     name: vde_provisioning
 

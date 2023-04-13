@@ -17,8 +17,15 @@ all:
             platforms:
               - "debian_vs"
               - "Arch-Linux"
+    # reuse same port of previous examples
+    debian_vs:
+      hosts:
+        VM debian_vs_amd64:
+      vars:
+        ansible_port: 2201
     vms:
       vars:
+        should_setup_proxy_jumps: false
         allowed_phases:
           - startup
           - restore init

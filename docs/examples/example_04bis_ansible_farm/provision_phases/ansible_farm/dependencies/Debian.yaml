@@ -9,6 +9,7 @@ dependencies:
   - xauth
   - bzip2
   - gzip
+  - sshpass
   # Extra for testing
 #  - python3-pip
 #  - python3-virtualenv

@@ -1,2 +1,11 @@
+- name: gather facts of hypervisor host since some definitions require to use them
+  setup:
+    gather_subset: 
+    - 'all'
+
+- block:
+    - include_tasks: ./common-tasks/sync-clock.yaml
+  become: true
+
 - debug:
     msg: "Hello World, from a VM"

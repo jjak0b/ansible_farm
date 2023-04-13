@@ -16,6 +16,7 @@ all:
         ansible_password: virtualsquare
         ansible_become_user: root
         ansible_become_password: virtualsquare
+        should_setup_proxy_jumps: false
         project_id: example_01
         project_revision: 0
         allowed_phases:
