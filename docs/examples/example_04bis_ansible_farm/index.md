@@ -45,10 +45,10 @@ all:
     hypervisors:
       hosts:
         notebook_amd64:
-          ansible_host: nb-jacopo.lan
+          ansible_host: notebook.local
           ansible_user: user
         rpi_4_arm64:
-          ansible_host: 192.168.1.200
+          ansible_host: raspi4.local
           ansible_user: pi
       vars:
         ansible_libvirt_uri: 'qemu:///session'
