@@ -1,7 +1,12 @@
-- name: Terminate hypervisor on play
+- name: "Terminate hypervisor on play if it's the last VM"
+  throttle: 1
+  vars:
+    my_processed_hosts: "{{ ansible_play_hosts_all | difference( groups['vms'] ) }}"
   ping:
   notify: shutdown_hypervisor
   # the notify signal is produced only if the task introduces a change
   changed_when: true
-
+  when:
+    - my_processed_hosts | length <= 1
+    - inventory_hostname in my_processed_hosts
   
