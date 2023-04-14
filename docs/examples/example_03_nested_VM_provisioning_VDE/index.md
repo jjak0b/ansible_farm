@@ -151,6 +151,8 @@ all:
       # VM debian_sid_amd64
     vms:
       vars:
+        # increase timeout since L2 VMs ma be very slow
+        connection_timeout: 200
         ansible_connection: ssh
         project_id: example_03
         project_revision: 0
@@ -165,7 +167,7 @@ all:
 Lets define a parametric `_debian.yaml` platform that will be used to define common data for other platforms:
 
 ```
-- name: Defining platform
+- name: Defining platform with usermode networking
   vars:
     # version_name: bookworm
     # version_major_num: 12
@@ -210,13 +212,13 @@ Lets define a parametric `_debian.yaml` platform that will be used to define com
                     dest: "{{ image_name }}"
                   - callback: callbacks/sources/copy.yaml
                     src: "{{ image_name }}"
-                    dest: "tmp-{{ image_name }}"
+                    dest: &tmp_image_file_name "tmp-{{ vm.metadata.platform_name }}_{{ vm.metadata.target_name }}_{{ image_name }}"
                   - callback: callbacks/sources/setup_image.yaml
-                    src: "tmp-{{ image_name }}"
+                    src: *tmp_image_file_name
                     keys_path: "{{ vm.metadata.tmp_dir }}id_ssh_rsa_vm"
                   on_provision:
-                    src: "tmp-{{ image_name }}"
-                    dest: &image_file_name "{{ vm.metadata.platform_name }}_{{ image_name }}"
+                    src: *tmp_image_file_name
+                    dest: &image_file_name "{{ vm.metadata.platform_name }}_{{ vm.metadata.target_name }}_{{ image_name }}"
               vcpus: 2
               ram: 1536
               disks:

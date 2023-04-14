@@ -95,6 +95,10 @@
       <image compression="off"/>
     </graphics>
 -->
+    <!-- allows the host to pass through entropy to guest operating systems: this should speed up sshd -->
+    <rng model="virtio">
+      <backend model="random">/dev/urandom</backend>
+    </rng>
 {#
   <!-- passt should be available only since 9.0.0, source: https://libvirt.org/formatdomain.html#userspace-slirp-or-passt-connection 
     But this test example should work in Debian 12 with libvirt 9.0.0 but it doesn't: https://github.com/libvirt/libvirt/blob/master/tests/qemuxml2xmloutdata/net-user-passt.x86_64-latest.xml 

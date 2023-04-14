@@ -34,6 +34,10 @@ all:
         L0-hypervisor:
       # This will be added later by the guest provision phases
       # VM debian_sid_amd64
+    vms:
+      vars:
+        # increase timeout since L2 VM ma be very slow
+        connection_timeout: 200
   vars:
 #   ansible_ssh_args: "-F ./ssh.cfg"
     vde_network: vxvde://234.0.0.1
