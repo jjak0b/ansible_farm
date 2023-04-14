@@ -22,7 +22,7 @@ all:
     hypervisors:
       hosts:
         notebook_amd64:
-          ansible_host: nb-jacopo.lan
+          ansible_host: notebook.local
           ansible_user: user
         rpi_4_arm64:
           ansible_host: raspi4.local
