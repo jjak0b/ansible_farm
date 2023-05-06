@@ -24,6 +24,10 @@
           - name: bunzip2
             pattern: "(?!\\.tar)\\.bz2$"
             cmd: "bunzip2 -kf {{ src_path }}"
+          # .xz and not .tar.xz
+          - name: xz
+            pattern: "(?!\\.tar)\\.xz$"
+            cmd: "xz -dkf {{ src_path }}"
       block:
 
         - name: Un-archive with supported option
@@ -33,6 +37,7 @@
           when: 
             - task.src is regex( case.pattern )
           register: unarchive_result
+          ignore_errors: true
 
           loop_control:
             loop_var: case
@@ -40,9 +45,10 @@
         - name: Un-archive with generic unarchive
           unarchive: 
             src: "{{ src_path }}"
+            remote_src: true
             dest: "{{ dest_path }}"
           register: unarchive_result
-          when: unarchive_result is skipped
+          when: (unarchive_result.results | select('succeeded') | list | length) < 1
 
         - name: set unarchive results
           set_fact:

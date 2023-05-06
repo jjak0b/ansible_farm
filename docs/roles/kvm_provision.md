@@ -71,6 +71,7 @@ For each item of the list: all `callback-tasks` defined into each entry of the `
       - extract the `src` file to the `dest` directory by using:
         - `gzip` command on `.gz` or `.tar.gz` files
         - `bunzip2` command on `.bz2` files
+        - `xz` command on `.xz` files
         - [ansible.builtin.unarchive](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/unarchive_module.html) module otherwise.
       - arguments:
         - `src`: The input archive file to extract
@@ -142,6 +143,8 @@ Requirements
     - `gzip` to handle .gz files (optional)
       - required **if** using `unarchive` callback-task with an unsupported archive format by the unarchive module
     - `bzip2` to handle .bz2 files (optional)
+      - required **if** using `unarchive` callback-task with an unsupported archive format by the unarchive module
+    - `xz` to handle .xz files (optional)
       - required **if** using `unarchive` callback-task with an unsupported archive format by the unarchive module
     - `virt-sysprep`
       - required if using the `setup_image` callback-task
