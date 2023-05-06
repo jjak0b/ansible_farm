@@ -241,14 +241,14 @@
       loop: "{{ myParsedXMLSnapshot.domainsnapshot.disks.disk is mapping | ternary( [ myParsedXMLSnapshot.domainsnapshot.disks.disk ], myParsedXMLSnapshot.domainsnapshot.disks.disk, [] ) }}"
       loop_control:
         loop_var: dandling_disk
-        label: "{{ dandling_disk.source[ '@file' ] }}"
+        label: "{{ dandling_disk.source[ '@file' ] | default( dandling_disk, true) }}"
       ansible.builtin.file:
         path: "{{ dandling_disk.source[ '@file' ] }}"
         state: absent
       when:
         - should_delete_dandling_overlays
         - not( _snapshot_descendants_result.stdout_lines | length > 0 )
-        - dandling_disk.source[ '@file' ] is defined
+        - dandling_disk.source[ '@file' ] | default(null, true) is defined
 #     become: yes
 
 - name: Remove temporary file

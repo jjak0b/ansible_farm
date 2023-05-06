@@ -88,10 +88,11 @@
 
 - name: Cleanup dandling overlays
   loop: "{{ overlays_disks }}"
-  when: disk.source[ '@file' ] is defined
+  when:
+    - disk.source[ '@file' ] | default( null, true) is defined
   loop_control:
     loop_var: disk
-    label: "{{ disk.source[ '@file' ] }}"
+    label: "{{ disk.source[ '@file' ] | default( disk, true) }}"
   file:
     path: "{{ disk.source[ '@file'] }}"
     state: absent
