@@ -1,0 +1,6 @@
+
+should_update: true
+should_upgrade: false
+libvirt_groups:
+ - kvm
+# - libvirt

@@ -1,0 +1,19 @@
+dependencies:
+  - libvirt-daemon-system
+  - python3-libvirt
+  - python3-lxml
+  - qemu-kvm
+  - qemu-utils
+  - libvirt-clients
+  - libguestfs-tools
+# optional depending if you are using unarchive callback-task
+  - bzip2
+  - gzip
+  - xz-utils
+# optional but often useful
+  - cloud-image-utils
+# optional for debugging
+  - xauth
+  - virt-manager
+# Required on controller
+#  - sshpass

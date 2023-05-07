@@ -1,0 +1,4 @@
+
+- import_role:
+    name: hypervisor_provision
+    tasks_from: init.yaml

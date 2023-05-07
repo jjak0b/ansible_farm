@@ -1,0 +1,70 @@
+all:
+  vars:
+    ansible_libvirt_uri: 'qemu:///session'
+  hosts:
+    localhost:
+      ansible_connection: local
+      # This is the configuration of all VMs to be dispatched and deployed on available hypervisors
+      config:
+        list:
+          - platform: archlinux
+            target: 'amd64'
+        permutations:
+          targets:
+            - 'arm64'
+            - 'amd64'
+          platforms:
+            - debian_cloud_sid
+            - fedora_38
+            - debian_12
+    
+    local_hypervisor:
+      ansible_connection: local
+      ansible_host: localhost
+  
+  children:
+    hypervisors:
+      hosts:
+        local_hypervisor:
+        # VM debian_sid_amd64:
+        # VM debian_sid_arm64:
+      children:
+        L0:
+          hosts:
+            local_hypervisor:
+          vars:
+        L1: 
+          hosts:
+            # VM alpine_stable_amd64:
+            # VM alpine_stable_arm64:
+            # VM archlinux_amd64:
+            # VM debian_sid_amd64:
+            # VM debian_sid_arm64:
+
+    vms:
+      children:
+        L1:
+          vars:
+            connection_timeout: 300
+        L2:
+          vars:
+            connection_timeout: 400
+      vars:
+        ansible_connection: ssh
+        ansible_ssh_private_key_file: ~/.ssh/id_ssh_rsa_vm
+        # project_id: example_demo
+        # project_revision: 0
+    
+    # vars specific per platform and target
+    alpine_stable:
+      vars:
+        wait_until_port_reachable: true
+    archlinux:
+      vars:
+        # arch image doesn't have python installed, so use ssh port-based waits instead
+        wait_until_port_reachable: true
+    arm64:
+      vars:
+        # We need to set the firmware but doing so internal snapshots aren't supported
+        # See: https://unix.stackexchange.com/questions/663372/error-creating-snapshot-operation-not-supported-internal-snapshots-of-a-vm-wit
+        snapshot_type: external

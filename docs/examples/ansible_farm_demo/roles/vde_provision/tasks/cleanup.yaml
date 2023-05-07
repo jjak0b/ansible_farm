@@ -1,0 +1,23 @@
+
+- name: check if pidfile exists
+  stat:
+    path: "{{ pidfile_path }}"
+  register: pidfile_stat_result
+    
+- when:
+    - pidfile_stat_result.stat.exists
+  block:
+    - name: Read pidfile
+      shell:
+        cmd: "cat {{ pidfile_path }}"
+      register: pidfile_content_result
+
+    - name: Kill procedd in pidfile
+      shell:
+        cmd: "kill -9 {{ pidfile_content_result.stdout }}"
+      register: pidfile_content_result
+
+    - name: Ensure there is no old pidfile
+      file:
+        path: "{{ pidfile_path }}"
+        state: absent

@@ -1,0 +1,8 @@
+
+# This playbook can use all variables from parse_vms_definitions and init_vm_connection roles defined on each hypervisor's specific inventory
+---
+
+- name: Setup L0 hypervisors
+  hosts: "{{ hypervisors_group | default('hypervisors&L0') }}"
+  gather_facts: yes
+

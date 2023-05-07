@@ -1,0 +1,29 @@
+#cloud-config
+
+users:
+  - name: "{{ vm.metadata.auth.user }}"
+    gecos: "{{ vm.metadata.auth.user }}"
+    primary_group: "{{ vm.metadata.auth.user }}"
+    groups: users
+    hashed_passwd: "{{ vm.metadata.auth.password | password_hash( hashtype='sha512' ) }}"
+    lock_passwd: False
+    chpasswd:
+      expire: False
+    ssh_pwauth: True
+    ssh_authorized_keys:
+      - "{{ openssh_keypair_result.public_key }}"
+
+  - name: "{{ vm.metadata.auth.become_user }}"
+    gecos: "{{ vm.metadata.auth.become_user }}"
+    primary_group: "{{ vm.metadata.auth.become_user }}"
+    groups: users,admin,wheel
+    hashed_passwd: "{{ vm.metadata.auth.become_password | password_hash( hashtype='sha512' ) }}"
+    lock_passwd: False
+    ssh_pwauth: True
+    chpasswd:
+      expire: False
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+
+package_update: true
+packages:
+  - haveged

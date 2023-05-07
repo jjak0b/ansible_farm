@@ -1,0 +1,83 @@
+# Note: The cloud generic edition needs a setup to use the cloud-init configuration, see https://cloudinit.readthedocs.io/en/latest/tutorial/qemu.html
+---
+
+- name: Defining platform with usermode networking
+  vars:
+    # version_name: bookworm
+    # version_major_num: 12
+    # version: "20230330-1335"
+    period: daily
+    vm_name: "VM {{ vm.metadata.platform_name }}_{{ vm.metadata.target_name }}"
+    debian_arch_names:
+      "arm64": "arm64"
+      "amd64": "amd64"
+      "ppc64": "ppc64el"
+  block:
+
+    - vars:
+        ssh_forward_port: "{{ hostvars[ vm_name ].ansible_port | default( 65535 | random( start=2201, seed=vm_name), true ) }}"
+      block:
+      
+        - name: Set connection port for VM
+          add_host:
+            name: "{{ vm_name }}"
+            ansible_port: "{{ ssh_forward_port }}"
+      
+        - name: Define platform definition
+          vars:
+            uri_base: "https://cdimage.debian.org/cdimage/cloud/{{ version_name }}/{{ period }}/{{ version }}"
+            image_name: "debian-{{ version_major_num }}-generic-{{ debian_arch_names[ vm.metadata.target_name ] }}-daily-{{ version }}.qcow2"
+          set_fact:
+            vm:
+              # metadata properties are used inside a task for installation and setup purposes
+              metadata:
+                template: 'cloud_compatible'
+                name: "{{ vm_name }}"
+                connection: "qemu:///session"
+                auth:
+                  become_user: "root"
+                  become_password: &root_pass "virtualsquare"
+                  become_method: su
+                  user: "user"
+                  password: *root_pass
+                sources:
+
+                  - before_provision:
+                      - callback: callbacks/sources/fetch.yaml
+                        src: "{{ uri_base }}/{{ image_name }}"
+                        dest: "{{ image_name }}"
+                      - callback: callbacks/sources/copy.yaml
+                        src: "{{ image_name }}"
+                        dest: &tmp_image_file_name "tmp-{{ vm.metadata.platform_name }}_{{ vm.metadata.target_name }}_{{ image_name }}"
+                    on_provision:
+                      src: *tmp_image_file_name
+                      dest: &image_file_name "{{ vm.metadata.platform_name }}_{{ vm.metadata.target_name }}_{{ image_name }}"
+                  
+                  - before_provision:
+                      - callback: callbacks/sources/setup_cloudinit_iso.yaml
+                        dest: &cloudinit_config_file_name "{{ vm.metadata.platform_name }}_{{ vm.metadata.target_name }}_cloud-config.img"
+                        keys_path: "{{ vm.metadata.tmp_dir }}id_ssh_rsa_vm"
+                    on_provision:
+                        src: *cloudinit_config_file_name
+                        dest: *cloudinit_config_file_name
+              vcpus: 2
+              ram: 1536
+              disks:
+
+                - type: "qcow2"
+                  devname: "hda"
+                  src: *image_file_name
+                
+                # MUST be declared after the rootfs. 
+                - type: 'raw'
+                  devname: 'hdb'
+                  src: *cloudinit_config_file_name
+                  # exclude from snapshots
+                  readonly: true
+              
+              net:
+                type: user
+                source: "hostfwd=tcp:127.0.0.1:{{ ssh_forward_port }}-:22"
+                mac: "{{ '52:54:00' | random_mac( seed = vm_name ) }}"
+                # note: user networking is associated to hypervisor's ip
+                ip: "localhost"

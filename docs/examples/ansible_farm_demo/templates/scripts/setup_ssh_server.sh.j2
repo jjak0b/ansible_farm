@@ -1,0 +1,41 @@
+#!/bin/sh
+
+install_package() {
+
+    if command -v apt-get > /dev/null; then
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update
+        apt-get install $1 -y
+    elif command -v dnf > /dev/null; then
+        dnf update
+        dnf install -y $1
+    elif command -v pacman > /dev/null; then
+        pacman -Sy $1
+    elif command -v apk > /dev/null; then
+        apk update
+        apk add $1
+    fi
+
+}
+
+ensure_service_running() {
+
+    if command -v systemctl > /dev/null; then
+        systemctl enable $1
+        systemctl restart $1
+    elif command -v service > /dev/null; then
+        service $1 enable
+        service $1 restart
+    fi
+}
+
+sed -i 's/^.*PasswordAuthentication.*$/#PasswordAuthentication yes/' /etc/ssh/sshd_config
+sed -i 's/^.*PermitRootLogin.*$/PermitRootLogin Yes/' /etc/ssh/sshd_config
+
+# Increase entropy by installing haveged
+install_package haveged
+ensure_service_running haveged
+
+ssh-keygen -A
+
+ensure_service_running sshd

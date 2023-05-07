@@ -1,0 +1,146 @@
+<domain type="{{ vm.virt_domain }}" xmlns:qemu="http://libvirt.org/schemas/domain/qemu/1.0">
+
+  <name>{{ vm.metadata.name }}</name>
+  <os>
+    <type arch="{{ vm.arch }}" machine="{{ vm.machine }}">hvm</type>
+    {% if vm.kernel is defined %}
+
+      {% if vm.kernel.src is defined %}
+    <kernel>{{ vm.metadata.libvirt_pool_dir }}{{ vm.kernel.src }}</kernel>
+      {% endif %}
+      {% if vm.kernel.params is defined %}
+    <cmdline>{{ vm.kernel.params }}</cmdline>
+      {% endif %}
+    {% endif %}
+
+    {% if vm.firmware is defined %}
+    <loader readonly="yes" type="pflash">{{ vm.firmware }}</loader>
+    {% endif %}
+    
+    <boot dev='hd'/>
+  </os>
+  <memory unit='MiB'>{{ vm.ram }}</memory>
+
+  {% if vm.virt_domain == "kvm" %}
+    <cpu mode='host-passthrough' check='none'/>
+  {% else %}
+    <cpu mode="custom" match="exact">
+      <model>{{ vm.cpu }}</model>
+    </cpu>
+    <vcpu placement='static'>{{ vm.vcpus }}</vcpu>
+  {% endif %}
+  
+  <clock offset="utc" />
+  <!--
+  <features>
+    <acpi/>
+    <apic/>
+  </features>
+  -->
+  <devices>
+    <emulator>{{ vm.emulator }}</emulator>
+
+    {% for disk in vm.disks %}
+    <disk type='file' device='disk' {% if disk.snapshot is defined %} snapshot="{{ disk.snapshot }}" {% endif %}>
+      <driver name='qemu' type="{{ disk.type }}"/>
+      <source file="{{ vm.metadata.libvirt_pool_dir }}{{ disk.src }}"/>
+      <target dev="{{ disk.devname }}" bus='virtio'/>
+      {% if disk.readonly is defined and disk.readonly %}
+      <readonly/>
+      {% endif %}
+    </disk>
+    {% endfor %}
+  
+    {% if vm.net.type is defined and not ( vm.net.type in [ "vde", "user" ] ) %}
+    <interface type="{{ vm.net.type }}">
+      
+      {% if vm.net.type == "ethernet" %}
+      <target dev="{{ vm.net.source }}" managed='no'/>
+      {% else %}
+      <mac address="{{ vm.net.mac }}"/>
+      {% endif %}
+
+      <model type='virtio'/>
+      {% if vm.net.type == "bridge" %}
+      <source bridge="{{ vm.net.source }}"/>
+      {% else %}
+      <source network="{{ vm.net.source }}"/>
+      {% endif %}
+    
+    </interface>
+    {% endif %}
+
+    <console type="pty">
+      <target type="serial" port="0"/>
+    </console>
+
+    <channel type="unix">
+      <source mode="bind"/>
+      <target type="virtio" name="org.qemu.guest_agent.0"/>
+    </channel>
+
+    {% if true | bool %}
+    <graphics type='spice' autoport='yes'>
+      <listen type='address'/>
+    </graphics>
+    {% endif %}
+
+    <video>
+      <model type="vga" heads="1" primary="yes"/>
+    </video>
+<!--
+    <channel type="spicevmc">
+      <target type="virtio" name="com.redhat.spice.0"/>
+      <address type="virtio-serial" controller="0" bus="0" port="2"/>
+    </channel>
+    <graphics type="spice" autoport="yes">
+      <listen type="address"/>
+      <image compression="off"/>
+    </graphics>
+-->
+    <!-- allows the host to pass through entropy to guest operating systems: this should speed up sshd -->
+    <rng model="virtio">
+      <backend model="random">/dev/urandom</backend>
+    </rng>
+{#
+  <!-- passt should be available only since 9.0.0, source: https://libvirt.org/formatdomain.html#userspace-slirp-or-passt-connection 
+    But this test example should work in Debian 12 with libvirt 9.0.0 but it doesn't: https://github.com/libvirt/libvirt/blob/master/tests/qemuxml2xmloutdata/net-user-passt.x86_64-latest.xml 
+    So opened issue here https://gitlab.com/libvirt/libvirt/-/issues/462
+    And find out that it has been disable in Debian 12 release because stable passt support is available since 9.2.0 (future Debian releases) so we will use it since that version
+  -->
+ {% if vm.net.type is defined and vm.net.type in [ "user" ] and virsh_version is defined and virsh_version is version('9.2.0', 'ge') %}
+    <interface type='user'>
+      <backend type='passt'/>
+      <model type="virtio"/>
+      <mac address="{{ vm.net.mac }}"/>
+      <portForward proto='tcp'>
+        <!-- SSH port -->
+        <range start="{{ hostvars[ vm.metadata.name ].ansible_port | default('8022') }}" to="22" />
+      </portForward>
+    </interface>
+  {% endif %}
+#}
+  </devices>
+  <!-- 
+    qemu:commandline must a direct children of the <domain/> tag, 
+    source: https://libvirt.org/kbase/qemu-passthrough-security.html#xml-document-additions
+  -->
+  {% if vm.net.type is defined and ( vm.net.type in [ "vde" ] or ( vm.net.type in [ "user" ] and virsh_version is defined and virsh_version is version('9.2.0', 'lt') ) ) %}
+    <qemu:commandline>
+      <qemu:arg value="-netdev"/>
+      {% if vm.net.type == "vde" %}
+      <!-- maybe <interface type='vhostuser'/> can generalize this -->
+      <qemu:arg value="type=vde,id=vde0,sock={{ vm.net.source }}"/>
+      {% elif vm.net.type == "user" %}
+      <qemu:arg value="type=user,id=user0,{{ vm.net.source | default( 'hostfwd=tcp:127.0.0.1:8022-:22' ) }}"/>
+      {% endif %}
+  <!--
+    Note: we can't use the <interface/> tag for user interface since it has no properties that allow the behavior of qemu's 'hostfwd' option.
+    Warning: the bus and address (slot) are required because qemu may assign the interface to an address already assigned by libvirt
+    and so it may cause a conflict with another device.
+  -->
+      <qemu:arg value="-device"/>
+      <qemu:arg value="virtio-net-pci,bus={{ vm.default_bus | default('pcie.0', true) }},addr=0x0f,netdev={{ vm.net.type }}0{{ vm.net.mac is defined | ternary( ',mac=' + vm.net.mac, '' ) }}"/>
+    </qemu:commandline>
+  {% endif %}
+</domain>

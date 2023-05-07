@@ -1,0 +1,71 @@
+- name: Init some L1 VMs
+  import_playbook: init_vm_definitions.yaml
+  # import_playbook: jjak0b.ansible_farm.init_vm_definitions.yaml # From ansible 2.11
+  vars:
+    hypervisors_group: "hypervisors:&L0"
+
+- name: Create some L1 VMs and make them hypervisors
+  import_playbook: run_vm_provision.yaml
+  # import_playbook: jjak0b.ansible_farm.run_vm_provision.yaml # From ansible 2.11
+  vars:
+    vms_group: "vms:&L1:!processed"
+    allowed_phases:
+      - startup
+      - restore init
+      - create init
+      - restore clean
+      - create clean
+      - dependencies
+      - init
+      - main
+      # DO NOT SHUTDOWN: run L2 VM provisioning first
+      # - terminate
+      # - shutdown
+
+- import_playbook: ./playbook_00_setup_L0_hypervisors.yaml
+  vars:
+    hypervisors_group: 'hypervisors:&L1'
+
+- name: test L1
+  hosts: 'hypervisors:&L1'
+  gather_facts: yes
+  roles:
+    - hypervisor_provision
+  tasks:
+
+    - become: true
+      block:
+
+        - name: Update and upgrade packages
+          package:
+            update_cache: yes
+            upgrade: yes
+        
+        - name: Install controller dependency
+          package:
+            name:
+              - ansible
+              - sshpass
+              - git
+            state: present
+    
+    - name: clone repo
+      shell:
+        cmd: git clone https://github.com/jjak0b/ansible_farm.git
+    
+    - name: Install collections and roles together
+      community.general.ansible_galaxy_install:
+        type: both
+        requirements_file: ~/ansible_farm/requirements.yml
+      retries: 10
+      delay: 2
+      register: install_repo_requirements_result
+      until: install_repo_requirements_result is success
+      
+    - name: run example main.yaml
+      environment: 
+        ANSIBLE_CONFIG: ansible.cfg
+      shell: 
+        cmd: ansible-playbook main.yaml
+        chdir: ~/ansible_farm/docs/examples/example_02_VM_provisioning
+

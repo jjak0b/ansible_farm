@@ -1,0 +1,6 @@
+
+- name: Setup bare metal L0 hypervisors
+  hosts: "{{ hypervisors_group | default('hypervisors:&L0') }}"
+  gather_facts: yes
+  roles:
+    - hypervisor_provision

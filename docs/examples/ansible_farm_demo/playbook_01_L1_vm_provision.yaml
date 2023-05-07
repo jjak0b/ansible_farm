@@ -1,0 +1,26 @@
+# Create some L1 hypervisors
+---
+
+- name: Init some L1 VMs
+  import_playbook: init_vm_definitions.yaml
+  # import_playbook: jjak0b.ansible_farm.init_vm_definitions.yaml # From ansible 2.11
+  vars:
+    hypervisors_group: "hypervisors:&L0"
+
+- name: Create some L1 VMs and make them hypervisors
+  import_playbook: run_vm_provision.yaml
+  # import_playbook: jjak0b.ansible_farm.run_vm_provision.yaml # From ansible 2.11
+  vars:
+    vms_group: "vms:&L1:!processed"
+    allowed_phases:
+      - startup
+      - restore init
+      - create init
+      - restore clean
+      - create clean
+      - dependencies
+      - init
+      - main
+      # DO NOT SHUTDOWN: run L2 VM provisioning first
+      # - terminate
+      # - shutdown

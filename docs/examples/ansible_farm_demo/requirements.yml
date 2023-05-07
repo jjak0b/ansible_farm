@@ -1,0 +1,14 @@
+---
+
+roles:
+
+  - name: stackhpc.libvirt-host
+    src: https://github.com/stackhpc/ansible-role-libvirt-host.git
+    version: master
+#    version: stackhpc/backports/ansible-2.8
+
+collections:
+
+  - name: https://github.com/jjak0b/ansible_farm.git
+    type: git
+    version: master
