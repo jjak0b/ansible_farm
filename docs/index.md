@@ -101,44 +101,243 @@ The `import_path` is the one in the following priority list path which contains 
 
 The `import_path` is useful when some dependencies have different alias in some platform's packets manager, or user needs "ad hoc" tasks/vars for some others use cases.
 
-Requirements
+Support and Requirements
 ------------
 
-- Read the documentation of each role for specific role's requirements
-- **Common hypervisor target** requirements
+Read the documentation of each role for specific role's requirements.
+The following tables shows support and requirements for the full collection.
 
-  - A libvirt environment already setup
-  - platforms:
-    - Supported: 
-      - Any GNU/Linux distribution (in theory)
-      - POSIX-compilant OS should work (in theory)
-    - Tested platforms:
-      - Debian 11, 12
-      - ArchLinux
-  - Supported hypervisors:
-    - Any hypervisor driver compatible with libvirt should work
-    - tested:
-      - `qemu`
-      - `kvm`
-    - **Note: QEMU or KVM are recommended** for the following reasons:
-      - The collection support `qemu:///session` URI by default only when the `VDE` and `user` (userspace connections) virtual networks types are supported by the hypervisor.
-      - **[Since libvirt 9.0.0](https://libvirt.org/news.html#v9-0-0-2023-01-16)** the support of `passt` as network interface backend for [userspace connections](https://libvirt.org/formatdomain.html#userspace-slirp-or-passt-connection) has been added but it's [unstable](https://gitlab.com/libvirt/libvirt/-/issues/462), and so the VM template will use the network type `user` with that backend **since libvirt 9.2.0** only.
-      - **Prior libvirt 9.2.0** The `VDE` and `user` virtual networks are supported only when custom network interface can be added via the XML libvirt template through the libvirt [QEMU namespace](https://libvirt.org/drvqemu.html#pass-through-of-arbitrary-qemu-commands) for now. So other hypervisors may require specific extra configuration like definining other VM XML template.
-      - the [SSH connection plugin](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/ssh_connection.html) support may be achieved with `qemu:///session` only when SSH port of the VM is reachable from the hypervisor. The `user` network interface built with the **QEMU** namespace allow to specify a port forward with the `hostfwd` option or alternativelly using port forward with `passt`; but the first one is not supported by libvirt XML format for other hypervisors, and the second one is not supported on libvirt versions prior than `9.2.0`.
-      - the [community.libvirt.libvirt_qemu connection plugin](https://docs.ansible.com/ansible/latest/collections/community/libvirt/libvirt_qemu_connection.html) is supported only for local (controller) hypervisor and **only if** you pre-install the **QEMU Guest Agent** on VM OS. The use of `ssh+qemu` URIs has not been tested.
+- Required requirements are minimal and allow the collection to work but you will need at least some of recommended requirements to use in most cases
+- Recommended requirements are used inside some builtin templates, target definitions and callback-tasks for common use cases
 
-  - Common Packages and commands
-    - `python` >= 2.6
-    - `python3-libvirt` ( community.libvirt dep )
-    - `python3-lxml` ( community.libvirt dep )
-    - `virsh`
-    - Any emulator you will use in the VM XML template
-      - any `qemu-system-<architecture>` emulator by default
+
+### Ansible controller host
+
+<table title="Ansible controller support">
+  <thead>
+    <tr>
+      <th>Platform</th>
+      <th>Support</th>
+      <th>Tested</th>
+      <th>Requirements</th>
+    </tr>
+  </thead>
+  </tbody>
+    <tr>
+      <td>Any GNU/Linux distribution</td>
+      <td>should work if ansible support them</td>
+      <td></td>
+      <td rowspan="2">
+        <ul>
+          <li>ansible >=2.10.8
+            <ul>
+              <li>See control node <a href="https://docs.ansible.com/ansible/2.10/installation_guide/intro_installation.html#control-node-requirements">requirements</a></li>
+            </ul>
+          </li>
+          <li>python >=2.6</li>
+          <li>sshpass</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td>Debian 11, 12</td>
+      <td>yes</td>
+      <td>yes</td>
+    </tr>
+  </tbody>
+</table>
+
+
+### Hypervisor target host:
+
+<table title="Hypervisor target hosts support">
+  <thead>
+    <tr>
+      <th>Platform</th>
+      <th>Support</th>
+      <th>Tested</th>
+      <th>Requirements</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Any GNU/Linux distribution and others</td>
+      <td>should work if libvirt and an hypervisor driver is supported</td>
+      <td>partial (No SELinux)</td>
+      <td>
+        <ul>
+          <li>Required
+            <ul>
+              <li>Ansible managed node <a href="https://docs.ansible.com/ansible/2.10/installation_guide/intro_installation.html#managed-node-requirements">requirements</a></li>
+              <li>Configured libvirt environment</li>
+              <li>Configured SSH server</li>
+              <li>Configured Hypervisor compatible with libvirt. 
+                <p>Note: Only builtin templates and target definitions use KVM or QEMU so you can use the hypervisor you want and override the builtin ones if needed.</p>
+              </li>
+            </ul>
+          </li>
+          <li> Recommended hypervisors
+            <ul>
+              <li>KVM</li>
+              <li>QEMU</li>
+            </ul>
+          </li>
+        </ul>
+        <details>
+          <summary>Required Commands</summary>
+          <ul>
+            <li>virsh</li>
+            <li>qemu-img (external snapshots only)</li>
+          <ul>
+        </details>
+        <details>
+          <summary>Recommended Commands</summary>
+          <ul>
+            <li>virt-sysprep</li>
+            <li>qemu-system-<code>&ltarch&gt</code></li>
+            <li>qemu-img</li>
+            <li>unzip</li>
+            <li>gzip</li>
+            <li>bunzip2</li>
+            <li>xz</li>
+          </ul>  
+        </details>
+      </td>
+    </tr>
+    <tr>
+      <td>Debian 11, 12</td>
+      <td>yes</td>
+      <td>yes</td>
+      <td rowspan="2">
+        <details>
+          <summary>Required Packages</summary>
+          <ul>
+            <li>libvirt-daemon-system</li>
+            <li>python3-libvirt</li>
+            <li>python3-lxml</li>
+            <li>libvirt-clients</li>
+            <li>qemu-utils</li>
+          </ul>
+        </details>
+        <details>
+        <summary>Recommended Packages</summary>
+        <ul>
+          <li>libguestfs-tools</li>
+          <li>qemu-kvm</li>
+          <li>qemu-utils</li>
+          <li>unzip</li>
+          <li>bzip2</li>
+          <li>gzip</li>
+          <li>xz-utils</li>
+        </ul>
+        </details>
+      </td>
+    </tr>
+    <tr>
+      <td>Ubuntu 22.04 LTS</td>
+      <td>should work</td>
+      <td>no</td>
+    </tr>
+    <tr>
+      <td>Arch Linux</td>
+      <td>should work</td>
+      <td>no</td>
+      <td>
+        <details>
+          <summary>Required Packages</summary>
+          <ul>
+            <li>libvirt</li>
+            <li>libvirt-python</li>
+            <li>python-lxml</li>
+            <li>qemu-img</li>
+          </ul>
+        </details>
+        <details>
+          <summary>Recommended Packages</summary>
+          <ul>
+            <li>guestfs-tools</li>
+            <li>qemu</li>
+            <li>qemu-img</li>
+            <li>unzip</li>
+            <li>bzip2</li>
+            <li>gzip</li>
+            <li>xz</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+**Note: QEMU or KVM are recommended** for the following reasons:
+
+- The collection support `qemu:///session` URI by default only when the `VDE` and `user` (userspace connections) virtual networks types are supported by the hypervisor.
+- **[Since libvirt 9.0.0](https://libvirt.org/news.html#v9-0-0-2023-01-16)** the support of `passt` as network interface backend for [userspace connections](https://libvirt.org/formatdomain.html#userspace-slirp-or-passt-connection) has been added but it's [unstable](https://gitlab.com/libvirt/libvirt/-/issues/462), and so the VM template will use the network type `user` with that backend **since libvirt 9.2.0** only.
+- **Prior libvirt 9.2.0** The `VDE` and `user` virtual networks are supported only when custom network interface can be added via the XML libvirt template through the libvirt [QEMU namespace](https://libvirt.org/drvqemu.html#pass-through-of-arbitrary-qemu-commands) for now. So other hypervisors may require specific extra configuration like definining other VM XML template.
+- the [SSH connection plugin](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/ssh_connection.html) support may be achieved with `qemu:///session` only when SSH port of the VM is reachable from the hypervisor. The `user` network interface built with the **QEMU** namespace allow to specify a port forward with the `hostfwd` option or alternativelly using port forward with `passt`; but the first one is not supported by libvirt XML format for other hypervisors, and the second one is not supported on libvirt versions prior than `9.2.0`.
+- the [community.libvirt.libvirt_qemu connection plugin](https://docs.ansible.com/ansible/latest/collections/community/libvirt/libvirt_qemu_connection.html) is supported only for local (ansible controller) hypervisor and **only if** you pre-install the **QEMU Guest Agent** on VM OS. The use of `ssh+qemu` URIs has not been tested.
+
+
+### VM target host:
+
+There are very few particular requirements for the platform used for virtual machines
+
+<table title="VM target hosts support">
+  <thead>
+    <tr>
+      <th>Platform</th>
+      <th>Support</th>
+      <th>Tested</th>
+      <th>Requirements</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>GNU/Linux based OS</td>
+      <td>yes</td>
+      <td>yes (No SELinux)</td>
+      <td rowspan="3">
+        <ul>
+          <li>Ansible managed node <a href="https://docs.ansible.com/ansible/2.10/installation_guide/intro_installation.html#managed-node-requirements">requirements</a></li>
+          <ul>
+            <li>Configured SSH server (preinstalled in VM image)</li>
+          </ul>
+          <li>Support for <code>/bin/sync</code></li>
+        <ul>
+      </td>
+    </tr>
+    <tr>
+      <td>Mac OS</td>
+      <td>yes</td>
+      <td>no</td>
+    </tr>
+    <tr>
+      <td>Others Unix-like OS</td>
+      <td>should work</td>
+      <td>no</td>
+    </tr>
+    <tr>
+      <td>Windows</td>
+      <td>yes</td>
+      <td>no</td>
+      <td>
+        <ul>
+          <li>Ansible managed node <a href="https://docs.ansible.com/ansible/2.10/installation_guide/intro_installation.html#managed-node-requirements">requirements</a></li>
+          <ul>
+            <li>Configured SSH server (preinstalled in VM image)</li>
+          </ul>
+          <li>Requirements for <a href="https://learn.microsoft.com/sysinternals/downloads/sync">Sync</a> executable</li>
+        <ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
 Dependencies
 ------------
 
-- Otherwise The following collections are dependency of this collection roles and will be installed with ```ansible-galaxy install -r requirements.yml```
+The following collections are ansible dependencies of this collection's roles and can be installed with ```ansible-galaxy install -r requirements.yml```
+
   - [community.libvirt](https://galaxy.ansible.com/community/libvirt) 
   - [community.general](https://docs.ansible.com/ansible/latest/collections/community/general/index.html)
   - [community.crypto](https://docs.ansible.com/ansible/latest/collections/community/crypto/index.html)
