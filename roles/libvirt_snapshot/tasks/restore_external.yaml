@@ -90,10 +90,10 @@
           loop: "{{ active_domain.disks }}"
           loop_control: 
             loop_var: disk
-            label: "{{ updated_disk.backingStore.source[ '@file' ] }} -> {{ updated_disk.source[ '@file' ] }}"
+            label: "{{ updated_disk.backingStore.source[ '@file' ] | default( disk, true) }} -> {{ updated_disk.source[ '@file' ] | default( 'unchanged', true ) }}"
           set_fact: 
             # These are the disks that will be defined in the new VM domain
-            domain_disks: "{{ domain_disks + [ disk | combine(updated_disk, recursive=true) ]  }}"
+            domain_disks: "{{ domain_disks + [ disk | combine( updated_disk if disk.source | default(null, true) is defined else {}, recursive=true) ]  }}"
             # These are the disks that will be defined in the new snapshot domain
             snapshot_disks: "{{ snapshot_disks + [ snapshot_disk ] }}"
           vars:
@@ -102,12 +102,12 @@
               '@device': 'disk'
               backingStore:
                 '@type': 'file'
-                source: "{{ disk.source }}"
+                source: "{{ disk.source | default(null, true) }}"
                 format:
                   '@type': "{{ disk.driver[ '@type' ] }}"
                 backingStore: "{{ disk.backingStore }}"
               source: &disk_source
-                '@file': "{{ ( disk.source[ '@file' ] | dirname, [ new_overlay.name, new_overlay.format] | join('.') ) | path_join }}"
+                '@file': "{{ ( disk.source[ '@file' ] | default('', true) | dirname, [ new_overlay.name, new_overlay.format] | join('.') ) | path_join }}"
               driver: &disk_driver
                 '@type': "{{ new_overlay.format }}"
             snapshot_disk:
@@ -121,7 +121,10 @@
           loop: "{{ domain_disks }}"
           loop_control:
             loop_var: disk
-            label: "{{ disk.backingStore.source[ '@file' ] }} -> {{ disk.source[ '@file' ] }}"
+            label: "{{ disk.backingStore.source[ '@file' ] | default( disk, true ) }} -> {{ disk.source[ '@file' ] | default( 'unchanged', true) }}"
+          when:
+            - disk.backingStore | default( null, true) is defined
+            - disk.source | default( null, true) is defined
           shell:
             cmd: >
               qemu-img create
@@ -241,14 +244,14 @@
       loop: "{{ myParsedXMLSnapshot.domainsnapshot.disks.disk is mapping | ternary( [ myParsedXMLSnapshot.domainsnapshot.disks.disk ], myParsedXMLSnapshot.domainsnapshot.disks.disk, [] ) }}"
       loop_control:
         loop_var: dandling_disk
-        label: "{{ dandling_disk.source[ '@file' ] }}"
+        label: "{{ dandling_disk.source[ '@file' ] | default( dandling_disk, true) }}"
       ansible.builtin.file:
         path: "{{ dandling_disk.source[ '@file' ] }}"
         state: absent
       when:
         - should_delete_dandling_overlays
         - not( _snapshot_descendants_result.stdout_lines | length > 0 )
-        - dandling_disk.source[ '@file' ] is defined
+        - dandling_disk.source[ '@file' ] | default(null, true) is defined
 #     become: yes
 
 - name: Remove temporary file
