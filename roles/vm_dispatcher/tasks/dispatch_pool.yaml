@@ -25,17 +25,18 @@
 - name: "Distribute configurations over hypervisors"
   loop: "{{ pool }}"
   loop_control:
-    label: "{{ item }} {{ is_my_turn | ternary('assigned', 'not assigned on turn ' + (queue_turn | string ) ) }}"  
+    index_var: assignment_turn_index
+    label: "{{ item }} {{ is_my_turn | ternary('assigned', 'not assigned' + ( hypervisor_index | string ) ) }}"
   vars:
-    queue_turn: "{{ next_turn }}"
-    is_my_turn: "{{ queue[ next_turn | int ] == inventory_hostname }}"
+    is_my_turn: "{{ queue[ (assignment_turn_index | int) % ( queue | length ) ] == inventory_hostname }}"
+    hypervisor_index: "{{ (assignment_turn_index | int) % ( queue | length ) }}"
   set_fact:
     can_manage_candidates: "{{ is_my_turn | ternary( can_manage_candidates + [ item ], can_manage_candidates ) }}"
-    next_turn: "{{ (next_turn | int + 1) % ( queue | length ) }}"
   when:
     - queue | length > 0
     - pool | length > 0
-
+    - is_my_turn is defined
+    - is_my_turn
 
 - name: Assign candidates to hypervisors's VM configuration
   set_fact:
