@@ -61,3 +61,12 @@
           register: cloud_localds_result
           changed_when: cloud_localds_result.rc == 0
 
+        - name: Cleanup generated config files
+          loop:
+            - "{{ _cloudinit_config_yml }}"
+            - "{{ _cloudinit_net_config_yml }}"
+          loop_control:
+            loop_var: _a_file
+          file:
+            path: "{{ _a_file }}"
+            state: absent
