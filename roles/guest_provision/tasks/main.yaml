@@ -27,14 +27,15 @@
     register: delegate_result
 
   rescue:
-  - name: on wait connection error - report
-    debug: 
-      var: connection_wait_result
-    when: connection_wait_result is failed
-  - name: on VM connection error - report
-    debug: 
-      var: delegate_result
-    when: delegate_result is failed
+
+    - name: VM Main lifecycle failed
+      debug: 
+        var: fail_report
+      vars:
+        fail_report:
+          failed_task: "{{ ansible_failed_task }}"
+          failed_result: "{{ ansible_failed_result }}"
+    
   always:
     - block:
         - import_tasks: shutdown.yaml
