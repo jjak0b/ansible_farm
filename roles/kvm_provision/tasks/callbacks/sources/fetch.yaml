@@ -23,6 +23,9 @@
     when:
       - task.src is defined
       - isValidURL
+    until: remote_resource_http_stat is success
+    retries: 5
+    delay: 1
   
   - name: check should update if local resource doesn't exists or cached resource and remote mismatch
     set_fact:
@@ -40,3 +43,6 @@
       - isValidURL
       - shouldUpdateImg
     register: cached_resource_updated
+    until: cached_resource_updated is success
+    retries: 5
+    delay: 1
