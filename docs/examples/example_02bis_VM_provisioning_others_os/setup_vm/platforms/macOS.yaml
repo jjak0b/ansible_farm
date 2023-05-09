@@ -1,0 +1,12 @@
+
+- import_tasks:
+    file: macOS-setup.yaml
+
+- name: Define macOS platform
+  set_fact:
+    vm: "{{ vm | combine( vm_override, recursive=true) }}"
+  vars:
+    vm_override:
+      metadata:
+        sources: []
+  

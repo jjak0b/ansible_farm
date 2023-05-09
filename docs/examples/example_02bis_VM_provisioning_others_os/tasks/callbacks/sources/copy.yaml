@@ -1,0 +1,11 @@
+
+- name: Starting copy task
+  vars:
+    src_path: "{{ (vm.metadata.tmp_dir, task.src) | path_join }}"
+    dest_path: "{{ (vm.metadata.tmp_dir, task.dest) | path_join }}"
+  block:
+    - name: Copy files
+      copy:
+        remote_src: true
+        src: "{{ src_path }}"
+        dest: "{{ dest_path }}"

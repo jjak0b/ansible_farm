@@ -1,0 +1,12 @@
+
+- name: Create a new image
+  vars:
+    size: "{{ task.size }}"
+    format: "{{ task.format | default( 'qcow2', true) }}"
+    dest_path: "{{ (vm.metadata.tmp_dir, task.dest) | path_join }}"
+  block:
+    - name: "Create new image with format and size"
+      shell:
+        cmd: >
+          qemu-img create -f {{ format }} -o size={{ size }} {{ dest_path }}
+    

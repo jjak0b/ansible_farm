@@ -1,0 +1,11 @@
+
+- name: "Assign VM to L0 hypervisors"
+  import_playbook: init_vm_definitions.yaml
+  vars:
+    hypervisors_group: hypervisors
+
+- name: Create and provision each VM in serial on its assigned L0 hypervisor
+  import_playbook: run_vm_provision.yaml
+  vars:
+    vms_group: vms
+

@@ -1,0 +1,65 @@
+# Download 'BaseSystem.dmg' and 'BaseSystem.chunklist' at dest_path
+# task.dest: destination directory
+# task.release: release string name to fetch
+#   - available options: high-sierra, mojave, catalina, big-sur, monterey
+#   - Check https://github.com/kholia/OSX-KVM/blob/master/fetch-macOS-v2.py for future updates
+---
+
+- name: Setup fetch of macOS release
+  vars:
+    release: "{{ task.release }}"
+    working_dir: "{{ (vm.metadata.tmp_dir, 'OSX-KVM' ) | path_join }}"
+    dest_path: "{{ (vm.metadata.tmp_dir, task.dest) | path_join }}"
+    resource_name: 'BaseSystem.dmg'
+    fetched_resources:
+      - 'BaseSystem.dmg'
+      - 'BaseSystem.chunklist'
+  block:
+
+    - name: Check local resource
+      stat:
+        path: &resource_install_path "{{ dest_path }}"
+        get_checksum: false
+      register: cached_resource_stat
+
+    - name: check should update if local resource doesn't exists
+      set_fact:
+        shouldUpdateImg: "{{ not cached_resource_stat.stat.exists }}"
+
+    - name: Fetch release
+#      when: shouldUpdateImg
+      block:
+
+      - name: Clone utility repo
+        ansible.builtin.git:
+          repo: 'https://github.com/kholia/OSX-KVM.git'
+          dest: "{{ working_dir }}"
+          depth: 1
+          recursive: true
+          update: true
+        
+      - name: "Update image to {{ dest_path }}"
+        shell:
+          chdir: "{{ working_dir }}"
+          cmd: >
+            python3 ./fetch-macOS-v2.py
+            -s {{ release }}
+            -o {{ dest_path | dirname }}
+          creates: "{{ ( dest_path | dirname, 'BaseSystem.dmg' ) | path_join }}"
+
+      - block:
+          - name: Convert dmg to img format
+            shell:
+              cmd: >
+                dmg2img
+                -i {{ ( dest_path | dirname, 'BaseSystem.dmg' ) | path_join }}
+                -o {{ dest_path }}
+              creates: "{{ dest_path }}"
+            register: convert_result
+        rescue:
+          - name: Cleanup failed output file
+            file:
+              path: "{{ dest_path }}"
+              state: absent
+          - fail: 
+              msg: "Failed to convert into img format, cause: {{ convert_result.stdout }}"

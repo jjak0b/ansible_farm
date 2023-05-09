@@ -1,0 +1,14 @@
+---
+collections:
+
+  - name: community.libvirt
+    version: ">=1.2.0"
+    type: galaxy
+
+  - name: ansible.utils
+    version: ">=2.7.0"
+    type: galaxy
+
+  - name: community.crypto
+    version: ">=2.10.0"
+    type: galaxy
