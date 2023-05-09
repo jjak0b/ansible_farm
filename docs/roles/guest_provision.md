@@ -121,6 +121,8 @@ Role Variables
     - `main`: will run the **main** phase if possible
     - `terminate`: will run the **terminate** phase if possible
     - `shutdown` will shutdown the VM
+- `excluded_phases`: (default: [])
+  - A list of (sub) phases of the lifecycle that are exluded from the run. the possibile values are the same of `allowed_phases`. This is an utility to internally set the fact `allowed_phases: "{{ allowed_phases | difference( excluded_phases ) }}"` so user need to specify only phases to be exluded.
 
 Handlers
 --------

@@ -3,6 +3,10 @@
     msg: VM definition is not defined
   when: not ( vm is defined )
 
+- name: Set fact about running phases
+  set_fact:
+    allowed_phases: "{{ allowed_phases | difference( excluded_phases ) }}"
+
 - name: "Start VM '{{ vm.metadata.name }}'"
   block:
   - name: "Ensure libvirt network is started"

@@ -18,3 +18,4 @@ allowed_phases:
   - main
   - terminate
   - shutdown
+excluded_phases: []
