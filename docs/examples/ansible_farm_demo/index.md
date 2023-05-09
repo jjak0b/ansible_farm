@@ -3,7 +3,7 @@
 # Intro
 
 This guide will cover a general setup for both Debian controller and managed target host (hypervisors) up to use a use-case of this collection using KVM and QEMU hypervisors.
-
+The use case demo showcase will be covered through a top-down approach so you can focus on results and use-case first and project development details later. 
 
 # Installation
 
@@ -151,7 +151,7 @@ Note: that this will install the collection requirements and the demo requiremen
 
 2. Create the playbook `playbook_00_setup_L0_hypervisors.yaml` to provision all the hypervisor requirements and recommendations.
 
-    ```
+    ```yaml
     - name: Setup bare metal L0 hypervisors
       hosts: "{{ hypervisors_group | default('hypervisors:&L0') }}"
       gather_facts: yes
@@ -202,7 +202,7 @@ So name these respectively as
 
 We can model the configuration using a variable to define a `VM configuration`: 
 
-```
+```yaml
 config: 
   permutations:
     platforms:
@@ -220,7 +220,7 @@ If we assign this configuration to a single hypervisor, then these VMs may run t
 
 Now if you model the scenario just described we obtain the following ansible inventory  file `hosts.yaml`
 
-```
+```yaml
 all:
   hosts:
     localhost:
@@ -283,13 +283,669 @@ Note: A host like A nested VM is a member of both `hypervisors` and `vms` groups
 
 The Ansible playbooks describe how some jobs should be done and we use Ansible to delegate (or better orchestrate) some tasks to specific hosts, but Ansible allows to target also [specific patterns](https://docs.ansible.com/ansible/latest/inventory_guide/intro_patterns.html) using groups.
 
-For the completeness of showing the collection features, this demo will use some playbooks to deploy a VM and provision it with a libvirt and QEMU/KVM hypervisor using the alternative hypervisor setup: [the Ansible way](#The_Ansible_way).
+Before continue, there are 2 important playbooks that this collection provide since may be often used in most common use cases and so are provided as collection builtin: `init_vm_connection.yaml` and `run_vm_provision.yaml`
+
+- `init_vm_connection.yaml` parse and init the pre-assigned VM configuration on their respective hypervisors.
+
+  ```yaml
+  - name: Init VM on Hypervisor
+    hosts: "{{ hypervisors_group | default('hypervisors') }}"
+    gather_facts: yes
+    roles:
+      - jjak0b.ansible_farm.parse_vms_definitions
+    tasks:  
+
+      - name: init VM connection
+        loop: "{{ virtual_machines }}"
+
+        include_role:
+          name: jjak0b.ansible_farm.init_vm_connection
+        
+        loop_control:
+          loop_var: vm
+  ```
+
+- `run_vm_provision.yaml` deploy the VM and run the provisioning phases on the running VMs.
+
+  ```yaml
+  - name: VM provisioning on Hypervisor host
+    hosts: "{{ vms_group | default('vms') }}"
+    gather_facts: no
+    serial: 1
+    tasks:
+
+      - block:
+        
+          - name: gather min facts of hypervisor host since some definitions require to use them
+            setup:
+              gather_subset: 
+              - '!all'
+          
+          - name: "start KVM Provision role for '{{ vm.metadata.name }}'"
+            include_role: 
+              name: jjak0b.ansible_farm.kvm_provision
+          
+        delegate_to: "{{ kvm_host }}"
+        
+        tags:
+          - kvm_provision
+
+      - block:
+
+          - name: "Start VM provisioning of '{{ vm.metadata.name }}' "
+            include_role: 
+              name: jjak0b.ansible_farm.guest_provision
+          
+          - name: Flag VM as processed
+            add_host:
+              name: "{{ inventory_hostname }}"
+              groups:
+                - processed
+        tags:
+          - guest_provision
+
+  ```
+
+  Note: the `serial: 1` ansible parameter can be removed if you want to run the VMs in parallel.
+
+  Note: The `gather_facts: no` ansible  parameter is required since the VMs may not may not have started until the `guest_provision` boot them
 
 
+### The Farm structure 
 
+This demo will use some playbooks to deploy a VM and provision it with a libvirt and QEMU/KVM hypervisor using the alternative hypervisor setup ([the Ansible way](#The_Ansible_way)) for the completeness of showing the collection features.
+
+After the deploy that host will be added to the `hypervisors` group and will be a candidate during the VM assignement through the `vm_dispatcher` role.
+The configuration of the eventually nested VM's SSH connection will be handled by the `init_vm_connection` whatever its hypervisor is.
+
+We can now assume that there are some hypervisors that can handle the future farm.
+
+Let's describe the farm structure we want build. 
+We want to deploy and provision a VM to become a KVM hypervisor so we can deploy the VM and run the provisioning phases for a custom `hypervisor` project, but that VM must not turn off because must be available for other VM deployments. We can achieve this result with the following plays:
+
+```yaml
+- name: Init inventory with a L1 VM on the first reachable L0 hypervisor
+  # import_playbook: jjak0b.ansible_farm.init_vm_definitions.yaml # From ansible 2.11
+  import_playbook: init_vm_definitions.yaml
+  # run only on the first reachable hypervisor
+  run_once: true
+  vars:
+    hypervisors_group: "hypervisors:&L0"
+    # Just init another debian VM on first reachable hypervisor
+    config:
+      list: 
+        - target: amd64
+          platform: debian_12
+
+- name: Add all initialized VM to L1 and hypervisors group
+  hosts: vms:!processed
+  # gather_facts: no is important since vms don't exist yet
+  gather_facts: no 
+  tasks:
+
+    - name: Add host to L1 group
+      add_host:
+        name: "{{ vm.metadata.name }}"
+        groups:
+          - hypervisors
+          - L1
+
+- name: Create the L1 VMs and make it an hypervisor but dont shutdown them
+  # import_playbook: jjak0b.ansible_farm.run_vm_provision.yaml # From ansible 2.11
+  import_playbook: run_vm_provision.yaml
+  vars:
+    # vms_group: "VM debian_sid_arm64"
+    vms_group: "vms:&L1:!processed"
+    # run provision phases to make them hypervisors
+    phases_lookup_dir_path: provision_phases/hypervisor
+    project_id: example_demo.hypervisor
+    project_revision: 0
+    allowed_phases:
+      - startup
+      # DO NOT use snapshots
+      # - create clean
+      # - create init
+      # - restore init
+      # - restore clean
+      - dependencies
+      - init
+      - main
+      # DO NOT SHUTDOWN: run L2 VM provisioning first
+      # - terminate
+      # - shutdown
+```
+
+Now we need to distribute VMs and add the plays that will run the VM provisioning lifecycle on the same ansible playbook instance and provision the `VDE` CI use case.
+
+```yaml
+- name: Assign and deploy some VMs over all hyperviors based on their capabilities
+  hosts: hypervisors
+  gather_facts: yes 
+  vars:
+    # Use this uri to check capabilities
+    ansible_libvirt_uri: 'qemu:///session'
+  roles:
+    - jjak0b.ansible_farm.vm_dispatcher
+
+- name: Init inventory with some L1 VMs and other L2 vms wherever they have been assigned to
+  # import_playbook: jjak0b.ansible_farm.init_vm_definitions.yaml # From ansible 2.11
+  import_playbook: init_vm_definitions.yaml
+  vars:
+    hypervisors_group: "hypervisors"
+
+
+- name: Run some L1 or L2 VMs provisioning lifecycle wherever they have been assigned to
+  # import_playbook: jjak0b.ansible_farm.run_vm_provision.yaml # From ansible 2.11
+  import_playbook: run_vm_provision.yaml
+  vars:
+    vms_group: "vms:!processed"
+    # run provision phases to make them hypervisors
+    phases_lookup_dir_path: provision_phases/VDE
+    project_id: example_demo.vde
+    project_revision: 0
+```
+
+After this we can eventually stop the auxiliary L1 VM hypervisor and cleanup all the VMs with the following play:
+
+```yaml
+- name: "End L1 hypervisors lifecycle: VMs cleanup + Shutdown"
+  # import_playbook: jjak0b.ansible_farm.run_vm_provision.yaml # From ansible 2.11
+  import_playbook: run_vm_provision.yaml
+  vars:
+    vms_group: hypervisors:&L1
+    phases_lookup_dir_path: provision_phases/hypervisor
+    allowed_phases:
+      - terminate
+      - shutdown
+    # dummy project name but wont be used
+    project_id: example_demo
+    project_revision: 0
+
+- name: Delete all VMs
+  hosts: vms
+  tags:
+    - delete
+  gather_facts: no
+  tasks:
+
+    - name: Delegate vm Deletetion to respective hypervisor
+      when:
+        # Skip if hypervisor has been terminated
+        - not ( kvm_host in groups['L1'] )
+      block:
+        
+        - name: gather min facts of hypervisor host
+          setup:
+            gather_subset: 
+              - '!all'
+        
+        - name: Cleanup VM owned by its hypervisor
+          include_role:
+            name: jjak0b.ansible_farm.kvm_provision
+          vars:
+            delete_vm: true
+            create_vm: false
+            should_remove_all_vm_storage: true
+
+      delegate_to: "{{ kvm_host }}"
+```
+
+Note: This last plays will undefine and delete VM assets and may need this behavior only in some cases, so we can call the playbook appending the `--skip-tags delete` flag on terminal to ignore the custom tasks/playbook with that assigned tag.
+
+### Run
+
+When you finish to define platforms, targets, inventory, playbook, and provision phases you can finally run the main playbook with
+
+```
+ANSIBLE_CONFIG=ansible.cfg ansible-playbook main.yaml
+```
 
 ## Provision phases
 
-TODO
+We want create some jobs so we can build, test and eventually notify results.
+The `guest_provision` role allow to perform repeatable tests and build leveraging ansible module idempotence combined with libvirt snapshots.
 
+Project tests usually manage some parts: installation, initialization, test, and return results.
+
+- Installations may be time consuming and require a lot of network bandwidth.
+- inizializations may require same system configurations or project compilations which are often CPU intensive and time consuming
+- tests may require to reset to a previous working checkpoint
+- tests and their output may require some finalization steps before return the output to the user in any form and whenever the tests are successful or not
+- All the previous contexts may require different jobs based on platform and target requirements.
+
+The `guest_provision` role can make it easier to interact with these aspects: 
+
+- Phases and snapshots allow cachable project installations and initializations
+- Snapshots allow to create and reset tests to a custom checkpoint.
+- phases allow to run specific platform (and target) tasks/jobs
+
+Let's show an example of how to define some platform specific jobs for the `VDE` project.
+
+Assume that we want to create a build job for some platform we already talk about.
+
+#### Dependencies phase
+
+Define the `dependency.yaml` file to handle the **dependency** phase: 
+It will install some dependencies based on the VM 's platform info gathered by system info facts.
+
+```yaml
+- include_tasks: "{{ (phases_lookup_dir_path,  'common-tasks', 'gather_sysinfo.yaml' ) | path_join }}"
+
+- block:
+
+  - include_tasks: "{{ (phases_lookup_dir_path,  'common-tasks', 'sync-clock.yaml' ) | path_join }}"
+
+  - name: Include dependencies using distribution defaults
+    include_vars:
+      file: "{{ ( 'dependencies', ansible_distribution + '.yml' ) | path_join }}"
+    ignore_errors: yes
+    when: dependencies is not defined
+
+  - name: Update packet manager cache
+    package:
+      update_cache: true
+
+  - name: Install dependencies.
+    environment:
+      DEBIAN_FRONTEND: noninteractive
+    package:
+      name: "{{ dependencies | default( [] ) }}"
+      state: "{{ 'latest' if should_upgrade | default( false, true ) else 'present' }}"
+  become: yes
+```
+
+- `provision_phases/VDE/common-tasks/gather_sysinfo.yaml` is an utility task that gather system info of the managed VM node like `gather_facts: yes` does on playbook level:
+
+  ```yaml
+  - name: Gather VM info
+    setup:
+      gather_subset: 
+        - '!all'
+  ```
+
+- `provision_phases/VDE/common-tasks/sync-clock.yaml` is an utility task that make sure system clock is in sync with hardware clock to prevent time mismmatch caused by snapshot restores
+
+  ```yaml
+  - shell:
+      cmd: /usr/sbin/hwclock --hctosys
+  ```
+
+Note: both the builtin ansible `setup` and `shell` module require to use **python** on the managed VM but in some VM images may not available, so you can install it.
+
+This case happens with the `archlinux` platform: Define another **dependencies** task file at `provision_phases/VDE/archlinux/dependencies.yaml` and **install python using ansible modules that don't require python** and eventually include other dependency vars and the default **dependencies** task file
+
+```yaml
+- name: Ensure at least python is installed first
+  raw: pacman -Syy python --needed --noconfirm
+  become: true
+
+- include_tasks: "{{ (phases_lookup_dir_path,  'common-tasks/gather_sysinfo.yaml' ) | path_join }}"
+
+- block:
+    - include_tasks: "{{ (phases_lookup_dir_path,  'common-tasks/sync-clock.yaml' ) | path_join }}"
+  become: true
+
+- name: Include dependencies using platform-specific dependencies
+  include_vars:
+    file: "{{ ( phases_lookup_dir_path, 'dependencies', ansible_distribution + '.yml' ) | path_join }}"
+  ignore_errors: yes
+
+- include_tasks: "{{ (phases_lookup_dir_path, 'dependencies.yaml' ) | path_join }}"
+```
+
+#### Init phase
+
+The initialization phase is simple and common for all platforms, for complex project that require very long compilation times the build process should be declared on the **init** phase, but VDE don't require too much to compile so we can declare the built job in the **main phase**
+
+Note: The init phase is the last phase where snapshot are handled automatically so you can eventually restore to the init snapshot every time you need or create custom snapshots from the main phase.
+
+#### Main phase
+
+Create the `main.yaml`:
+
+```yaml
+- import_tasks: ./jobs/build.yaml
+```
+
+And create a build job at `provision_phases/VDE/jobs/build.yaml` :
+
+```yaml
+- name: Clone repo
+  ansible.builtin.git:
+    repo: 'https://github.com/virtualsquare/vde-2.git'
+    dest: &prj_dir ~/VDE
+    version: master
+    recursive: true
+
+- name: Resolve working directory
+  ansible.builtin.stat:
+    path: *prj_dir
+  register: working_dir_result
+
+- name: Init conf
+  shell: 
+    cmd: autoreconf -fis
+    chdir: *prj_dir
+
+- name: Configure
+  shell: 
+    cmd: ./configure --prefix=/opt/vde
+    chdir: *prj_dir
+
+- name: Build
+  shell:
+    cmd: make
+    chdir: *prj_dir
+
+- name: Install
+  shell:
+    cmd: make install
+    chdir: "{{ working_dir_result.stat.path }}"
+  become: yes
+
+- name: Smoke test
+  shell:
+    cmd: /opt/vde/bin/vde_switch --version
+  register: smoke_test_res
+
+- debug:
+    msg: "{{ smoke_test_res.stdout }}"
+```
+
+Note: the build job behaves in the same way of the [ci.yaml](https://github.com/virtualsquare/vde-2/blob/master/.github/workflows/ci.yml) github workflow of the official VDE project.
+
+
+At this point we can suppose that we need a `jobs/test_01.yaml` that setup a test environment and some VDE features.
+
+When the `test_01.yaml` finish the environment may leave a dirty environment so we can restore to a previous `init` checkpoint (or a custom one) after the `test_01.yaml` import and so sync the system clock:
+
+```yaml
+- import_tasks: ./jobs/build.yaml
+- import_tasks: ./jobs/test_01.yaml
+
+- name: restore the first snapshot
+  import_role: jjak0b.ansible_farm.libvirt_snapshot
+  vars:
+    restore: "init"
+
+- block:
+    - include_tasks: "{{ (phases_lookup_dir_path,  'common-tasks/sync-clock.yaml' ) | path_join }}"
+  become: true
+
+- import_tasks: ./jobs/test_02.yaml
+- import_tasks: ...
+```
+
+### Terminate phase
+
+You can eventually save a report or set facts about the results or other stuff. This phase may be useful since is called whenever any task fail or the VM provision succeeded.
+
+Note: If you restore snapshots You need to save your test report before the snapshot restore operation, otherwise you will lose it
+
+For the VDE project we have no **terminate** phase for now.
+
+## Platforms and targets
+
+The platforms and targets we defined in the inventory VM configuration must be istanciated to VM definitions containing the virtual machines informations needed to tell libvirt which devices and components we need through the `kvm_provision` role.
+
+Libvirt can't define some details like an image setup preprocessing, system credentials for user authentication, last image version checks, etc ...
+
+A libvirt template is used to define the VM using some custom data and metadata defined in an istanciated VM definition, and other entries of the VM definition are used to declare **how** VM assets need to be elaborated first and installed later to work correctly.
+Some of these important metadata are called *callback-tasks* which describe a task on an VM asset.
+
+The `VM definitions` are variables or facts which are set from custom task files with the same filename of the platform's name and target's name.
+These task files must define the VM definition portion which separate platform-specific and target-specific VM info such that the target definition may be re-used also for other VMs.
+The platforms data are often dependent by the target but target definition data are common for most of platforms, so they are separated for reuse purpose.
+
+- target definitions files allows to define a custom target with your alias name but which define components with official libvirt aliases for architecture names, devices, etc ...
+- platform definition files allow to define a custom platform and adapt the custom target's name alias to the official architecture alias to use a correct VM image and override some target's definition details to adapt some platform's requirements if needed.
+  - Example: Debian use the alias `amd64` and `arm64` for the `x86_64` and `aarch64` architecture names. Others distro may use different naming conventions.
+
+The platform definition will be merged togheter with the target definition (eventually overriding some properties) and this define the `VM definition` instance that will be used for libvirt VM template, and in all roles of this collection.
+
+### Targets
+
+Let's show the target definitions:
+
+- `setup_vm/targets/amd64.yaml`
+
+  ```yaml
+  - name: Define target definition
+    set_fact:
+      vm:
+        metadata:
+          target_name: amd64
+        virt_domain: "{{ (ansible_architecture != 'x86_64') | ternary('qemu', 'kvm') }}"
+        arch: "x86_64"
+        emulator: "/usr/bin/qemu-system-x86_64"
+        cpu: "{{ (ansible_architecture != 'x86_64') | ternary('qemu64', '') | default(omit, true) }}"
+        machine: q35
+  ```
+
+- `setup_vm/targets/arm64.yaml`
+
+  ```yaml
+  - name: Define target definition
+    set_fact:
+      vm:
+        metadata:
+          target_name: arm64
+        virt_domain: "{{ (ansible_architecture != 'aarch64') | ternary('qemu', 'kvm') }}"
+        arch: "aarch64"
+        emulator: "/usr/bin/qemu-system-aarch64"
+        cpu: cortex-a53
+        machine: virt
+        vcpus: 1
+        firmware: '/usr/share/AAVMF/AAVMF_CODE.fd'
+  ```
+
+Note: The virtualization domain type for the VM can be set through the `ansible_architecture` variable that depend by a previous `gather_fact` or `setup` module uses or through the `libvirt_supported_virtualizzation_types` variable provided by the `vm_dispatcher` role.
+
+Warning: Ansible try to guess the virtualization type through the `ansible_virtualization_type` variable when using `gather_fact` or `setup` module but is not always correct, so i recommend to use the `libvirt_supported_virtualizzation_types` variable provided by the `vm_dispatcher` role.
+
+### Platforms
+
+Let's show the platform definitions of the L1 hypervisor VM:
+
+- A parametric `setup_vm/platforms/debian_nocloud.yaml` define a generic Debian VM definition which download, and inject into the image the SSH public key and some scripts to configure users and SSH configurations on first boot using `virt-sysprep`
+
+  ```yaml
+  - name: Defining platform with usermode networking
+    vars:
+      # version_name: bookworm
+      # version_major_num: 12
+      # version: "20230330-1335"
+      period: daily
+      vm_name: "VM {{ vm.metadata.platform_name }}_{{ vm.metadata.target_name }}"
+      debian_arch_names:
+        "arm64": "arm64"
+        "amd64": "amd64"
+        "ppc64": "ppc64el"
+    block:
+
+      - vars:
+          ssh_forward_port: "{{ hostvars[ vm_name ].ansible_port | default( 65535 | random( start=2201, seed=vm_name), true ) }}"
+        block:
+        
+          - name: Set connection port for VM
+            add_host:
+              name: "{{ vm_name }}"
+              ansible_port: "{{ ssh_forward_port }}"
+        
+          - name: Define platform definition
+            vars:
+              uri_base: "https://cdimage.debian.org/cdimage/cloud/{{ version_name }}/{{ period }}/{{ version }}"
+              image_name: "debian-{{ version_major_num }}-nocloud-{{ debian_arch_names[ vm.metadata.target_name ] }}-daily-{{ version }}.qcow2"
+            set_fact:
+              vm:
+                # metadata properties are used inside a task for installation and setup purposes
+                metadata:
+                  name: "{{ vm_name }}"
+                  connection: "qemu:///session"
+                  auth:
+                    become_user: "root"
+                    become_password: &root_pass "virtualsquare"
+                    become_method: su
+                    user: "user"
+                    password: *root_pass
+                  sources:
+                  - before_provision:
+                    - callback: callbacks/sources/fetch.yaml
+                      src: "{{ uri_base }}/{{ image_name }}"
+                      dest: "{{ image_name }}"
+                    - callback: callbacks/sources/copy.yaml
+                      src: "{{ image_name }}"
+                      dest: &tmp_image_file_name "tmp-{{ vm.metadata.platform_name }}_{{ vm.metadata.target_name }}_{{ image_name }}"
+                    - callback: callbacks/sources/setup_linux_image.yaml
+                      src: *tmp_image_file_name
+                      keys_path: "{{ vm.metadata.tmp_dir }}id_ssh_rsa_vm"
+                    on_provision:
+                      src: *tmp_image_file_name
+                      dest: &image_file_name "{{ vm.metadata.platform_name }}_{{ vm.metadata.target_name }}_{{ image_name }}"
+                vcpus: 2
+                ram: 1536
+                disks:
+                  - type: "qcow2"
+                    devname: "hda"
+                    src: *image_file_name
+                net:
+                  type: user
+                  source: "hostfwd=tcp:127.0.0.1:{{ ssh_forward_port }}-:22"
+                  mac: "{{ '52:54:00' | random_mac( seed = vm_name ) }}"
+                  # note: user networking is associated to hypervisor's ip
+                  ip: "localhost"
+  ```
+
+- The specific `setup_vm/platforms/debian_12.yaml` override some part of the *debian_nocloud* definition like adding an image pre-processing callback-task to increase image size.
+
+  ```yaml
+    - block:
+        - import_tasks:
+            file: debian_nocloud.yaml
+      vars:
+        version_name: bookworm
+        version_major_num: 12
+        version: '20230403-1339'
+
+    - vars:
+        new_task:
+          callback: callbacks/sources/extend_and_convert.yaml
+          src: "{{ vm.metadata.sources[0].before_provision[2].src }}"
+          dest: "{{ vm.metadata.sources[0].before_provision[2].src }}"
+          from_format: qcow2
+          to_format: qcow2
+          partition_number: 1
+          size: 10G
+      block:
+
+        - name: Add new task to imported definition
+          set_fact:
+            vm: "{{ vm | combine(vm_override, recursive=true ) }}"
+          vars:
+            vm_override:
+              metadata:
+                sources:
+                  - before_provision: "{{ vm.metadata.sources[0].before_provision[:2] + [ new_task ] + vm.metadata.sources[0].before_provision[2:] }}"
+                    on_provision: "{{ vm.metadata.sources[0].on_provision }}"
+              ram: "{{ [ ( ansible_memfree_mb / 4 ) | int, 1024 ] | max }}"
+              vcpus: "{{ [ ( ansible_processor_vcpus / 4 ) | int, 1] | max }}"
+  ```
+
+The *debian_sid* platform is almost identical to *debian_12* but different in the following parts:
+
+- The downloaded image is compatible with the [cloud-init](https://cloud-init.io/) standard and so the platform replace the custom `setup_linux_image.yaml` callback-task with the custom `setup_cloudinit_iso.yaml` one that create an additional readonly ISO image disk through the `cloud-localds` command. This ISO will automatically configure the VM users, SSH and other system configuration when added to the VM.
+- The builtin template does't allow to define readonly disks so this platform use the custom `cloud_compatible.xml.j2` template which is a copy of the default builtin template but with some changes to flag disks as readonly.
+
+This is the generic `debian_cloud` platform definition: 
+
+```yaml
+- name: Defining platform with usermode networking
+  vars:
+    # version_name: bookworm
+    # version_major_num: 12
+    # version: "20230330-1335"
+    period: daily
+    vm_name: "VM {{ vm.metadata.platform_name }}_{{ vm.metadata.target_name }}"
+    debian_arch_names:
+      "arm64": "arm64"
+      "amd64": "amd64"
+      "ppc64": "ppc64el"
+  block:
+
+    - vars:
+        ssh_forward_port: "{{ hostvars[ vm_name ].ansible_port | default( 65535 | random( start=2201, seed=vm_name), true ) }}"
+      block:
+      
+        - name: Set connection port for VM
+          add_host:
+            name: "{{ vm_name }}"
+            ansible_port: "{{ ssh_forward_port }}"
+      
+        - name: Define platform definition
+          vars:
+            uri_base: "https://cdimage.debian.org/cdimage/cloud/{{ version_name }}/{{ period }}/{{ version }}"
+            image_name: "debian-{{ version_major_num }}-generic-{{ debian_arch_names[ vm.metadata.target_name ] }}-daily-{{ version }}.qcow2"
+          set_fact:
+            vm:
+              # metadata properties are used inside a task for installation and setup purposes
+              metadata:
+                template: 'cloud_compatible'
+                name: "{{ vm_name }}"
+                connection: "qemu:///session"
+                auth:
+                  become_user: "root"
+                  become_password: &root_pass "virtualsquare"
+                  become_method: su
+                  user: "user"
+                  password: *root_pass
+                sources:
+
+                  - before_provision:
+                      - callback: callbacks/sources/fetch.yaml
+                        src: "{{ uri_base }}/{{ image_name }}"
+                        dest: "{{ image_name }}"
+                      - callback: callbacks/sources/copy.yaml
+                        src: "{{ image_name }}"
+                        dest: &tmp_image_file_name "tmp-{{ vm.metadata.platform_name }}_{{ vm.metadata.target_name }}_{{ image_name }}"
+                    on_provision:
+                      src: *tmp_image_file_name
+                      dest: &image_file_name "{{ vm.metadata.platform_name }}_{{ vm.metadata.target_name }}_{{ image_name }}"
+                  
+                  - before_provision:
+                      - callback: callbacks/sources/setup_cloudinit_iso.yaml
+                        dest: &cloudinit_config_file_name "{{ vm.metadata.platform_name }}_{{ vm.metadata.target_name }}_cloud-config.img"
+                        keys_path: "{{ vm.metadata.tmp_dir }}id_ssh_rsa_vm"
+                    on_provision:
+                        src: *cloudinit_config_file_name
+                        dest: *cloudinit_config_file_name
+              vcpus: 2
+              ram: 1536
+              disks:
+
+                - type: "qcow2"
+                  devname: "hda"
+                  src: *image_file_name
+                
+                # MUST be declared after the rootfs. 
+                - type: 'raw'
+                  devname: 'hdb'
+                  src: *cloudinit_config_file_name
+                  # exclude from snapshots
+                  readonly: true
+              
+              net:
+                type: user
+                source: "hostfwd=tcp:127.0.0.1:{{ ssh_forward_port }}-:22"
+                mac: "{{ '52:54:00' | random_mac( seed = vm_name ) }}"
+                # note: user networking is associated to hypervisor's ip
+                ip: "localhost"
+```
+
+Others platforms definitions follow the same definition concept.
+
+For more information about supported network types see the `init_vm_connection` role and the VM definition [scheme](../../objects/vm_definition.md).
+
+# Conclusion
+
+After a general showcase of what this collection can do i recommend to see also all provide examples which cover each role in depth with some explanations and details.
 

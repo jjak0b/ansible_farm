@@ -22,6 +22,7 @@
 
 [Examples]()
 
+  * [Demo](examples/ansible_farm_demo/index.md)
   * [Deploy a single VM](examples/example_01_basic_deploy_and_connect/index.md)
   * [Deploy different platform and VM provisioning](examples/example_02_VM_provisioning/index.md)
   * [Nested VM provisioning with User Networking and VDE](examples/example_03_nested_VM_provisioning_VDE/index.md)
