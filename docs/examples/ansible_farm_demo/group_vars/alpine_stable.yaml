@@ -1,0 +1,13 @@
+ansible_ssh_private_key_file: null
+allowed_phases:
+  - startup
+  # DO NOT use snapshots since are unsupported for raw type images
+  # - create clean
+  # - create init
+  # - restore init
+  # - restore clean
+  - dependencies
+  - init
+  - main
+  - terminate
+  - shutdown

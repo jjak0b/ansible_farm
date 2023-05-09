@@ -47,6 +47,8 @@ tags:
 dependencies:
   community.libvirt: ">=1.2.0"
   ansible.utils: ">=2.7.0"
+  community.general: ">=3.5.0"
+  community.crypto: ">=1.4.0"
 
 # The URL of the originating SCM repository
 repository: https://github.com/jjak0b/ansible_farm

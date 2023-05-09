@@ -1,0 +1,10 @@
+dependencies:
+  - git
+  - '@development-tools'
+  - cmake
+  - make
+  - autogen
+  - autoconf
+  - automake
+  - libtool
+  - libpcap

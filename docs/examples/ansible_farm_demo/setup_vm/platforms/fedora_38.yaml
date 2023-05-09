@@ -1,0 +1,15 @@
+
+- block:
+    - import_tasks:
+        file: fedora_generic.yaml
+  vars:
+    version_major_num: 38
+    version_minor_num: 1.6
+
+- name: Update VM overrides
+  set_fact:
+    vm: "{{ vm | combine(vm_override, recursive=true ) }}"
+  vars:
+    vm_override:
+      ram: "{{ [ ( ansible_memfree_mb / 4 ) | int, 512 ] | max }}"
+      vcpus: "{{ [ ( ansible_processor_vcpus / 4 ) | int, 1] | max }}"

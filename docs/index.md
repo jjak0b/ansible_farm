@@ -1,6 +1,19 @@
 # jjak0b.ansible_farm Collection
 
-An ansible collection used to create a farm of virtual machines and control these with tasks categorized in different provision phases.
+An ansible collection used to create a farm of virtual machines and control these with tasks categorized in different provision phases orchestrated by Ansible.
+
+- **What**: Create a farm composed by multiple VM for different platform and targets
+
+- **Where**: into any personal or professional available hypervisor hosts of a network
+
+- **Why**: to create a CI/CD or any use case workflow of a single or multiple projects using the same farm structure
+
+- **How**: by definiting some repeatable deploy jobs to create a VM and provision it with some repeatable CI/CD and testing jobs
+
+- **When**: anytime a developer, a webhook or any type of periodic job request it
+
+This collection allow "**What**", "**Where**", "**Why**", "**How**" according to your project needs.
+The "**When**" is up to you :-) .
 
 The roles of this collection focus on:
 
@@ -18,7 +31,7 @@ All roles of this collection uses some common terms:
 - The `VM configuration` is a convenient object which describes a permutations of all platforms and targets pairs that we need as virtual machines and each of those are going to be generated in the form of `VM definition` object after parsing some `platform and target definitions` files.
 - The `VM definition` object describes the characteristics of a VM about the hardware it emulates, the firmware or OS that is installed onto it and other parameters like credentials and network host configuration. It's a combination of `platform` and `target` definitions.
 - The `platform` definition (synonym of OS) is the definition of the used OS, disks, network, credentials, VM components that may be required by the OS. This specify also how a resource should be processed and installed later into libvirt.
-- The`target` definition (synonym of machine, architecture of machine) is the definition of emulated hardware components in each `VM definition`, like CPU, RAM, machine type, emulator, etc ...
+- The `target` definition (synonym of machine, architecture of machine) is the definition of emulated hardware components in each `VM definition`, like CPU, RAM, machine type, emulator, etc ...
 
 The Hypervisor and VM provisioning
 ----------------------------------

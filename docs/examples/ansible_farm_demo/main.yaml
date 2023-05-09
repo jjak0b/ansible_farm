@@ -1,0 +1,118 @@
+
+- name: Init inventory with a L1 VM on the first reachable L0 hypervisor
+  # import_playbook: jjak0b.ansible_farm.init_vm_definitions.yaml # From ansible 2.11
+  import_playbook: init_vm_definitions.yaml
+  # run only on the first reachable hypervisor
+  run_once: true
+  vars:
+    hypervisors_group: "hypervisors:&L0"
+    # Just init another debian VM on first reachable hypervisor
+    config:
+      list: 
+        - target: amd64
+          platform: debian_12
+
+- name: Add all initialized VM to L1 and hypervisors group
+  hosts: vms:!processed
+  # gather_facts: no is important since vms don't exist yet
+  gather_facts: no 
+  tasks:
+
+    - name: Add host to L1 group
+      add_host:
+        name: "{{ vm.metadata.name }}"
+        groups:
+          - hypervisors
+          - L1
+
+- name: Create the L1 VMs and make it an hypervisor but dont shutdown them
+  # import_playbook: jjak0b.ansible_farm.run_vm_provision.yaml # From ansible 2.11
+  import_playbook: run_vm_provision.yaml
+  vars:
+    # vms_group: "VM debian_sid_arm64"
+    vms_group: "vms:&L1:!processed"
+    # run provision phases to make them hypervisors
+    phases_lookup_dir_path: provision_phases/hypervisor
+    project_id: example_demo.hypervisor
+    project_revision: 0
+    allowed_phases:
+      - startup
+      # DO NOT use snapshots
+      # - create clean
+      # - create init
+      # - restore init
+      # - restore clean
+      - dependencies
+      - init
+      - main
+      # DO NOT SHUTDOWN: run L2 VM provisioning first
+      # - terminate
+      # - shutdown
+
+- name: Assign and deploy some VMs over all hyperviors based on their capabilities
+  hosts: hypervisors
+  gather_facts: yes 
+  vars:
+    # Use this uri to check capabilities
+    ansible_libvirt_uri: 'qemu:///session'
+  roles:
+    - jjak0b.ansible_farm.vm_dispatcher
+
+- name: Init inventory with some L1 VMs and other L2 vms wherever they have been assigned to
+  # import_playbook: jjak0b.ansible_farm.init_vm_definitions.yaml # From ansible 2.11
+  import_playbook: init_vm_definitions.yaml
+  vars:
+    hypervisors_group: "hypervisors"
+
+
+- name: Run some L1 VMs and other L2 VMs provisioning lifecycle wherever they have been assigned to
+  # import_playbook: jjak0b.ansible_farm.run_vm_provision.yaml # From ansible 2.11
+  import_playbook: run_vm_provision.yaml
+  vars:
+    vms_group: "vms:!processed"
+    # run provision phases to make them hypervisors
+    phases_lookup_dir_path: provision_phases/VDE
+    project_id: example_demo.guest
+    project_revision: 0
+
+- name: "End L1 hypervisors lifecycle: VMs cleanup + Shutdown"
+  # import_playbook: jjak0b.ansible_farm.run_vm_provision.yaml # From ansible 2.11
+  import_playbook: run_vm_provision.yaml
+  vars:
+    vms_group: hypervisors:&L1
+    phases_lookup_dir_path: provision_phases/hypervisor
+    allowed_phases:
+      - terminate
+      - shutdown
+    # dummy project name but wont be used
+    project_id: example_demo
+    project_revision: 0
+
+- name: Delete all VMs
+  hosts: vms
+  tags:
+    - delete
+  gather_facts: no
+  tasks:
+
+    - name: Delegate vm Deletetion to respective hypervisor
+      when:
+        # Skip if hypervisor has been terminated
+        - not ( kvm_host in groups['L1'] )
+      block:
+        
+        - name: gather min facts of hypervisor host
+          setup:
+            gather_subset: 
+              - '!all'
+        
+        - name: Cleanup VM owned by its hypervisor
+          include_role:
+            name: jjak0b.ansible_farm.kvm_provision
+          vars:
+            delete_vm: true
+            create_vm: false
+            should_remove_all_vm_storage: true
+
+      delegate_to: "{{ kvm_host }}"
+

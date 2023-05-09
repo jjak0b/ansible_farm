@@ -1,0 +1,22 @@
+
+
+- include_tasks: "{{ (phases_lookup_dir_path, 'common-tasks', 'gather_sysinfo.yaml' ) | path_join }}"
+
+- block:
+
+    - include_tasks: "{{ (phases_lookup_dir_path, 'common-tasks', 'sync-clock.yaml' ) | path_join }}"
+
+    - import_role:
+        name: hypervisor_provision
+        tasks_from: dependencies.yaml
+
+    - name: Reboot VM
+      ansible.builtin.reboot:
+        connect_timeout: "{{ connection_timeout | default(omit, true) }}"
+        test_command: 'true'
+      ignore_errors: yes
+
+  become: yes
+  vars:
+    # should_update: true
+    # should_upgrade: true

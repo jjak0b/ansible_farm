@@ -24,21 +24,12 @@
   - import_tasks: wait_until_reachable.yaml
 
   - import_tasks: guest_main.yaml
-    register: delegate_result
 
-  rescue:
-  - name: on wait connection error - report
-    debug: 
-      var: connection_wait_result
-    when: connection_wait_result is failed
-  - name: on VM connection error - report
-    debug: 
-      var: delegate_result
-    when: delegate_result is failed
+  rescue: []
   always:
     - block:
         - import_tasks: shutdown.yaml
           when: ( "shutdown" in allowed_phases )
       delegate_to: "{{ kvm_host }}"
-      
+
   

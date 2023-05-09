@@ -1,0 +1,25 @@
+
+- include_tasks: "{{ (phases_lookup_dir_path,  'common-tasks', 'gather_sysinfo.yaml' ) | path_join }}"
+
+- block:
+
+  - include_tasks: "{{ (phases_lookup_dir_path,  'common-tasks', 'sync-clock.yaml' ) | path_join }}"
+
+  - name: Include dependencies using distribution defaults
+    include_vars:
+      file: "{{ ( 'dependencies', ansible_distribution + '.yml' ) | path_join }}"
+    ignore_errors: yes
+    when: dependencies is not defined
+
+  - name: Update packet manager cache
+    package:
+      update_cache: true
+
+  - name: Install dependencies.
+    environment:
+      DEBIAN_FRONTEND: noninteractive
+    package:
+      name: "{{ dependencies | default( [] ) }}"
+      state: "{{ 'latest' if should_upgrade | default( false, true ) else 'present' }}"
+  become: yes
+

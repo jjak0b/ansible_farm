@@ -6,6 +6,8 @@
 - name: "Init VM - platform:'{{ platform }}', target:'{{ target }}'"
   debug:
     var: configuration
+  tags:
+    - never
 
 - name: Init vm definition vars
   set_fact:

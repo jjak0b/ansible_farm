@@ -1,0 +1,72 @@
+
+- name: preparing Image
+  vars:
+    dest_path: "{{ (vm.metadata.tmp_dir, task.dest) | path_join }}"
+  block:
+
+    - name: Generate an OpenSSH keypair
+      vars:
+        keys_path: "{{ task.keys_path | default( (vm.metadata.tmp_dir, 'id_ssh_rsa_' +  vm.metadata.name ) | path_join ) }}"
+        local_keys_dir: '~/.ssh'
+      local_action: 
+        module: community.crypto.openssh_keypair
+        path: "{{ ( local_keys_dir, keys_path | basename ) | path_join }}"
+      register: openssh_keypair_result
+      
+
+    - name: Create cloud-init ISO
+      vars:
+        cloud_localds:
+          dest: "{{ dest_path }}"
+          config_template: "cloud_init/default/cloud_config.yaml.j2"
+          overwrite: true
+          # network_config_template: "cloud_init/default/network_config.yaml.j2"
+        _cloudinit_config_yml: &config_yaml "{{ ( vm.metadata.tmp_dir, vm.metadata.name, 'cloud_init_config.yml' ) | path_join }}"
+        _cloudinit_net_config_yml: &net_config_yaml "{{ ( vm.metadata.tmp_dir, vm.metadata.name, 'cloud_init_net_config.yml' ) | path_join }}"
+      block:
+
+        - name: Ensure directory paths exist
+          loop:
+            - "{{ _cloudinit_config_yml | dirname }}"
+            - "{{ _cloudinit_net_config_yml | dirname }}"
+            - "{{ dest_path | dirname }}"
+          loop_control:
+            loop_var: _a_dir
+          file:
+            path: "{{ _a_dir }}"
+            state: directory
+            recurse: true
+
+        # Create config based on the templates
+        - name: Create config.yml based cloud_localds.config_template
+          template:
+            src: "{{ cloud_localds.config_template }}"
+            dest: *config_yaml
+          when: cloud_localds.config_template is defined
+
+        - name: Create net_config.yml based on cloud_localds.network_config
+          template:
+            src: "{{ cloud_localds.network_config_template }}"
+            dest: *net_config_yaml
+          when: cloud_localds.network_config_template is defined
+
+        - name: Run cloud-localds
+          shell:
+            cmd: >-
+              cloud-localds {{ dest_path | quote }}
+              {{ _cloudinit_config_yml | quote }}
+              {% if cloud_localds.network_config is defined %}
+                --network-config {{ _cloudinit_net_config_yml | quote }}
+              {% endif %}
+          register: cloud_localds_result
+          changed_when: cloud_localds_result.rc == 0
+
+        - name: Cleanup generated config files
+          loop:
+            - "{{ _cloudinit_config_yml }}"
+            - "{{ _cloudinit_net_config_yml }}"
+          loop_control:
+            loop_var: _a_file
+          file:
+            path: "{{ _a_file }}"
+            state: absent

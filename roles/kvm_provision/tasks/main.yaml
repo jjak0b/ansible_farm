@@ -8,7 +8,9 @@
 - name: "VM Main lifecycle: {{ vm.metadata.name }}"
   debug:
     var: vm
-
+  tags:
+    - never
+  
 - name: Check virsh version
   shell: virsh --version
   register: _virsh_version_result

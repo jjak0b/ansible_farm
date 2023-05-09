@@ -2,7 +2,7 @@
 collections:
 
   - name: community.general
-    version: "<5.0.0"
+    version: ">=3.5.0"
     type: galaxy
   
   - name: community.libvirt
@@ -14,5 +14,5 @@ collections:
     type: galaxy
 
   - name: community.crypto
-    version: ">=2.10.0"
+    version: ">=1.4.0"
     type: galaxy

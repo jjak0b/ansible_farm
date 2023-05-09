@@ -1,0 +1,28 @@
+
+- block:
+    - name: Shutdown VMs owned by its hypervisor
+      loop: "{{ virtual_machines | default( [] ) }}"
+      loop_control:
+        loop_var: vm
+        label: "{{ vm.metadata.name }}"
+      include_role:
+        name: jjak0b.ansible_farm.guest_provision
+      vars:
+        kvm_host: "{{ hostvars[ vm.metadata.name ].kvm_host }}"
+        wait_until_reachable: false
+        allowed_phases:
+          - shutdown
+
+- name: Cleanup VMs owned by its hypervisor
+  loop: "{{ virtual_machines | default( [] ) }}"
+  loop_control:
+    loop_var: vm
+    label: "{{ vm.metadata.name }}"
+  include_role:
+    name: jjak0b.ansible_farm.kvm_provision
+  vars:
+    delete_vm: true
+    create_vm: false
+    should_remove_all_vm_storage: true
+  tags:
+    - delete

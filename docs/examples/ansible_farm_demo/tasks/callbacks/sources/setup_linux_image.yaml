@@ -1,0 +1,106 @@
+
+- name: preparing Image
+  vars:
+    src_path: "{{ (vm.metadata.tmp_dir, task.src) | path_join }}"
+    dest_path: "{{ vm.metadata.tmp_dir }}"
+    keys_path: "{{ task.keys_path | default( (vm.metadata.tmp_dir, 'id_ssh_rsa_' +  vm.metadata.name ) | path_join ) }}"
+    tmp_kernel_path: "{{ (vm.metadata.tmp_dir, 'tmp-linux-kernel') | path_join }}"
+    kernel_filename: vmlinuz-image-{{ ansible_kernel }}
+    local_keys_dir: '~/.ssh'
+  block:
+
+    - name: Generate an OpenSSH keypair 
+      local_action: 
+        module: community.crypto.openssh_keypair
+        path: "{{ ( local_keys_dir, keys_path | basename ) | path_join }}"
+    
+    - name: copy public keypair to host
+      copy:
+        src: "{{ ( local_keys_dir, keys_path | basename ) | path_join }}.pub"
+        dest: "{{ keys_path }}.pub"
+
+    # reason for this: https://bugs.launchpad.net/ubuntu/+source/linux/+bug/759725
+    - name: "Ubuntu libguestfs Fix"
+      when: ansible_distribution == 'Ubuntu'
+      vars:
+        kernel_path: "{{ (tmp_kernel_path, 'boot', kernel_filename) | path_join }}"
+      block:
+#        - shell:
+#            cmd: chmod 0644 /boot/vmlinuz*
+#          become: yes
+        - name: Creates tmp directory
+          file:
+            path: "{{ tmp_kernel_path }}"
+            state: directory
+        
+        - name: Download same kernel version since the host one may be inaccessible
+          command:
+            cmd: "apt-get download linux-image-{{ ansible_kernel }}"
+            creates: "linux-image-{{ ansible_kernel }}*.deb"
+            chdir: "{{ tmp_kernel_path }}"
+
+        - name: Extract kernel
+          shell:
+            cmd: "dpkg-deb -x linux-image-{{ ansible_kernel }}*.deb ./"
+            creates: "{{ kernel_path }}"
+            chdir: "{{ tmp_kernel_path }}"
+        
+        - name: Set fact about new kernel
+          set_fact:
+            supermin_kernel: "{{ kernel_path }}"
+
+    - vars:
+        auth_public_key_path: "/opt/{{ keys_path | basename }}.pub"
+      block:
+
+        - name: Create temporary file for firstboot setup ssh script
+          ansible.builtin.tempfile:
+            suffix: "setup_ssh_server.sh"
+            state: file
+          register: _tmp_script_setup_ssh_file
+
+        - name: Create temporary file for firstboot setup auth script
+          ansible.builtin.tempfile:
+            suffix: "setup_user_auth.sh"
+            state: file
+          register: _tmp_script_setup_auth_file
+
+        - name: Template firstboot script to setup SSH server
+          ansible.builtin.template:
+            src: scripts/setup_ssh_server.sh.j2
+            dest: "{{ _tmp_script_setup_ssh_file.path }}"
+
+        - name: Template firstboot script to setup authentication
+          ansible.builtin.template:
+            src: scripts/setup_user_auth.sh.j2
+            dest: "{{ _tmp_script_setup_auth_file.path }}"
+
+        - name: Setup Image
+          environment:
+            SUPERMIN_KERNEL: "{{ supermin_kernel | default( omit, true) }}"
+          shell:
+            cmd: >
+              virt-sysprep -a '{{ src_path }}'
+              --root-password password:{{ vm.metadata.auth.become_password }}
+              --hostname '{{ vm.metadata.hostname }}'
+              --copy-in {{ keys_path }}.pub:{{ auth_public_key_path | dirname }}
+              --chmod 0666:{{ auth_public_key_path }}
+              --firstboot {{ _tmp_script_setup_ssh_file.path | quote }}
+              --firstboot {{ _tmp_script_setup_auth_file.path | quote }}
+#              --delete /etc/systemd/system.conf
+#              --copy-in /tmp/system.conf:/etc/systemd
+#              --chmod 0644:/etc/systemd/system.conf
+#              --delete {{ random_seed_path }}
+#              --write {{ random_seed_path }}:'{{ lookup('password', '/dev/null', length=512) }}'
+#              --chmod 0600:{{ random_seed_path }}
+      always: 
+        - name: Remove temporary files
+          loop:
+            - "{{ _tmp_script_setup_ssh_file.path }}"
+            - "{{ _tmp_script_setup_auth_file.path }}"
+          loop_control:
+            loop_var: tmpfile
+          ansible.builtin.file:
+            path: "{{ tmpfile }}"
+            state: absent
+          when: tmpfile is defined

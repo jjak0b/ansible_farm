@@ -1,0 +1,19 @@
+---
+
+
+- name: Ensure at least python is installed first
+  raw: pacman -Syy python --needed --noconfirm
+  become: true
+
+- include_tasks: "{{ (phases_lookup_dir_path,  'common-tasks/gather_sysinfo.yaml' ) | path_join }}"
+
+- block:
+    - include_tasks: "{{ (phases_lookup_dir_path,  'common-tasks/sync-clock.yaml' ) | path_join }}"
+  become: true
+
+- name: Include dependencies using platform-specific dependencies
+  include_vars:
+    file: "{{ ( phases_lookup_dir_path, 'dependencies', ansible_distribution + '.yml' ) | path_join }}"
+  ignore_errors: yes
+
+- include_tasks: "{{ (phases_lookup_dir_path, 'dependencies.yaml' ) | path_join }}"

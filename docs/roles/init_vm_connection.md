@@ -29,9 +29,12 @@ Role Variables
 
 - `should_setup_proxy_jumps`:
 
-  - optional: can be defined as VM variable in its inventory or as "global" variable. when defined in VM inventory it has precedente over the other one.
+  - optional: can be defined as VM variable in its inventory or as "global" variable. when defined in VM inventory it has precedente over the other one. 
+  The reason for this feature is for allowing connection on nested VMs, but it can be also be used to declare others remote proxy jump hosts which are required to reach an hypervisor byy filling the `hostjumps` variable on that hypervisor node.
+
   - if `false` won't setup the SSH proxy jumps on VM inventory, otherwise if `true` it will setup the SSH config host jumps.
   - if omitted will be silently considered `true` when SSH connection has been specified on the VM.
+  - Implementation note: The proxy jumps are set using the ssh `-J` flag but setting the ssh `-F` flag on the `ansible_ssh_args` variable and provide a runtime-generated configuration file which will contain the minimal SSH parameters for the connection. See the `ssh.cfg.j2` template for more details.
 
 The following vars are assigned to the VM's inventory such that:
 

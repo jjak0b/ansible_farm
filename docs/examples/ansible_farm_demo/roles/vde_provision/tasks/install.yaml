@@ -1,0 +1,14 @@
+- block:
+
+    - name: Update packet manager cache
+      package:
+        update_cache: yes
+
+    - name: Install VDE2 packages
+      package:
+        name:
+          - vde2
+          - vdens
+        state: present
+    
+  become: yes

@@ -1,0 +1,20 @@
+- block:
+
+  - name: Include dependencies
+    include_vars:
+      file: "{{ ( 'dependencies', ansible_distribution + '.yml' ) | path_join }}"
+    ignore_errors: yes
+
+  - name: Update manager cache
+    package:
+      update_cache: true
+
+  - name: Install dependencies.
+    environment:
+      DEBIAN_FRONTEND: noninteractive
+    package:
+      name: "{{ dependencies | default( [] ) }}"
+      state: "{{ 'latest' if should_upgrade else 'present' }}"
+      install_recommends: false
+  become: yes
+
