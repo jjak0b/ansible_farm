@@ -4,7 +4,6 @@
 - name: Delete VM on Hypervisor host
   hosts: "{{ vms_group | default('vms') }}"
   gather_facts: no
-  serial: 1
   tasks:
     - block:
       

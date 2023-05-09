@@ -11,20 +11,28 @@ all:
           targets:
             - "amd64"
           platforms:
-            - "debian_vs"
-#            - "macOS_BigSur"
+#            - "debian_vs"
+            - "macOS_BigSur"
+#            - "windows"
     VM debian_vs_amd64:
-      ansible_connection: ssh
       ansible_port: 2201
     VM macOS_BigSur_amd64:
-      ansible_connection: ssh
       ansible_port: 2202
+    VM windows_amd64:
+      ansible_port: 2203
   children:
     hypervisors:
       hosts:
         L0-hypervisor:
+    vms:
+      ansible_connection: ssh
+    macOS_BigSur:
+      vars:
+        snapshot_type: external
+    # These require manual wizard setup, ansible will wait
+    # until you prompt that OS setup (install + ssh + user + password) is ready
     require_setup:
       hosts:
         VM macOS_BigSur_amd64:
-
-    
+#        VM windows_amd64:
+#        VM debian_vs_amd64:
