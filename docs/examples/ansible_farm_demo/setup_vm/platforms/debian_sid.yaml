@@ -1,7 +1,7 @@
 
 - block:
     - import_tasks:
-        file: debian_generic.yaml
+        file: debian_cloud.yaml
   vars:
     version_name: sid
     version_major_num: sid
@@ -10,12 +10,12 @@
 - vars:
     new_task:
       callback: callbacks/sources/extend_and_convert.yaml
-      src: "{{ vm.metadata.sources[0].before_provision[2].src }}"
-      dest: "{{ vm.metadata.sources[0].before_provision[2].src }}"
+      src: "{{ vm.metadata.sources[0].before_provision[1].dest }}"
+      dest: "{{ vm.metadata.sources[0].before_provision[1].dest }}"
       from_format: qcow2
       to_format: qcow2
       partition_number: 1
-      size: 30G
+      size: 10G
   block:
 
     - name: Add new task to imported definition
@@ -27,5 +27,6 @@
             sources:
               - before_provision: "{{ vm.metadata.sources[0].before_provision[:2] + [ new_task ] + vm.metadata.sources[0].before_provision[2:] }}"
                 on_provision: "{{ vm.metadata.sources[0].on_provision }}"
+              - "{{ vm.metadata.sources[1] }}"
           ram: "{{ [ ( ansible_memfree_mb / 4 ) | int, 512 ] | max }}"
           vcpus: "{{ [ ( ansible_processor_vcpus / 4 ) | int, 1] | max }}"

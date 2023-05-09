@@ -14,9 +14,8 @@ all:
             - 'arm64'
             - 'amd64'
           platforms:
-            - debian_cloud_sid
+            - debian_sid
             - fedora_38
-            - debian_12
     
     local_hypervisor:
       ansible_connection: local
