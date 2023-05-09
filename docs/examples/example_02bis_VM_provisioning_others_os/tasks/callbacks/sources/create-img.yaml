@@ -9,4 +9,5 @@
       shell:
         cmd: >
           qemu-img create -f {{ format }} -o size={{ size }} {{ dest_path }}
+        creates: "{{ dest_path }}"
     

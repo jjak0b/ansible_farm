@@ -1,12 +1,146 @@
+# macOs platform definition builder
+# parameters:
+# - release: options: high-sierra, mojave, catalina, big-sur, monterey.
+#   Check https://github.com/kholia/OSX-KVM/blob/master/fetch-macOS-v2.py for future updates
+# - cpu_usecase: options: default, exact, host_passthrough
+---
 
-- import_tasks:
-    file: macOS-setup.yaml
-
-- name: Define macOS platform
-  set_fact:
-    vm: "{{ vm | combine( vm_override, recursive=true) }}"
+- name: Start MacOs platform builder
   vars:
-    vm_override:
-      metadata:
-        sources: []
-  
+    _cpu_usecase: "{{ cpu_usecase | default( 'host_passthrough', true ) }}"
+    _release: "{{ release | default( 'big-sur', true ) }}"
+    cpu_features_use_case:
+      default: &features_default
+        - invtsc
+        - avx
+        - aes
+        - ssse3
+        - sse4.2
+        - popcnt
+        - xsave
+        - xsaveopt
+      exact: &features_exact
+        - hypervisor
+        - invtsc
+        - fma
+        - avx
+        - avx2
+        - aes
+        - ssse3
+        - sse4.2
+        - popcnt
+        - sse4a
+        - bmi1
+        - bmi2
+      host_passthrough: *features_exact
+  block:
+    - name: "Definiting platform for '{{ _release }}'"
+      vars:
+        platform_name: "{{ vm.metadata.platform_name }}"
+        
+      block:
+        - name: Define platform definition
+          vars:
+            vm_name: "VM {{ platform_name }}_{{ vm.metadata.target_name }}"
+            install_image_name: BaseSystem.img
+            main_image_name: "{{ platform_name }}_{{ vm.metadata.target_name }}.qcow2"
+            opencore_image_name: OpenCore.qcow2
+            loader_file_name: 'OVMF_CODE.fd'
+            nvram_file_name: 'OVMF_VARS-1024x768.fd'
+          set_fact:
+            vm:
+              # metadata properties are used inside a task for installation and setup purposes
+              metadata:
+                platform_name: "{{ platform_name }}"
+                template: mac
+                tmp_dir: "{{ ansible_env.HOME }}/tmp/macOS"
+                name: "{{ vm_name }}"
+                hostname: "Hackintosh"
+                connection: "qemu:///session"
+                auth:
+                sources:
+                  # Install Media
+                  - before_provision:
+                      - callback: callbacks/sources/fetch_macOS.yaml
+                        # creates only if not exists
+                        release: "{{ _release }}"
+                        dest: "{{ install_image_name }}"
+                    on_provision:
+                      src: "{{ install_image_name }}"
+                      dest: &install_image_file_name "{{ platform_name }}_{{ install_image_name }}"
+                  # Main drive
+                  - before_provision:
+                      - callback: callbacks/sources/create-img.yaml
+                        # creates only if not exists
+                        format: qcow2
+                        size: 30G
+                        dest: "{{ main_image_name }}"
+                    on_provision:
+                      src: "{{ main_image_name }}"
+                      # Warning: without this a just installed image will be replaced, so use a cache-first policy
+                      replace: false 
+                      dest: &main_image_file_name "{{ main_image_name }}"
+                  #OpenCore stuff
+                  - before_provision:
+                      - callback: callbacks/sources/copy.yaml
+                        src: "{{ ( 'OSX-KVM', 'OpenCore', opencore_image_name) | path_join }}"
+                        dest: "{{ opencore_image_name }}"
+                    on_provision:
+                      src: "{{ opencore_image_name }}"
+                      dest: &opencore_image_file_name "{{ opencore_image_name }}"
+                  - before_provision:
+                      - callback: callbacks/sources/copy.yaml
+                        src: "{{ ( 'OSX-KVM', nvram_file_name ) | path_join }}"
+                        dest: "{{ nvram_file_name }}"
+                    on_provision:
+                      src: "{{ nvram_file_name }}"
+                      dest: "{{ nvram_file_name }}"
+                  - before_provision:
+                      - callback: callbacks/sources/copy.yaml
+                        src: "{{ ( 'OSX-KVM', loader_file_name ) | path_join }}"
+                        dest: "{{ loader_file_name }}"
+                    on_provision:
+                      src: "{{ loader_file_name }}"
+                      dest: "{{ loader_file_name }}"
+              # Note: After some tests, only up to pc-q35-6.0 seems supported
+              machine: pc-q35-4.2
+              cpu: &cpu_model host
+              cpu_model: *cpu_model
+              cpu_vendor: GenuineIntel
+              cpu_features: "{{ cpu_features_use_case[ _cpu_usecase ] }}"
+              # These one below are used with qemu -cpu arg, but i can't find documentation on how to use these with libvirt
+              # I keep these here just if <qemu:arg> tag is uncommented
+              qemu_cpu_features:
+                vmware-cpuid-freq: on
+                kvm: on
+              # does this works ? /usr/share/OVMF/OVMF_CODE.fd
+              loader: "{{ ( vm.metadata.libvirt_pool_dir, loader_file_name ) | path_join }}"
+              nvram: "{{ ( vm.metadata.libvirt_pool_dir, nvram_file_name ) | path_join }}"
+              vcpus: 4
+              ram: 2048
+              disks:
+                # Required to boot any macOS image
+                - type: qcow2
+                  devname: sda
+                  # auto-assigned to unit 0
+                  src: *opencore_image_file_name
+                  boot_order: 2
+                # Note The book order: If src it's a valid macOS installation image will be booted
+                - type: qcow2
+                  devname: sdb
+                  # auto-assigned to unit 1
+                  src: *main_image_file_name
+                  boot_order: 1
+                # otherwise will boot the Recovery image
+                - type: raw
+                  devname: sdc
+                  # auto-assigned to unit 2
+                  src: *install_image_file_name
+                  boot_order: 3
+              net:
+                adapter_model: vmxnet3
+                type: user
+                source: "hostfwd=tcp:127.0.0.1:2202-:22"
+                mac: "{{ '52:54:00' | random_mac( seed = vm_name ) }}"
+                # note: user networking is associated to hypervisor's ip
+                ip: "localhost"

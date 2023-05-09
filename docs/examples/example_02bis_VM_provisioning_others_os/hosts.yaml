@@ -11,14 +11,20 @@ all:
           targets:
             - "amd64"
           platforms:
-            - "macOS-setup.yaml"
-    VM macOS-setup-big-sur_amd64:
-      ansible_user: user
-      ansible_password: userpassword
+            - "debian_vs"
+#            - "macOS_BigSur"
+    VM debian_vs_amd64:
+      ansible_connection: ssh
       ansible_port: 2201
+    VM macOS_BigSur_amd64:
+      ansible_connection: ssh
+      ansible_port: 2202
   children:
     hypervisors:
       hosts:
         L0-hypervisor:
+    require_setup:
+      hosts:
+        VM macOS_BigSur_amd64:
 
     

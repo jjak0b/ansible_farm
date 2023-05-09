@@ -3,9 +3,51 @@
   import_playbook: init_vm_definitions.yaml
   vars:
     hypervisors_group: hypervisors
+    setup_mode: true
+
+- name: Setup VM which needs a manual configuration
+  import_playbook: run_vm_provision.yaml
+  vars:
+    vms_group: require_setup
+    wait_until_reachable: false
+    allowed_phases:
+      - startup
+  tags:
+    - first_setup
+
+- name: Waiting manual setup by user
+  hosts: require_setup
+  gather_facts: no
+  vars_prompt:
+    - name: ready
+      prompt: Press Enter when VM setup is ready.
+  tags:
+    - first_setup
+
+- name: Remove specific VMs
+  import_playbook: delete_vm.yaml
+  vars:
+    vms_group: require_setup
+  tags:
+    - first_setup
+
+- name: "Assign VM to L0 hypervisors"
+  import_playbook: init_vm_definitions.yaml
+  vars:
+    hypervisors_group: hypervisors
 
 - name: Create and provision each VM in serial on its assigned L0 hypervisor
   import_playbook: run_vm_provision.yaml
   vars:
     vms_group: vms
-
+    allowed_phases:
+      - startup
+#      - restore init
+#      - create init
+#      - restore clean
+#      - create clean
+#      - dependencies
+      - init
+      - main
+      - terminate
+#      - shutdown

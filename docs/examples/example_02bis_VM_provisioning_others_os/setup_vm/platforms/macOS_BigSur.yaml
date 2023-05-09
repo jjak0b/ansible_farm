@@ -1,0 +1,23 @@
+- block:
+
+    - debug:
+        var: setup_mode
+    - import_tasks:
+        file: macOS.yaml
+
+    - set_fact:
+        vm: "{{ vm | combine(vm_override, recursive=true) }}"
+      vars:
+        vm_override:
+          metadata:
+            auth: 
+              become_user: "user"
+              become_password: &root_pass "userpassword"
+              user: "user"
+              password: *root_pass
+            sources: "{{ setup_mode | default(false) | ternary( vm.metadata.sources, vm.metadata.sources[ 1: ] ) }}"
+          disks: "{{ setup_mode | default(false) | ternary(vm.disks, vm.disks[ :2 ] ) }}"
+  vars:
+    release: big-sure
+    cpu_usecase: host_passthrough
+

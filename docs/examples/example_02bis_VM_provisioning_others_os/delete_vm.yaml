@@ -1,0 +1,25 @@
+# This playbook can use all variables from kvm_provision and guest_provision roles
+---
+
+- name: Delete VM on Hypervisor host
+  hosts: "{{ vms_group | default('vms') }}"
+  gather_facts: no
+  serial: 1
+  tasks:
+    - block:
+      
+        - name: gather min facts of hypervisor host since some definitions require to use them
+          setup:
+            gather_subset: 
+            - '!all'
+        
+        - name: "Remove VM: '{{ vm.metadata.name }}'"
+          include_role: 
+            name: kvm_provision
+          vars:
+            delete_vm: true
+            create_vm: false
+
+      delegate_to: "{{ kvm_host }}"      
+      tags:
+        - kvm_provision
