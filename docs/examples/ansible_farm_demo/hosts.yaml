@@ -55,9 +55,6 @@ all:
         # project_revision: 0
     
     # vars specific per platform and target
-    alpine_stable:
-      vars:
-        wait_until_port_reachable: true
     archlinux:
       vars:
         # arch image doesn't have python installed, so use ssh port-based waits instead

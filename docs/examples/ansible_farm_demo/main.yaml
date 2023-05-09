@@ -93,7 +93,7 @@
   tags:
     - delete
   gather_facts: no
-  tasks: &cleanup_target_tasks
+  tasks:
 
     - name: Delegate vm Deletetion to respective hypervisor
       when:
