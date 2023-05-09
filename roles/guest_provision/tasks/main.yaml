@@ -24,22 +24,12 @@
   - import_tasks: wait_until_reachable.yaml
 
   - import_tasks: guest_main.yaml
-    register: delegate_result
 
-  rescue:
-
-    - name: VM Main lifecycle failed
-      debug: 
-        var: fail_report
-      vars:
-        fail_report:
-          failed_task: "{{ ansible_failed_task }}"
-          failed_result: "{{ ansible_failed_result }}"
-    
+  rescue: []
   always:
     - block:
         - import_tasks: shutdown.yaml
           when: ( "shutdown" in allowed_phases )
       delegate_to: "{{ kvm_host }}"
-      
+
   
