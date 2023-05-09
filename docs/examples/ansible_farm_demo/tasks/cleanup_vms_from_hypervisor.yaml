@@ -24,3 +24,5 @@
     delete_vm: true
     create_vm: false
     should_remove_all_vm_storage: true
+  tags:
+    - delete

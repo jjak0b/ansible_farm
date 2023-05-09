@@ -3,16 +3,14 @@
   # import_playbook: jjak0b.ansible_farm.init_vm_definitions.yaml # From ansible 2.11
   import_playbook: init_vm_definitions.yaml
   # run only on the first reachable hypervisor
-  # run_once: true
+  run_once: true
   vars:
     hypervisors_group: "hypervisors:&L0"
     # Just init another debian VM on first reachable hypervisor
     config:
-      permutations:
-        targets:
-          - amd64
-        platforms:
-          - debian_cloud_sid
+      list: 
+        - target: amd64
+          platform: debian_12
 
 - name: Add all initialized VM to L1 and hypervisors group
   hosts: vms:!processed
@@ -51,11 +49,6 @@
       # - terminate
       # - shutdown
 
-#- name: gather facts on controller
-#  hosts: localhost
-#  connection: local
-#  gather_facts: yes
-
 - name: Assign and deploy some VMs over all hyperviors based on their capabilities
   hosts: hypervisors
   gather_facts: yes 
@@ -91,24 +84,35 @@
     allowed_phases:
       - terminate
       - shutdown
+    # dummy project name but wont be used
+    project_id: example_demo
+    project_revision: 0
 
 - name: Delete all VMs
-  hosts:
-    - vms
+  hosts: vms
+  tags:
+    - delete
   gather_facts: no
-  ignore_unreachable: yes
-  tasks:
+  tasks: &cleanup_target_tasks
 
-    - block:
-
+    - name: Delegate vm Deletetion to respective hypervisor
+      when:
+        # Skip if hypervisor has been terminated
+        - not ( kvm_host in groups['L1'] )
+      block:
+        
+        - name: gather min facts of hypervisor host
+          setup:
+            gather_subset: 
+              - '!all'
+        
         - name: Cleanup VM owned by its hypervisor
-          import_role:
+          include_role:
             name: jjak0b.ansible_farm.kvm_provision
           vars:
             delete_vm: true
             create_vm: false
             should_remove_all_vm_storage: true
-      
+
       delegate_to: "{{ kvm_host }}"
-      
 
