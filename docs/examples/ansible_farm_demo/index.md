@@ -279,9 +279,210 @@ As you can see you can use these groups to apply some variables or different con
 
 Note: A host like A nested VM is a member of both `hypervisors` and `vms` groups but also about `L1` group. This will be very usefull when we use the ansible playbooks.
 
+
+## Provision phases
+
+We want create some jobs which build, test and eventually notify results of our project.
+The `guest_provision` [role](../../roles/guest_provision.md) allow to perform repeatable tests and build leveraging ansible module idempotence combined with libvirt snapshots.
+
+Project tests usually manage some parts: installation, initialization, test, and return results.
+
+- Installations may be time consuming and require a lot of network bandwidth.
+- inizializations may require same system configurations or project compilations which are often CPU intensive and time consuming
+- tests may require to reset to a previous working checkpoint
+- tests and their output may require some finalization steps before return the output to the user in any form and whenever the tests are successful or not
+- All the previous contexts may require different jobs based on platform and target requirements.
+
+The `guest_provision` role can make it easier to interact with these aspects: 
+
+- Phases and snapshots allow cachable project installations and initializations
+- Snapshots allow to create and reset tests to a custom checkpoint.
+- phases allow to run specific platform (and target) tasks/jobs
+
+Let's show an example of how to define some platform specific jobs for the `VDE` project.
+
+The `guest_provision` role will handle automatically startup, shutdown and cache using snapshots but we need to declare what to do on each provision phase.
+
+We want to create a build job for some platforms we already talk about and assuming that there will be a VM for these platforms that will run the following provisioning phases.
+
+We designate the `provision_phases/VDE` folder for this project use case and we assume that in the managed node's host variables will be assigned the following project-dependent variables:
+
+```yaml
+phases_lookup_dir_path: provision_phases/VDE
+project_id: example_demo.guest
+project_revision: 0
+```
+
+where:
+
+  - `phases_lookup_dir_path` specify the directory path where the provision phases are declared
+  - `project_id` identify your project for snapshot naming
+  - `project_revision` identify the version of the project when using snapshots, or better it's used to identofy which differents snapshots should be used. This may be useful when you want to invalidate the cached phases results, so when the provision phases lifecycle will run again then will use new snapshots name ids eventually running phases from scratch. See the `guest_provision` role docs for more details.
+
+### Dependencies phase
+
+Define the `dependency.yaml` file to handle the **dependency** phase: 
+It will install some dependencies based on the VM 's platform info gathered by system info facts.
+
+```yaml
+- include_tasks: "{{ (phases_lookup_dir_path,  'common-tasks', 'gather_sysinfo.yaml' ) | path_join }}"
+
+- block:
+
+  - include_tasks: "{{ (phases_lookup_dir_path,  'common-tasks', 'sync-clock.yaml' ) | path_join }}"
+
+  - name: Include dependencies using distribution defaults
+    include_vars:
+      file: "{{ ( 'dependencies', ansible_distribution + '.yml' ) | path_join }}"
+    ignore_errors: yes
+    when: dependencies is not defined
+
+  - name: Update packet manager cache
+    package:
+      update_cache: true
+
+  - name: Install dependencies.
+    environment:
+      DEBIAN_FRONTEND: noninteractive
+    package:
+      name: "{{ dependencies | default( [] ) }}"
+      state: "{{ 'latest' if should_upgrade | default( false, true ) else 'present' }}"
+  become: yes
+```
+
+- `provision_phases/VDE/common-tasks/gather_sysinfo.yaml` is an utility task that gather system info of the managed VM node like `gather_facts: yes` does on playbook level:
+
+  ```yaml
+  - name: Gather VM info
+    setup:
+      gather_subset: 
+        - '!all'
+  ```
+
+- `provision_phases/VDE/common-tasks/sync-clock.yaml` is an utility task that make sure system clock is in sync with hardware clock to prevent time mismmatch caused by snapshot restores
+
+  ```yaml
+  - shell:
+      cmd: /usr/sbin/hwclock --hctosys
+  ```
+
+Note: both the builtin ansible `setup` and `shell` module require to use **python** on the managed VM but in some VM images may not available, so you can install it.
+
+This case happens with the `archlinux` platform: We need to define another **dependencies** task file at `provision_phases/VDE/archlinux/dependencies.yaml` and **install python using ansible modules that don't require python** and eventually include other dependency vars and the default **dependencies** task file
+
+```yaml
+- name: Ensure at least python is installed first
+  raw: pacman -Syy python --needed --noconfirm
+  become: true
+
+- include_tasks: "{{ (phases_lookup_dir_path,  'common-tasks/gather_sysinfo.yaml' ) | path_join }}"
+
+- block:
+    - include_tasks: "{{ (phases_lookup_dir_path,  'common-tasks/sync-clock.yaml' ) | path_join }}"
+  become: true
+
+- name: Include dependencies using platform-specific dependencies
+  include_vars:
+    file: "{{ ( phases_lookup_dir_path, 'dependencies', ansible_distribution + '.yml' ) | path_join }}"
+  ignore_errors: yes
+
+- include_tasks: "{{ (phases_lookup_dir_path, 'dependencies.yaml' ) | path_join }}"
+```
+
+### Init phase
+
+The initialization phase is simple and common for all platforms but complex project that require very long compilation times the build process should be declared on the **init** phase, but VDE don't require too much to compile so we can declare the built job in the **main phase**
+
+Note: The init phase is the last phase where snapshot are handled automatically so you can eventually restore to the init snapshot every time you need or create custom snapshots from the main phase.
+
+### Main phase
+
+Create the `main.yaml` which will run after every time a init phases has been restored or completed:
+
+```yaml
+- import_tasks: ./jobs/build.yaml
+```
+
+And create a build job at `provision_phases/VDE/jobs/build.yaml` :
+
+```yaml
+- name: Clone repo
+  ansible.builtin.git:
+    repo: 'https://github.com/virtualsquare/vde-2.git'
+    dest: &prj_dir ~/VDE
+    version: master
+    recursive: true
+
+- name: Resolve working directory
+  ansible.builtin.stat:
+    path: *prj_dir
+  register: working_dir_result
+
+- name: Init conf
+  shell: 
+    cmd: autoreconf -fis
+    chdir: *prj_dir
+
+- name: Configure
+  shell: 
+    cmd: ./configure --prefix=/opt/vde
+    chdir: *prj_dir
+
+- name: Build
+  shell:
+    cmd: make
+    chdir: *prj_dir
+
+- name: Install
+  shell:
+    cmd: make install
+    chdir: "{{ working_dir_result.stat.path }}"
+  become: yes
+
+- name: Smoke test
+  shell:
+    cmd: /opt/vde/bin/vde_switch --version
+  register: smoke_test_res
+
+- debug:
+    msg: "{{ smoke_test_res.stdout }}"
+```
+
+Note: the build job behaves in the same way of the [ci.yaml](https://github.com/virtualsquare/vde-2/blob/master/.github/workflows/ci.yml) github workflow of the official VDE project.
+
+
+At this point we can suppose that we need an hypothetical `jobs/test_01.yaml` that setup a test environment and some VDE features.
+Let's suppose the `test_01.yaml` task ends and leave a dirty environment so we can restore to a previous `init` checkpoint (or a custom one) after the `test_01.yaml`:
+
+```yaml
+- import_tasks: ./jobs/build.yaml
+- import_tasks: ./jobs/test_01.yaml
+
+- name: restore the first snapshot
+  import_role: jjak0b.ansible_farm.libvirt_snapshot
+  vars:
+    restore: "init"
+
+- block:
+    - include_tasks: "{{ (phases_lookup_dir_path,  'common-tasks/sync-clock.yaml' ) | path_join }}"
+  become: true
+
+- import_tasks: ./jobs/test_02.yaml
+- import_tasks: ...
+
+```
+
+### Terminate phase
+
+You can eventually save a report or set facts about the results or other stuff. This phase may be useful since is called whenever any task fail or the VM provision succeeded.
+
+Note: If you restore snapshots You need to save your test report before the snapshot restore operation, otherwise you will lose it
+
+For the VDE project we have no **terminate** phase for now.
+
 ## Playbooks
 
-The Ansible playbooks describe how some jobs should be done and we use Ansible to delegate (or better orchestrate) some tasks to specific hosts, but Ansible allows to target also [specific patterns](https://docs.ansible.com/ansible/latest/inventory_guide/intro_patterns.html) using groups.
+The Ansible playbooks describe how some jobs should be done and we use Ansible to delegate (or better orchestrate) some tasks to run on specific hosts of your inventory, but Ansible allows to target also [specific patterns](https://docs.ansible.com/ansible/latest/inventory_guide/intro_patterns.html) using groups.
 
 Before continue, there are 2 important playbooks that this collection provide since may be often used in most common use cases and so are provided as collection builtin: `init_vm_connection.yaml` and `run_vm_provision.yaml`
 
@@ -353,15 +554,17 @@ Before continue, there are 2 important playbooks that this collection provide si
 
 ### The Farm structure 
 
-This demo will use some playbooks to deploy a VM and provision it with a libvirt and QEMU/KVM hypervisor using the alternative hypervisor setup ([the Ansible way](#The_Ansible_way)) for the completeness of showing the collection features.
+This demo will use some playbooks to deploy a VM and provision it with a libvirt and QEMU/KVM hypervisor using the alternative hypervisor setup ([the Ansible way](#The_Ansible_way) provided in this demo source as the `provisioning_phases/hypervisor` and custom `roles/hypervisor_provision` role) for the completeness of showing the collection features.
 
 After the deploy that host will be added to the `hypervisors` group and will be a candidate during the VM assignement through the `vm_dispatcher` role.
 The configuration of the eventually nested VM's SSH connection will be handled by the `init_vm_connection` whatever its hypervisor is.
 
 We can now assume that there are some hypervisors that can handle the future farm.
 
-Let's describe the farm structure we want build. 
-We want to deploy and provision a VM to become a KVM hypervisor so we can deploy the VM and run the provisioning phases for a custom `hypervisor` project, but that VM must not turn off because must be available for other VM deployments. We can achieve this result with the following plays:
+Let's describe the farm structure we want build:
+
+We want to deploy and provision a VM to become a KVM hypervisor: so we can deploy a VM and run the provisioning phases for a custom `hypervisor` project, but that VM must not be turned off because must be available for other VM deployments.
+We can achieve this result with the following plays:
 
 ```yaml
 - name: Init inventory with a L1 VM on the first reachable L0 hypervisor
@@ -415,7 +618,7 @@ We want to deploy and provision a VM to become a KVM hypervisor so we can deploy
       # - shutdown
 ```
 
-Now we need to distribute VMs and add the plays that will run the VM provisioning lifecycle on the same ansible playbook instance and provision the `VDE` CI use case.
+Now on the same ansible playbook instance we need to distribute VMs and add the plays that will run the VM provisioning lifecycle and provision the `VDE` CI use case:
 
 ```yaml
 - name: Assign and deploy some VMs over all hyperviors based on their capabilities
@@ -490,199 +693,17 @@ After this we can eventually stop the auxiliary L1 VM hypervisor and cleanup all
       delegate_to: "{{ kvm_host }}"
 ```
 
-Hint: This last plays will undefine and delete VM assets and may need this behavior only in some cases, so when we run the playbook, we can append the `--skip-tags delete` flag on terminal to ignore the custom tasks/playbook with that assigned tag.
+Hint: These last plays will undefine and delete VM assets and may need this behavior only in some cases, so when we run the playbook, we can append the `--skip-tags delete` flag on terminal to ignore the custom tasks/playbook with that assigned tag.
 
-
-## Provision phases
-
-We want create some jobs so we can build, test and eventually notify results.
-The `guest_provision` role allow to perform repeatable tests and build leveraging ansible module idempotence combined with libvirt snapshots.
-
-Project tests usually manage some parts: installation, initialization, test, and return results.
-
-- Installations may be time consuming and require a lot of network bandwidth.
-- inizializations may require same system configurations or project compilations which are often CPU intensive and time consuming
-- tests may require to reset to a previous working checkpoint
-- tests and their output may require some finalization steps before return the output to the user in any form and whenever the tests are successful or not
-- All the previous contexts may require different jobs based on platform and target requirements.
-
-The `guest_provision` role can make it easier to interact with these aspects: 
-
-- Phases and snapshots allow cachable project installations and initializations
-- Snapshots allow to create and reset tests to a custom checkpoint.
-- phases allow to run specific platform (and target) tasks/jobs
-
-Let's show an example of how to define some platform specific jobs for the `VDE` project.
-
-Assume that we want to create a build job for some platform we already talk about.
-
-#### Dependencies phase
-
-Define the `dependency.yaml` file to handle the **dependency** phase: 
-It will install some dependencies based on the VM 's platform info gathered by system info facts.
-
-```yaml
-- include_tasks: "{{ (phases_lookup_dir_path,  'common-tasks', 'gather_sysinfo.yaml' ) | path_join }}"
-
-- block:
-
-  - include_tasks: "{{ (phases_lookup_dir_path,  'common-tasks', 'sync-clock.yaml' ) | path_join }}"
-
-  - name: Include dependencies using distribution defaults
-    include_vars:
-      file: "{{ ( 'dependencies', ansible_distribution + '.yml' ) | path_join }}"
-    ignore_errors: yes
-    when: dependencies is not defined
-
-  - name: Update packet manager cache
-    package:
-      update_cache: true
-
-  - name: Install dependencies.
-    environment:
-      DEBIAN_FRONTEND: noninteractive
-    package:
-      name: "{{ dependencies | default( [] ) }}"
-      state: "{{ 'latest' if should_upgrade | default( false, true ) else 'present' }}"
-  become: yes
-```
-
-- `provision_phases/VDE/common-tasks/gather_sysinfo.yaml` is an utility task that gather system info of the managed VM node like `gather_facts: yes` does on playbook level:
-
-  ```yaml
-  - name: Gather VM info
-    setup:
-      gather_subset: 
-        - '!all'
-  ```
-
-- `provision_phases/VDE/common-tasks/sync-clock.yaml` is an utility task that make sure system clock is in sync with hardware clock to prevent time mismmatch caused by snapshot restores
-
-  ```yaml
-  - shell:
-      cmd: /usr/sbin/hwclock --hctosys
-  ```
-
-Note: both the builtin ansible `setup` and `shell` module require to use **python** on the managed VM but in some VM images may not available, so you can install it.
-
-This case happens with the `archlinux` platform: Define another **dependencies** task file at `provision_phases/VDE/archlinux/dependencies.yaml` and **install python using ansible modules that don't require python** and eventually include other dependency vars and the default **dependencies** task file
-
-```yaml
-- name: Ensure at least python is installed first
-  raw: pacman -Syy python --needed --noconfirm
-  become: true
-
-- include_tasks: "{{ (phases_lookup_dir_path,  'common-tasks/gather_sysinfo.yaml' ) | path_join }}"
-
-- block:
-    - include_tasks: "{{ (phases_lookup_dir_path,  'common-tasks/sync-clock.yaml' ) | path_join }}"
-  become: true
-
-- name: Include dependencies using platform-specific dependencies
-  include_vars:
-    file: "{{ ( phases_lookup_dir_path, 'dependencies', ansible_distribution + '.yml' ) | path_join }}"
-  ignore_errors: yes
-
-- include_tasks: "{{ (phases_lookup_dir_path, 'dependencies.yaml' ) | path_join }}"
-```
-
-#### Init phase
-
-The initialization phase is simple and common for all platforms but complex project that require very long compilation times the build process should be declared on the **init** phase, but VDE don't require too much to compile so we can declare the built job in the **main phase**
-
-Note: The init phase is the last phase where snapshot are handled automatically so you can eventually restore to the init snapshot every time you need or create custom snapshots from the main phase.
-
-#### Main phase
-
-Create the `main.yaml`:
-
-```yaml
-- import_tasks: ./jobs/build.yaml
-```
-
-And create a build job at `provision_phases/VDE/jobs/build.yaml` :
-
-```yaml
-- name: Clone repo
-  ansible.builtin.git:
-    repo: 'https://github.com/virtualsquare/vde-2.git'
-    dest: &prj_dir ~/VDE
-    version: master
-    recursive: true
-
-- name: Resolve working directory
-  ansible.builtin.stat:
-    path: *prj_dir
-  register: working_dir_result
-
-- name: Init conf
-  shell: 
-    cmd: autoreconf -fis
-    chdir: *prj_dir
-
-- name: Configure
-  shell: 
-    cmd: ./configure --prefix=/opt/vde
-    chdir: *prj_dir
-
-- name: Build
-  shell:
-    cmd: make
-    chdir: *prj_dir
-
-- name: Install
-  shell:
-    cmd: make install
-    chdir: "{{ working_dir_result.stat.path }}"
-  become: yes
-
-- name: Smoke test
-  shell:
-    cmd: /opt/vde/bin/vde_switch --version
-  register: smoke_test_res
-
-- debug:
-    msg: "{{ smoke_test_res.stdout }}"
-```
-
-Note: the build job behaves in the same way of the [ci.yaml](https://github.com/virtualsquare/vde-2/blob/master/.github/workflows/ci.yml) github workflow of the official VDE project.
-
-
-At this point we can suppose that we need a `jobs/test_01.yaml` that setup a test environment and some VDE features.
-Let's suppose the `test_01.yaml` task ends and leave a dirty environment so we can restore to a previous `init` checkpoint (or a custom one) after the `test_01.yaml`:
-
-```yaml
-- import_tasks: ./jobs/build.yaml
-- import_tasks: ./jobs/test_01.yaml
-
-- name: restore the first snapshot
-  import_role: jjak0b.ansible_farm.libvirt_snapshot
-  vars:
-    restore: "init"
-
-- block:
-    - include_tasks: "{{ (phases_lookup_dir_path,  'common-tasks/sync-clock.yaml' ) | path_join }}"
-  become: true
-
-- import_tasks: ./jobs/test_02.yaml
-- import_tasks: ...
-```
-
-### Terminate phase
-
-You can eventually save a report or set facts about the results or other stuff. This phase may be useful since is called whenever any task fail or the VM provision succeeded.
-
-Note: If you restore snapshots You need to save your test report before the snapshot restore operation, otherwise you will lose it
-
-For the VDE project we have no **terminate** phase for now.
+Note: In the playbook code there are no reference about which platforms or targets should be deployed. There are only aliases of the groups we defined previously. This keep the code clean and parametric for generic usage.
 
 ## Platforms and targets
 
-The platforms and targets we defined in the inventory VM configuration must be istanciated to VM definitions containing the virtual machines informations needed to tell libvirt which devices and components we need through the `kvm_provision` role.
+The platforms and targets we defined in the inventory VM configuration must be istanciated to VM definitions variables containing the virtual machines informations needed to tell libvirt which devices and components we need through the `kvm_provision` [role](../../roles/kvm_provision.md).
 
-Libvirt can't define some details like an image setup preprocessing, system credentials for user authentication, last image version checks, etc ...
+Libvirt can't define some details like an image setup preprocessing, system credentials for user authentication, last image version checks, etc ... so we use Ansible to do this.
 
-A libvirt template is used to define the VM using some custom data and metadata defined in an istanciated VM definition, and other entries of the VM definition are used to declare **how** VM assets need to be elaborated first and installed later to work correctly.
+A libvirt template is used to define the VM using some custom data and metadata properties defined in an istanciated `VM definition`, and other entries of the VM definition are used to declare **how** VM assets need to be elaborated first and installed later to work correctly.
 Some of these important metadata are called *callback-tasks* which describe a task on an VM asset.
 
 The `VM definitions` are variables or facts which are set from custom task files with the same filename of the platform's name and target's name.
@@ -937,10 +958,17 @@ Others platforms definitions follow the same definition concept.
 
 For more information about supported network types see the `init_vm_connection` [role](../../roles/init_vm_connection.md) and the VM definition [scheme](../../objects/vm_definition.md).
 
+## Run
+
+When you finish to define platforms, targets, inventory, playbook, and provision phases you can finally run the main playbook with
+
+```
+ANSIBLE_CONFIG=ansible.cfg ansible-playbook main.yaml
+```
 
 ### Reuse farm structure in different projects
 
-You can use the same farm structure for multiple projects if you create a parametric playbook that get the project's provision phases variables from other sources instead from static variables defined in the playbook with the [Ansible variables precedence rules](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_variables.html#variable-precedence-where-should-i-put-a-variable).
+You can use the same farm structure for multiple projects if you create a parametric playbook that get the project's provision phases variables from other sources instead from static variables defined in the playbook using the [Ansible variables precedence rules](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_variables.html#variable-precedence-where-should-i-put-a-variable).
 
 The [example 04 show this use case](../example_04_test_farm/index.md) by defining the variables that depends by the project in a separate variable `vars/vde.yaml` file:
 
@@ -958,5 +986,5 @@ ANSIBLE_CONFIG=ansible.cfg ansible-playbook main.yaml --extra-vars "@vars/vde.ya
 
 # Conclusion
 
-After a general showcase of what this collection can do i recommend to see also all provide examples which cover each role in depth with some explanations and details.
+After a general showcase of what this collection can do, i recommend to read also all provided examples which cover each role in depth with some explanations and details.
 
