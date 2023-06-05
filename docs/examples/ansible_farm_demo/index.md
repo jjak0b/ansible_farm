@@ -56,7 +56,7 @@ apt-get install --no-install-recommends -y qemu-kvm
 exit
 ```
 
-Note: If your project will onnect to `qemu:///system ` uri you have to add the user to the `libvirt` group, otherwise you can connect `qemu:///session` uri without adding the user to any group. For more details see the libvirt documentation according to your system.
+Note: If your project will connect to `qemu:///system ` uri you have to add the user to the `libvirt` group, otherwise you can connect `qemu:///session` uri without adding the user to any group. For more details see the libvirt documentation according to your system.
 
 Prepare the images pool location where virtual machine disks will be stored if it doesn't exist
 
@@ -490,15 +490,8 @@ After this we can eventually stop the auxiliary L1 VM hypervisor and cleanup all
       delegate_to: "{{ kvm_host }}"
 ```
 
-Note: This last plays will undefine and delete VM assets and may need this behavior only in some cases, so we can call the playbook appending the `--skip-tags delete` flag on terminal to ignore the custom tasks/playbook with that assigned tag.
+Hint: This last plays will undefine and delete VM assets and may need this behavior only in some cases, so when we run the playbook, we can append the `--skip-tags delete` flag on terminal to ignore the custom tasks/playbook with that assigned tag.
 
-### Run
-
-When you finish to define platforms, targets, inventory, playbook, and provision phases you can finally run the main playbook with
-
-```
-ANSIBLE_CONFIG=ansible.cfg ansible-playbook main.yaml
-```
 
 ## Provision phases
 
@@ -595,7 +588,7 @@ This case happens with the `archlinux` platform: Define another **dependencies**
 
 #### Init phase
 
-The initialization phase is simple and common for all platforms, for complex project that require very long compilation times the build process should be declared on the **init** phase, but VDE don't require too much to compile so we can declare the built job in the **main phase**
+The initialization phase is simple and common for all platforms but complex project that require very long compilation times the build process should be declared on the **init** phase, but VDE don't require too much to compile so we can declare the built job in the **main phase**
 
 Note: The init phase is the last phase where snapshot are handled automatically so you can eventually restore to the init snapshot every time you need or create custom snapshots from the main phase.
 
@@ -656,8 +649,7 @@ Note: the build job behaves in the same way of the [ci.yaml](https://github.com/
 
 
 At this point we can suppose that we need a `jobs/test_01.yaml` that setup a test environment and some VDE features.
-
-When the `test_01.yaml` finish the environment may leave a dirty environment so we can restore to a previous `init` checkpoint (or a custom one) after the `test_01.yaml` import and so sync the system clock:
+Let's suppose the `test_01.yaml` task ends and leave a dirty environment so we can restore to a previous `init` checkpoint (or a custom one) after the `test_01.yaml`:
 
 ```yaml
 - import_tasks: ./jobs/build.yaml
@@ -943,7 +935,26 @@ This is the generic `debian_cloud` platform definition:
 
 Others platforms definitions follow the same definition concept.
 
-For more information about supported network types see the `init_vm_connection` role and the VM definition [scheme](../../objects/vm_definition.md).
+For more information about supported network types see the `init_vm_connection` [role](../../roles/init_vm_connection.md) and the VM definition [scheme](../../objects/vm_definition.md).
+
+
+### Reuse farm structure in different projects
+
+You can use the same farm structure for multiple projects if you create a parametric playbook that get the project's provision phases variables from other sources instead from static variables defined in the playbook with the [Ansible variables precedence rules](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_variables.html#variable-precedence-where-should-i-put-a-variable).
+
+The [example 04 show this use case](../example_04_test_farm/index.md) by defining the variables that depends by the project in a separate variable `vars/vde.yaml` file:
+
+```
+phases_lookup_dir_path: provision_phases/VDE
+project_id: example_demo.guest
+project_revision: 0
+```
+
+And run the project with the shared farm structure with the following command:
+
+```
+ANSIBLE_CONFIG=ansible.cfg ansible-playbook main.yaml --extra-vars "@vars/vde.yaml"
+```
 
 # Conclusion
 
